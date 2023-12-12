@@ -1,5 +1,11 @@
 import { PlanEntity } from 'src/plans/entities/plan.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('plan-categories')
 export class PlanCategoryEntity {
@@ -10,5 +16,6 @@ export class PlanCategoryEntity {
   name: string;
 
   @OneToMany(() => PlanEntity, (plan) => plan.category)
+  // @JoinColumn({ name: 'plans' })
   plans: PlanEntity[];
 }

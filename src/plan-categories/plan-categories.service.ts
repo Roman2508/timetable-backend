@@ -16,19 +16,22 @@ export class PlanCategoriesService {
     return this.repository.find();
   }
 
-  create(createPlanCategoryDto: CreatePlanCategoryDto) {
-    return this.repository.create(createPlanCategoryDto);
+  create(dto: CreatePlanCategoryDto) {
+    const newCategory = { name: dto.name, plans: [] };
+
+    const plansCategory = this.repository.create(newCategory);
+    return this.repository.save(plansCategory);
   }
 
   // findOne(id: number) {
   //   return `This action returns a #${id} planCategory`;
   // }
 
-  update(id: number, updatePlanCategoryDto: UpdatePlanCategoryDto) {
-    return `This action updates a #${id} planCategory`;
-  }
+  // update(id: number, updatePlanCategoryDto: UpdatePlanCategoryDto) {
+  //   return `This action updates a #${id} planCategory`;
+  // }
 
-  remove(id: number) {
-    return `This action removes a #${id} planCategory`;
-  }
+  // remove(id: number) {
+  //   return `This action removes a #${id} planCategory`;
+  // }
 }

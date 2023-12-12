@@ -7,6 +7,7 @@ export class PlanSubjectEntity {
   id: number;
 
   @ManyToOne(() => PlanEntity, (plan) => plan.subjects)
+  // @JoinColumn({ name: 'plan' })
   plan: PlanEntity;
 
   @Column()
@@ -16,29 +17,29 @@ export class PlanSubjectEntity {
   totalHours: number;
 
   @Column()
-  semesterNubmber: number;
+  semesterNumber: number;
 
   @Column()
-  lectures: string;
+  lectures?: number;
 
   @Column()
-  practical: number;
+  practical?: number;
 
   @Column()
-  laboratory: number;
+  laboratory?: number;
 
   @Column()
-  seminars: number;
+  seminars?: number;
 
   @Column()
-  exams: number;
+  exams?: number;
 
   @Column()
-  examsConsulation: number;
+  examsConsulation?: number;
 
   @Column()
-  metodologicalGuidance: number;
+  metodologicalGuidance?: number;
 
   @Column()
-  independentWork: number;
+  independentWork?: number;
 }

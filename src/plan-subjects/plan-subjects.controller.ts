@@ -6,21 +6,27 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { PlanSubjectsService } from './plan-subjects.service';
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
 import { UpdatePlanSubjectDto } from './dto/update-plan-subject.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 
 @Controller('plan-subjects')
 @ApiTags('plan-subjects')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class PlanSubjectsController {
   constructor(private readonly planSubjectsService: PlanSubjectsService) {}
 
-  // @Post()
-  // create(@Body() createPlanSubjectDto: CreatePlanSubjectDto) {
-  //   return this.planSubjectsService.create(createPlanSubjectDto);
-  // }
+  @ApiBody({ type: CreatePlanSubjectDto })
+  @Post()
+  create(@Body() dto: CreatePlanSubjectDto) {
+    console.log(dto, 'plan-subject.controller.ts');
+    return this.planSubjectsService.create(dto);
+  }
 
   // @Get()
   // findAll() {

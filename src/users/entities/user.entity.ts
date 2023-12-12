@@ -6,10 +6,13 @@ export class UserEntity {
   id: number;
 
   @Column()
-  name: string;
+  fullName: string;
 
   @Column()
   password: string;
+
+  @Column({ default: 'user' })
+  access: 'admin' | 'user';
 
   @Column()
   email: string;

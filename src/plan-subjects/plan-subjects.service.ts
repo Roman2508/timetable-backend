@@ -12,8 +12,17 @@ export class PlanSubjectsService {
     private repository: Repository<PlanSubjectEntity>,
   ) {}
 
-  create(createPlanSubjectDto: CreatePlanSubjectDto) {
-    return 'This action adds a new planSubject';
+  create(dto: CreatePlanSubjectDto) {
+    const newSubject = {
+      ...dto,
+      plan: { id: dto.planId },
+    };
+
+    console.log(newSubject, 'plan-subject.service.ts');
+
+    const subject = this.repository.create(newSubject);
+
+    return this.repository.save(subject);
   }
 
   // findAll() {

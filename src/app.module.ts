@@ -12,7 +12,7 @@ import { PlanSubjectEntity } from './plan-subjects/entities/plan-subject.entity'
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { AuthclearService } from './auth/auth.service';
+import { UserEntity } from './users/entities/user.entity';
 
 @Module({
   imports: [
@@ -24,7 +24,7 @@ import { AuthclearService } from './auth/auth.service';
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [PlanCategoryEntity, PlanEntity, PlanSubjectEntity],
+      entities: [PlanCategoryEntity, PlanEntity, PlanSubjectEntity, UserEntity],
       synchronize: true,
     }),
     PlansModule,
@@ -32,8 +32,8 @@ import { AuthclearService } from './auth/auth.service';
     PlanSubjectsModule,
     UsersModule,
     AuthModule,
-  ], 
+  ],
   controllers: [AppController],
-  providers: [AppService, AuthclearService],
+  providers: [AppService],
 })
 export class AppModule {}
