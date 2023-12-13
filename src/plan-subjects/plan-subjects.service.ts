@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
-import { UpdatePlanSubjectDto } from './dto/update-plan-subject.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { PlanSubjectEntity } from './entities/plan-subject.entity';
 import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { PlanSubjectEntity } from './entities/plan-subject.entity';
+import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
+import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto';
+import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto';
 
 @Injectable()
 export class PlanSubjectsService {
@@ -14,30 +16,71 @@ export class PlanSubjectsService {
 
   create(dto: CreatePlanSubjectDto) {
     const newSubject = {
-      ...dto,
+      name: dto.name,
       plan: { id: dto.planId },
     };
-
-    console.log(newSubject, 'plan-subject.service.ts');
 
     const subject = this.repository.create(newSubject);
 
     return this.repository.save(subject);
   }
 
-  // findAll() {
-  //   return this.repository.find;
-  // }
-
   async findOne(id: number) {
     return this.repository.findOneBy({ id });
   }
 
-  update(id: number, updatePlanSubjectDto: UpdatePlanSubjectDto) {
-    return `This action updates a #${id} planSubject`;
+  async updateName(id: number, dto: UpdatePlanSubjectNameDto) {
+    // find all subjects by plan id
+    const subject = await this.repository.find({
+      where: { plan: { id }, name: dto.oldName },
+    });
+
+    if (!subject.length) {
+      throw new NotFoundException('Дисципліну не знайдено');
+    }
+
+    // select all ids in updating subjects
+    const subjectsIds = subject.map((el) => el.id);
+
+    // update all subjects by id
+    await this.repository
+      .createQueryBuilder('updateSubjects')
+      .update(PlanSubjectEntity)
+      .set({ name: dto.newName })
+      .whereInIds(subjectsIds)
+      .execute();
+
+    const updatedSubjects = subjectsIds.map((el) => ({
+      id: el,
+      name: dto.newName,
+    }));
+
+    return updatedSubjects;
+  }
+
+  async updateHours(id: number, dto: UpdatePlanSubjectHoursDto) {
+    const subject = await this.repository.find({ where: { id } });
+
+    if (!subject[0]) {
+      throw new NotFoundException('Дисципліну не знайдено');
+    }
+
+    const updatedSubjects = { ...subject[0], ...dto };
+
+    let totalHours = 0;
+    const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];
+
+    for (const propName in updatedSubjects) {
+      if (allLessonsNames.some((el) => propName === el)) {
+        totalHours += updatedSubjects[propName];
+      }
+    }
+
+    return this.repository.save({ ...updatedSubjects, totalHours });
   }
 
   remove(id: number) {
-    return this.repository.delete({ id });
+    this.repository.delete({ id });
+    return id;
   }
 }

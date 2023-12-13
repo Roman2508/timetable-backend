@@ -13,6 +13,10 @@ import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { UserEntity } from './users/entities/user.entity';
+import { TeacherCategoriesModule } from './teacher-categories/teacher-categories.module';
+import { TeachersModule } from './teachers/teachers.module';
+import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-category.entity';
+import { TeacherEntity } from './teachers/entities/teacher.entity';
 
 @Module({
   imports: [
@@ -24,14 +28,27 @@ import { UserEntity } from './users/entities/user.entity';
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [PlanCategoryEntity, PlanEntity, PlanSubjectEntity, UserEntity],
+      entities: [
+        PlanCategoryEntity,
+        PlanEntity,
+        PlanSubjectEntity,
+
+        UserEntity,
+
+        TeacherCategoryEntity,
+        TeacherEntity,
+      ],
       synchronize: true,
     }),
-    PlansModule,
     PlanCategoriesModule,
+    PlansModule,
     PlanSubjectsModule,
+
     UsersModule,
     AuthModule,
+
+    TeacherCategoriesModule,
+    TeachersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

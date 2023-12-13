@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { CreatePlanCategoryDto } from './dto/create-plan-category.dto';
 import { UpdatePlanCategoryDto } from './dto/update-plan-category.dto';
-import { InjectRepository } from '@nestjs/typeorm';
 import { PlanCategoryEntity } from './entities/plan-category.entity';
-import { Repository } from 'typeorm';
 
 @Injectable()
 export class PlanCategoriesService {
@@ -13,7 +13,11 @@ export class PlanCategoriesService {
   ) {}
 
   findAll() {
-    return this.repository.find();
+    return this.repository.find({
+      relations: {
+        plans: true,
+      },
+    });
   }
 
   create(dto: CreatePlanCategoryDto) {
@@ -23,15 +27,18 @@ export class PlanCategoriesService {
     return this.repository.save(plansCategory);
   }
 
-  // findOne(id: number) {
-  //   return `This action returns a #${id} planCategory`;
-  // }
+  async update(id: number, dto: UpdatePlanCategoryDto) {
+    const planCategory = await this.repository.findBy({ id });
+    if (!planCategory[0]) {
+      throw new NotFoundException('Категорія не знайдена');
+    }
 
-  // update(id: number, updatePlanCategoryDto: UpdatePlanCategoryDto) {
-  //   return `This action updates a #${id} planCategory`;
-  // }
+    return this.repository.save({ ...planCategory[0], ...dto });
+  }
 
-  // remove(id: number) {
-  //   return `This action removes a #${id} planCategory`;
-  // }
+  remove(id: number) {
+    this.repository.delete(id);
+
+    return id;
+  }
 }

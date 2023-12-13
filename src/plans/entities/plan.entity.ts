@@ -14,12 +14,12 @@ export class PlanEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column()
+  name: string;
+
   @ManyToOne(() => PlanCategoryEntity, (planCategory) => planCategory.plans)
   @JoinColumn({ name: 'category' })
   category: PlanCategoryEntity;
-
-  @Column()
-  name: string;
 
   @OneToMany(() => PlanSubjectEntity, (planSubjects) => planSubjects.plan)
   @JoinColumn({ name: 'subjects' })

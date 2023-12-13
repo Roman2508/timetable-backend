@@ -8,11 +8,13 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { PlanSubjectsService } from './plan-subjects.service';
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
-import { UpdatePlanSubjectDto } from './dto/update-plan-subject.dto';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto';
+import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto';
 
 @Controller('plan-subjects')
 @ApiTags('plan-subjects')
@@ -24,30 +26,24 @@ export class PlanSubjectsController {
   @ApiBody({ type: CreatePlanSubjectDto })
   @Post()
   create(@Body() dto: CreatePlanSubjectDto) {
-    console.log(dto, 'plan-subject.controller.ts');
     return this.planSubjectsService.create(dto);
   }
 
-  // @Get()
-  // findAll() {
-  //   return this.planSubjectsService.findAll();
-  // }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.planSubjectsService.findOne(+id);
+  @ApiBody({ type: UpdatePlanSubjectNameDto })
+  @Patch('name/:id')
+  updateName(@Param('id') id: string, @Body() dto: UpdatePlanSubjectNameDto) {
+    return this.planSubjectsService.updateName(+id, dto);
   }
 
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updatePlanSubjectDto: UpdatePlanSubjectDto,
-  ) {
-    return this.planSubjectsService.update(+id, updatePlanSubjectDto);
+  @ApiBody({ type: UpdatePlanSubjectHoursDto })
+  @Patch('hours/:id')
+  updateHours(@Param('id') id: string, @Body() dto: UpdatePlanSubjectHoursDto) {
+    return this.planSubjectsService.updateHours(+id, dto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.planSubjectsService.remove(+id);
+    this.planSubjectsService.remove(+id);
+    return id;
   }
 }

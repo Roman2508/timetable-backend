@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PlanEntity } from './entities/plan.entity';
 import { CreatePlanDto } from './dto/create-plan.dto';
@@ -23,19 +23,40 @@ export class PlansService {
     return this.repository.save(plan);
   }
 
-  findAll() {
-    return `This action returns all plans`;
+  findOne(id: number) {
+    return this.repository.find({
+      where: { id },
+      relations: { subjects: true },
+    });
   }
 
-  // findOne(id: number) {
-  //   return `This action returns a #${id} plan`;
-  // }
+  async update(id: number, dto: UpdatePlanDto) {
+    const plan = await this.repository.find({ where: { id } });
 
-  // update(id: number, updatePlanDto: UpdatePlanDto) {
-  //   return `This action updates a #${id} plan`;
-  // }
+    if (!plan[0]) {
+      throw new NotFoundException('План не знайдено');
+    }
 
-  // remove(id: number) {
-  //   return `This action removes a #${id} plan`;
-  // }
+    return this.repository.save({ ...plan[0], ...dto });
+  }
+
+  remove(id: number) {
+    this.repository.delete(id);
+
+    return id;
+  }
 }
+
+// async findAll() {
+// return this.repository.find({
+//   relations: {
+//     category: true,
+//   },
+// });
+// const qb = await this.repository
+// .createQueryBuilder('plan')
+// .select(['plan.id', 'plan.name'])
+// .leftJoin('plan.category', 'category')
+// .getMany();
+// return qb;
+// }

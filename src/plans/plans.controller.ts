@@ -27,23 +27,19 @@ export class PlansController {
     return this.plansService.create(createPlanDto);
   }
 
-  @Get()
-  findAll() {
-    return this.plansService.findAll();
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.plansService.findOne(+id);
   }
 
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.plansService.findOne(+id);
-  // }
+  @ApiBody({ type: UpdatePlanDto })
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdatePlanDto) {
+    return this.plansService.update(+id, dto);
+  }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updatePlanDto: UpdatePlanDto) {
-  //   return this.plansService.update(+id, updatePlanDto);
-  // }
-
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.plansService.remove(+id);
-  // }
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.plansService.remove(+id);
+  }
 }

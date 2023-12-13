@@ -32,21 +32,14 @@ export class PlanCategoriesController {
     return this.planCategoriesService.create(createPlanCategoryDto);
   }
 
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.planCategoriesService.findOne(+id);
-  // }
+  @ApiBody({ type: UpdatePlanCategoryDto })
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdatePlanCategoryDto) {
+    return this.planCategoriesService.update(+id, dto);
+  }
 
-  // @Patch(':id')
-  // update(
-  //   @Param('id') id: string,
-  //   @Body() updatePlanCategoryDto: UpdatePlanCategoryDto,
-  // ) {
-  //   return this.planCategoriesService.update(+id, updatePlanCategoryDto);
-  // }
-
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.planCategoriesService.remove(+id);
-  // }
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.planCategoriesService.remove(+id);
+  }
 }
