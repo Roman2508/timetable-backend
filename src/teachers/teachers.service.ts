@@ -1,26 +1,62 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { TeacherEntity } from './entities/teacher.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class TeachersService {
-  create(createTeacherDto: CreateTeacherDto) {
-    return 'This action adds a new teacher';
-  }
+  constructor(
+    @InjectRepository(TeacherEntity)
+    private repository: Repository<TeacherEntity>,
+  ) {}
 
   findAll() {
-    return `This action returns all teachers`;
+    return this.repository.find({
+      relations: {
+        category: true,
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} teacher`;
+  create(dto: CreateTeacherDto) {
+    const newTeacher = this.repository.create({
+      firstName: dto.firstName,
+      middleName: dto.middleName,
+      lastName: dto.lastName,
+      category: { id: dto.category },
+    });
+
+    return this.repository.save(newTeacher);
   }
 
-  update(id: number, updateTeacherDto: UpdateTeacherDto) {
-    return `This action updates a #${id} teacher`;
+  async update(id: number, dto: UpdateTeacherDto) {
+    const teacher = await this.repository.findOne({
+      where: { id },
+      relations: { category: true },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException();
+    }
+
+    const { category, ...rest } = dto;
+
+    return this.repository.save({
+      ...teacher,
+      ...rest,
+      category: { id: category },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} teacher`;
+  async remove(id: number) {
+    const res = await this.repository.delete(id);
+
+    if (res.affected === 0) {
+      throw new NotFoundException('Не знайдено');
+    }
+
+    return id;
   }
 }

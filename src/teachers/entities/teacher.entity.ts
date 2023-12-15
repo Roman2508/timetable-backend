@@ -1,7 +1,7 @@
 import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity()
+@Entity('teacher')
 export class TeacherEntity {
   @PrimaryGeneratedColumn()
   id: number;

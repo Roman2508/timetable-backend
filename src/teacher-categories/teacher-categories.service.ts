@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { TeacherCategoryEntity } from './entities/teacher-category.entity';
@@ -14,7 +14,11 @@ export class TeacherCategoriesService {
   ) {}
 
   findAll() {
-    return this.repository.find();
+    return this.repository.find({
+      relations: {
+        teachers: true,
+      },
+    });
   }
 
   create(dto: CreateTeacherCategoryDto) {
@@ -22,17 +26,28 @@ export class TeacherCategoriesService {
     return this.repository.save(newCategory);
   }
 
-  update(id: number, dto: UpdateTeacherCategoryDto) {
-    const teacherCategory = 1
+  async update(id: number, dto: UpdateTeacherCategoryDto) {
+    const teacherCategory = await this.repository.findOne({
+      where: { id },
+      relations: {
+        teachers: true,
+      },
+    });
 
-    return `This action updates a #${id} teacherCategory`;
+    if (!teacherCategory) {
+      throw new NotFoundException('Не знайдено');
+    }
+
+    return this.repository.save({ ...teacherCategory, name: dto.name });
   }
 
-  // findOne(id: number) {
-  //   return `This action returns a #${id} teacherCategory`;
-  // }
+  async remove(id: number) {
+    const res = await this.repository.delete(id);
 
-  // remove(id: number) {
-  //   return `This action removes a #${id} teacherCategory`;
-  // }
+    if (res.affected === 0) {
+      throw new NotFoundException('Не знайдено');
+    }
+
+    return id;
+  }
 }

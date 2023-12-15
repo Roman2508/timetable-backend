@@ -36,20 +36,12 @@ export class TeacherCategoriesController {
   }
 
   @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateTeacherCategoryDto,
-  ) {
+  update(@Param('id') id: string, @Body() dto: UpdateTeacherCategoryDto) {
     return this.teacherCategoriesService.update(+id, dto);
   }
 
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.teacherCategoriesService.findOne(+id);
-  // }
-
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.teacherCategoriesService.remove(+id);
-  // }
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.teacherCategoriesService.remove(+id);
+  }
 }
