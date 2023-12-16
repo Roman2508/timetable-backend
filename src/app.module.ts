@@ -21,6 +21,10 @@ import { TeacherCategoriesModule } from './teacher-categories/teacher-categories
 import { AuditoryCategoriesModule } from './auditory-categories/auditory-categories.module';
 import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-category.entity';
 import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
+import { GroupCategoriesModule } from './group-categories/group-categories.module';
+import { GroupsModule } from './groups/groups.module';
+import { GroupCategoryEntity } from './group-categories/entities/group-category.entity';
+import { GroupEntity } from './groups/entities/group.entity';
 
 @Module({
   imports: [
@@ -41,6 +45,8 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
         TeacherEntity,
         AuditoryCategoryEntity,
         AuditoryEntity,
+        GroupCategoryEntity,
+        GroupEntity,
       ],
       synchronize: true,
     }),
@@ -53,6 +59,8 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
     TeachersModule,
     AuditoryCategoriesModule,
     AuditoriesModule,
+    GroupCategoriesModule,
+    GroupsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -29,5 +29,6 @@ bootstrap();
 /* teachers */
 
 /* groups ??? */
+/* streams ??? */
 /* load ??? */
 /* schedule ??? */

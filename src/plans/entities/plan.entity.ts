@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { PlanCategoryEntity } from 'src/plan-categories/entities/plan-category.entity';
 import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
+import { GroupEntity } from 'src/groups/entities/group.entity';
 
 @Entity('plans')
 export class PlanEntity {
@@ -24,4 +25,8 @@ export class PlanEntity {
   @OneToMany(() => PlanSubjectEntity, (planSubjects) => planSubjects.plan)
   @JoinColumn({ name: 'subjects' })
   subjects: PlanSubjectEntity[];
+
+  @OneToMany(() => GroupEntity, (group) => group.educationPlan)
+  @JoinColumn({ name: 'groups' })
+  groups: PlanSubjectEntity[];
 }
