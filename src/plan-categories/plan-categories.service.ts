@@ -29,6 +29,7 @@ export class PlanCategoriesService {
 
   async update(id: number, dto: UpdatePlanCategoryDto) {
     const planCategory = await this.repository.findBy({ id });
+
     if (!planCategory[0]) {
       throw new NotFoundException('Категорія не знайдена');
     }
@@ -36,8 +37,12 @@ export class PlanCategoriesService {
     return this.repository.save({ ...planCategory[0], ...dto });
   }
 
-  remove(id: number) {
-    this.repository.delete(id);
+  async remove(id: number) {
+    const res = await this.repository.delete(id);
+
+    if (res.affected === 0) {
+      throw new NotFoundException('Не знайдено');
+    }
 
     return id;
   }

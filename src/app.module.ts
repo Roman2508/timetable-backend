@@ -1,22 +1,26 @@
 import { Module } from '@nestjs/common';
 
 import { AppService } from './app.service';
-import { AppController } from './app.controller';
-import { PlansModule } from './plans/plans.module';
-import { PlanCategoriesModule } from './plan-categories/plan-categories.module';
-import { PlanSubjectsModule } from './plan-subjects/plan-subjects.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { PlanCategoryEntity } from './plan-categories/entities/plan-category.entity';
-import { PlanEntity } from './plans/entities/plan.entity';
-import { PlanSubjectEntity } from './plan-subjects/entities/plan-subject.entity';
 import { ConfigModule } from '@nestjs/config';
-import { UsersModule } from './users/users.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { AppController } from './app.controller';
+import { UsersModule } from './users/users.module';
+import { PlansModule } from './plans/plans.module';
 import { UserEntity } from './users/entities/user.entity';
-import { TeacherCategoriesModule } from './teacher-categories/teacher-categories.module';
+import { PlanEntity } from './plans/entities/plan.entity';
 import { TeachersModule } from './teachers/teachers.module';
-import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-category.entity';
+import { AuditoriesModule } from './auditories/auditories.module';
 import { TeacherEntity } from './teachers/entities/teacher.entity';
+import { AuditoryEntity } from './auditories/entities/auditory.entity';
+import { PlanSubjectsModule } from './plan-subjects/plan-subjects.module';
+import { PlanCategoriesModule } from './plan-categories/plan-categories.module';
+import { PlanSubjectEntity } from './plan-subjects/entities/plan-subject.entity';
+import { PlanCategoryEntity } from './plan-categories/entities/plan-category.entity';
+import { TeacherCategoriesModule } from './teacher-categories/teacher-categories.module';
+import { AuditoryCategoriesModule } from './auditory-categories/auditory-categories.module';
+import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-category.entity';
+import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
 
 @Module({
   imports: [
@@ -32,23 +36,23 @@ import { TeacherEntity } from './teachers/entities/teacher.entity';
         PlanCategoryEntity,
         PlanEntity,
         PlanSubjectEntity,
-
         UserEntity,
-
         TeacherCategoryEntity,
         TeacherEntity,
+        AuditoryCategoryEntity,
+        AuditoryEntity,
       ],
       synchronize: true,
     }),
     PlanCategoriesModule,
     PlansModule,
     PlanSubjectsModule,
-
     UsersModule,
     AuthModule,
-
     TeacherCategoriesModule,
     TeachersModule,
+    AuditoryCategoriesModule,
+    AuditoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

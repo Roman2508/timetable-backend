@@ -23,3 +23,11 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+/* plans */
+/* auditories */
+/* teachers */
+
+/* groups ??? */
+/* load ??? */
+/* schedule ??? */
