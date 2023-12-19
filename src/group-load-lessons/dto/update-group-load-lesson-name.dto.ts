@@ -1,7 +1,7 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { CreateGroupLoadLessonDto } from './create-group-load-lesson.dto';
 
-export class UpdateGroupLoadLessonDto {
+export class UpdateGroupLoadLessonNameDto {
   @ApiProperty()
   planSubjectId: number;
 

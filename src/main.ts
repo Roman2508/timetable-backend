@@ -32,3 +32,5 @@ bootstrap();
 /* streams ??? */
 /* load ??? */
 /* schedule ??? */
+
+// examsConsultation, metodologicalGuidance - створювати для цих видів зянять group-load-lessons !!!

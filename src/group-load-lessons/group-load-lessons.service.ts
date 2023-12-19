@@ -4,11 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
-import { UpdateGroupLoadLessonDto } from './dto/update-group-load-lesson.dto';
+import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GroupLoadLessonEntity } from './entities/group-load-lesson.entity';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
+import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -20,6 +21,70 @@ export class GroupLoadLessonsService {
     private planSubjectsRepository: Repository<PlanSubjectEntity>,
   ) {}
 
+  convertPlanSubjectsToGroupLoadLessons(
+    planSubjects: PlanSubjectEntity[],
+    groupId: number,
+    planId: number,
+    students: number,
+  ) {
+    const groupLoadLessons: DeepPartial<GroupLoadLessonEntity>[] /* GroupLoadLessonEntity[] */ =
+      [];
+
+    const subjectTypes = [
+      { name: 'lectures', alias: { ru: 'ЛК', en: 'lectures' } },
+      { name: 'practical', alias: { ru: 'ПЗ', en: 'practical' } },
+      { name: 'laboratory', alias: { ru: 'ЛАБ', en: 'laboratory' } },
+      { name: 'seminars', alias: { ru: 'СЕМ', en: 'seminars' } },
+      { name: 'exams', alias: { ru: 'ЕКЗ', en: 'exams' } },
+      {
+        name: 'examsConsulation',
+        alias: { ru: 'КОНС', en: 'examsConsulation' },
+      },
+      {
+        name: 'metodologicalGuidance',
+        alias: { ru: 'МЕТОД', en: 'metodologicalGuidance' },
+      },
+    ];
+
+    planSubjects.map(async (lesson) => {
+      for (let key in lesson) {
+        const findedSubjectType = subjectTypes.find(
+          (type) => type.name === key,
+        );
+
+        // Якщо дисципліну знайдено (за типом) і кількість годин !== 0 - створюю group-load-lesson
+        if (findedSubjectType && lesson[findedSubjectType?.name] !== 0) {
+          const payload = {
+            name: lesson.name,
+            group: { id: groupId },
+            plan: { id: planId },
+            planSubjectId: { id: lesson.id },
+            semester: lesson.semesterNumber,
+            specialization: null,
+            typeRu: findedSubjectType.alias.ru,
+            typeEn: findedSubjectType.alias.en,
+            hours: lesson[key],
+            teacher: null,
+            stream: null,
+            subgroupNumber: null,
+            students: students,
+          };
+
+          // ???
+          groupLoadLessons.push(payload);
+
+          // const newLesson = this.groupLoadLessonsRepository.create(payload);
+
+          // groupLoadLessons.push(
+          //   await this.groupLoadLessonsRepository.save(newLesson),
+          // );
+        }
+      }
+    });
+
+    return groupLoadLessons;
+  }
+
   async create(dto: CreateGroupLoadLessonDto) {
     try {
       const selectedPlanSubjects = await this.planSubjectsRepository.find({
@@ -30,48 +95,64 @@ export class GroupLoadLessonsService {
         throw new NotFoundException('Навчальний план не знайдено');
       }
 
-      const groupLoadLessons: GroupLoadLessonEntity[] = [];
+      // const groupLoadLessons: GroupLoadLessonEntity[] = [];
 
-      const subjectTypes = [
-        { name: 'lectures', alias: { ru: 'ЛК', en: 'lectures' } },
-        { name: 'practical', alias: { ru: 'ПЗ', en: 'practical' } },
-        { name: 'laboratory', alias: { ru: 'ЛАБ', en: 'laboratory' } },
-        { name: 'seminars', alias: { ru: 'СЕМ', en: 'seminars' } },
-        { name: 'exams', alias: { ru: 'ЕКЗ', en: 'exams' } },
-      ];
+      // const subjectTypes = [
+      //   { name: 'lectures', alias: { ru: 'ЛК', en: 'lectures' } },
+      //   { name: 'practical', alias: { ru: 'ПЗ', en: 'practical' } },
+      //   { name: 'laboratory', alias: { ru: 'ЛАБ', en: 'laboratory' } },
+      //   { name: 'seminars', alias: { ru: 'СЕМ', en: 'seminars' } },
+      //   { name: 'exams', alias: { ru: 'ЕКЗ', en: 'exams' } },
+      // ];
 
-      selectedPlanSubjects.map(async (lesson) => {
-        for (let key in lesson) {
-          const findedSubjectType = subjectTypes.find(
-            (type) => type.name === key,
-          );
+      // selectedPlanSubjects.map(async (lesson) => {
+      //   for (let key in lesson) {
+      //     const findedSubjectType = subjectTypes.find(
+      //       (type) => type.name === key,
+      //     );
 
-          // Якщо дисципліну знайдено (за типом) і кількість годин !== 0 - створюю group-load-lesson
-          if (findedSubjectType && lesson[findedSubjectType?.name] !== 0) {
-            const payload = {
-              name: lesson.name,
-              group: { id: dto.groupId },
-              plan: { id: dto.educationPlanId },
-              planSubjectId: { id: lesson.id },
-              semester: lesson.semesterNumber,
-              specialization: null,
-              typeRu: findedSubjectType.alias.ru,
-              typeEn: findedSubjectType.alias.en,
-              hours: lesson[key],
-              teacher: null,
-              stream: null,
-              subgroupNumber: null,
-              students: dto.students,
-            };
+      //     // Якщо дисципліну знайдено (за типом) і кількість годин !== 0 - створюю group-load-lesson
+      //     if (findedSubjectType && lesson[findedSubjectType?.name] !== 0) {
+      //       const payload = {
+      //         name: lesson.name,
+      //         group: { id: dto.groupId },
+      //         plan: { id: dto.educationPlanId },
+      //         planSubjectId: { id: lesson.id },
+      //         semester: lesson.semesterNumber,
+      //         specialization: null,
+      //         typeRu: findedSubjectType.alias.ru,
+      //         typeEn: findedSubjectType.alias.en,
+      //         hours: lesson[key],
+      //         teacher: null,
+      //         stream: null,
+      //         subgroupNumber: null,
+      //         students: dto.students,
+      //       };
 
-            const newLesson = this.groupLoadLessonsRepository.create(payload);
+      //       const newLesson = this.groupLoadLessonsRepository.create(payload);
 
-            groupLoadLessons.push(
-              await this.groupLoadLessonsRepository.save(newLesson),
-            );
-          }
-        }
-      });
+      //       groupLoadLessons.push(
+      //         await this.groupLoadLessonsRepository.save(newLesson),
+      //       );
+      //     }
+      //   }
+      // });
+
+      const newLessons = this.convertPlanSubjectsToGroupLoadLessons(
+        selectedPlanSubjects,
+        dto.groupId,
+        dto.educationPlanId,
+        dto.students,
+      );
+
+      // ????
+      const groupLoadLessons = newLessons.map(
+        async (el: DeepPartial<GroupLoadLessonEntity>) => {
+          const newLesson = this.groupLoadLessonsRepository.create(el);
+
+          await this.groupLoadLessonsRepository.save(newLesson);
+        },
+      );
 
       return groupLoadLessons;
     } catch (err) {
@@ -88,7 +169,7 @@ export class GroupLoadLessonsService {
   //   return `This action returns a #${id} groupLoadLesson`;
   // }
 
-  async updateName(dto: UpdateGroupLoadLessonDto) {
+  async updateName(dto: UpdateGroupLoadLessonNameDto) {
     // Коли змінюється назва дисципліни в plan-subjects - змінюю назву в group-load-lessons
     const lessons = await this.groupLoadLessonsRepository.find({
       where: { planSubjectId: { id: dto.planSubjectId }, name: dto.oldName },
@@ -106,7 +187,33 @@ export class GroupLoadLessonsService {
     return true;
   }
 
-  updateHours(dto: UpdateGroupLoadLessonDto) {
+  async updateHours(dto: UpdateGroupLoadLessonHoursDto) {
+    // dto = { newPlanSubject, }
+
+    const oldLessonsHours = await this.groupLoadLessonsRepository.find({
+      where: { planSubjectId: { id: dto.planSubject.id } },
+      relations: { group: true },
+    });
+
+    const uniqueGroups = [];
+
+    oldLessonsHours.forEach((el) => {
+      const findedGroup = uniqueGroups.find((g) => g.id === el.group.id);
+
+      if (!findedGroup) {
+        uniqueGroups.push({ id: el.group.id, name: el.group.name });
+      }
+    });
+
+    console.log(uniqueGroups);
+
+    const newLessonsHours = this.convertPlanSubjectsToGroupLoadLessons(
+      [dto.planSubject],
+      1,
+      1,
+      12,
+    );
+
     return 'update hours';
   }
 }
@@ -265,6 +372,7 @@ const addedSubjects = [];
 // Порівнюю в якому масиві (старих дисциплін чи нових) більше дисциплін
 const maxLength = Math.max(oldLessonsHours.length, newLessonsHours.length);
 
+// Шукаю оновлені та видалені дисципліни
 for (let i = 0; i < maxLength; i++) {
   if (!newLessonsHours[i]) {
     console.log('Всі дисципліни перевірені');
@@ -291,6 +399,7 @@ for (let i = 0; i < maxLength; i++) {
   console.log(findedLesson?.typeEn);
 }
 
+// шукаю нові дисципліни
 for (let i = 0; i < maxLength; i++) {
   if (!newLessonsHours[i]) {
     console.log('Всі дисципліни перевірені');

@@ -10,9 +10,10 @@ import {
 } from '@nestjs/common';
 import { GroupLoadLessonsService } from './group-load-lessons.service';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
-import { UpdateGroupLoadLessonDto } from './dto/update-group-load-lesson.dto';
+import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
 
 @Controller('group-load-lessons')
 @ApiTags('group-load-lessons')
@@ -40,12 +41,12 @@ export class GroupLoadLessonsController {
   // }
 
   @Patch('/name')
-  updateName(@Body() dto: UpdateGroupLoadLessonDto) {
+  updateName(@Body() dto: UpdateGroupLoadLessonNameDto) {
     return this.groupLoadLessonsService.updateName(dto);
   }
 
   @Patch('/hours')
-  updateHours(@Body() dto: UpdateGroupLoadLessonDto) {
+  updateHours(@Body() dto: UpdateGroupLoadLessonHoursDto) {
     return this.groupLoadLessonsService.updateHours(dto);
   }
 }

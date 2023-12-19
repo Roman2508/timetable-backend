@@ -85,24 +85,31 @@ export class PlanSubjectsService {
   }
 
   async updateHours(id: number, dto: UpdatePlanSubjectHoursDto) {
-    const subject = await this.repository.find({ where: { id } });
+    const subject = await this.repository.findOne({ where: { id } });
 
-    if (!subject[0]) {
+    if (!subject) {
       throw new NotFoundException('Дисципліну не знайдено');
     }
 
-    const updatedSubjects = { ...subject[0], ...dto };
+    const updatedSubjects = { ...subject, ...dto };
 
-    let totalHours = 0;
-    const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];
+    // let totalHours = 0;
+    // const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];
 
-    for (const propName in updatedSubjects) {
-      if (allLessonsNames.some((el) => propName === el)) {
-        totalHours += updatedSubjects[propName];
-      }
-    }
+    // for (const propName in updatedSubjects) {
+    //   if (allLessonsNames.some((el) => propName === el)) {
+    //     totalHours += updatedSubjects[propName];
+    //   }
+    // }
 
-    return this.repository.save({ ...updatedSubjects, totalHours });
+    // update load lessons => subject, dto.planId, groupId???, students???
+
+    await this.groupLoadLessonsService.updateHours({
+      planSubject: updatedSubjects,
+    });
+
+    // return this.repository.save({ ...updatedSubjects, totalHours });
+    return;
   }
 
   remove(id: number) {
