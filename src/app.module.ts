@@ -25,6 +25,8 @@ import { GroupCategoriesModule } from './group-categories/group-categories.modul
 import { GroupsModule } from './groups/groups.module';
 import { GroupCategoryEntity } from './group-categories/entities/group-category.entity';
 import { GroupEntity } from './groups/entities/group.entity';
+import { GroupLoadLessonsModule } from './group-load-lessons/group-load-lessons.module';
+import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-lesson.entity';
 
 @Module({
   imports: [
@@ -47,6 +49,7 @@ import { GroupEntity } from './groups/entities/group.entity';
         AuditoryEntity,
         GroupCategoryEntity,
         GroupEntity,
+        GroupLoadLessonEntity,
       ],
       synchronize: true,
     }),
@@ -61,6 +64,7 @@ import { GroupEntity } from './groups/entities/group.entity';
     AuditoriesModule,
     GroupCategoriesModule,
     GroupsModule,
+    GroupLoadLessonsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

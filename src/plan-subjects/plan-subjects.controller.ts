@@ -30,9 +30,9 @@ export class PlanSubjectsController {
   }
 
   @ApiBody({ type: UpdatePlanSubjectNameDto })
-  @Patch('name/:id')
-  updateName(@Param('id') id: string, @Body() dto: UpdatePlanSubjectNameDto) {
-    return this.planSubjectsService.updateName(+id, dto);
+  @Patch('name')
+  updateName(@Body() dto: UpdatePlanSubjectNameDto) {
+    return this.planSubjectsService.updateName(dto);
   }
 
   @ApiBody({ type: UpdatePlanSubjectHoursDto })

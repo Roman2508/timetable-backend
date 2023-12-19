@@ -1,6 +1,10 @@
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { PlanSubjectEntity } from './entities/plan-subject.entity';
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
@@ -14,7 +18,18 @@ export class PlanSubjectsService {
     private repository: Repository<PlanSubjectEntity>,
   ) {}
 
-  create(dto: CreatePlanSubjectDto) {
+  async create(dto: CreatePlanSubjectDto) {
+    // Шукаю чи є в плані дисципліни з таким ім'ям
+    const planSubjects = await this.repository.find({
+      where: { name: dto.name, plan: { id: dto.planId } },
+    });
+
+    // Якщо є - повертаю помилку
+    if (planSubjects.length) {
+      throw new ForbiddenException('Назви дисциплін повинні бути унікальними');
+    }
+
+    // Якщо нема створюю нову дисципліну
     const newSubject = {
       name: dto.name,
       plan: { id: dto.planId },
@@ -29,10 +44,10 @@ export class PlanSubjectsService {
     return this.repository.findOneBy({ id });
   }
 
-  async updateName(id: number, dto: UpdatePlanSubjectNameDto) {
+  async updateName(dto: UpdatePlanSubjectNameDto) {
     // find all subjects by plan id
     const subject = await this.repository.find({
-      where: { plan: { id }, name: dto.oldName },
+      where: { plan: { id: dto.planId }, name: dto.oldName },
     });
 
     if (!subject.length) {

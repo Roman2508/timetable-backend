@@ -6,12 +6,18 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { GroupCategoriesService } from './group-categories.service';
 import { CreateGroupCategoryDto } from './dto/create-group-category.dto';
 import { UpdateGroupCategoryDto } from './dto/update-group-category.dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 
 @Controller('group-categories')
+@ApiTags('group-categories')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class GroupCategoriesController {
   constructor(
     private readonly groupCategoriesService: GroupCategoriesService,

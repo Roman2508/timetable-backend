@@ -1,11 +1,13 @@
 import { Max, Min } from 'class-validator';
 import { GroupCategoryEntity } from 'src/group-categories/entities/group-category.entity';
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 import { PlanEntity } from 'src/plans/entities/plan.entity';
 import {
   Column,
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -47,8 +49,8 @@ export class GroupEntity {
   @Column({ default: 'Денна' })
   formOfEducation: 'Денна' | 'Заочна';
 
-  @Column({ default: null })
-  groupLoad: null | string; // ???
+  @OneToMany(() => GroupLoadLessonEntity, (lessons) => lessons.group)
+  groupLoad: GroupLoadLessonEntity[];
 
   @ManyToOne(() => PlanEntity, (plan) => plan.groups)
   @JoinColumn({ name: 'educationPlan' })

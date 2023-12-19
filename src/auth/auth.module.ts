@@ -25,7 +25,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
     UsersModule,
     TypeOrmModule.forFeature([UserEntity]),
-    UsersModule,
+    // UsersModule,
   ],
 })
 export class AuthModule {}
