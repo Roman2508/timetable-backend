@@ -32,11 +32,6 @@ export class CreateGroupDto {
   @IsNumber()
   formOfEducation: 'Денна' | 'Заочна';
 
-  // @ApiProperty()
-  // @IsNotEmpty({ message: 'Це поле обов`язкове' })
-  // @IsNumber()
-  // groupLoad: null | number;
-
   @ApiProperty()
   @IsNotEmpty({ message: 'Це поле обов`язкове' })
   @IsNumber()

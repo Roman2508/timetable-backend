@@ -10,12 +10,15 @@ import { PlanSubjectEntity } from './entities/plan-subject.entity';
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
 import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto';
 import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto';
+import { GroupLoadLessonsService } from 'src/group-load-lessons/group-load-lessons.service';
 
 @Injectable()
 export class PlanSubjectsService {
   constructor(
     @InjectRepository(PlanSubjectEntity)
     private repository: Repository<PlanSubjectEntity>,
+
+    private groupLoadLessonsService: GroupLoadLessonsService,
   ) {}
 
   async create(dto: CreatePlanSubjectDto) {
@@ -69,6 +72,14 @@ export class PlanSubjectsService {
       id: el,
       name: dto.newName,
     }));
+
+    subjectsIds.map(async (id) => {
+      await this.groupLoadLessonsService.updateName({
+        oldName: dto.oldName,
+        newName: dto.newName,
+        planSubjectId: id,
+      });
+    });
 
     return updatedSubjects;
   }

@@ -29,18 +29,23 @@ export class GroupLoadLessonsController {
     return this.groupLoadLessonsService.create(createGroupLoadLessonDto);
   }
 
-  @Get()
-  findAll() {
-    return this.groupLoadLessonsService.findAll();
-  }
-
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.groupLoadLessonsService.findOne(+id);
+  findAll(@Param('id') id: string) {
+    return this.groupLoadLessonsService.findAllByGroupId(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateGroupLoadLessonDto) {
-    return this.groupLoadLessonsService.update(+id, dto);
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.groupLoadLessonsService.findOne(+id);
+  // }
+
+  @Patch('/name')
+  updateName(@Body() dto: UpdateGroupLoadLessonDto) {
+    return this.groupLoadLessonsService.updateName(dto);
+  }
+
+  @Patch('/hours')
+  updateHours(@Body() dto: UpdateGroupLoadLessonDto) {
+    return this.groupLoadLessonsService.updateHours(dto);
   }
 }
