@@ -1,5 +1,4 @@
 import {
-  Controller,
   Get,
   Post,
   Body,
@@ -7,12 +6,13 @@ import {
   Param,
   Delete,
   UseGuards,
+  Controller,
 } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { GroupLoadLessonsService } from './group-load-lessons.service';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
 
 @Controller('group-load-lessons')
@@ -24,11 +24,19 @@ export class GroupLoadLessonsController {
     private readonly groupLoadLessonsService: GroupLoadLessonsService,
   ) {}
 
+  // При прикріпленні навчального плану до групи
   @ApiBody({ type: CreateGroupLoadLessonDto })
   @Post()
-  create(@Body() createGroupLoadLessonDto: CreateGroupLoadLessonDto) {
-    return this.groupLoadLessonsService.create(createGroupLoadLessonDto);
+  createAll(@Body() dto: CreateGroupLoadLessonDto) {
+    return this.groupLoadLessonsService.createAll(dto);
   }
+
+  // При подальшому створенні нових дисциплін або семестрів в плані
+  // @ApiBody({ type: CreateGroupLoadLessonDto })
+  // @Post()
+  // createOne(@Body() dto: CreateGroupLoadLessonDto) {
+  //   return this.groupLoadLessonsService.createAll(dto);
+  // }
 
   @Get(':id')
   findAll(@Param('id') id: string) {

@@ -30,6 +30,7 @@ export class GroupLoadLessonEntity {
   teacher: TeacherEntity;
 
   @ManyToOne(() => PlanEntity, (plan) => plan.id, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'plan' })
   plan: PlanEntity;
 
   @ManyToOne(() => PlanSubjectEntity, (plan) => plan.id, {

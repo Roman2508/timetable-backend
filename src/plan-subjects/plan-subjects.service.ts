@@ -93,23 +93,20 @@ export class PlanSubjectsService {
 
     const updatedSubjects = { ...subject, ...dto };
 
-    // let totalHours = 0;
-    // const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];
+    let totalHours = 0;
+    const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];
 
-    // for (const propName in updatedSubjects) {
-    //   if (allLessonsNames.some((el) => propName === el)) {
-    //     totalHours += updatedSubjects[propName];
-    //   }
-    // }
-
-    // update load lessons => subject, dto.planId, groupId???, students???
+    for (const propName in updatedSubjects) {
+      if (allLessonsNames.some((el) => propName === el)) {
+        totalHours += updatedSubjects[propName];
+      }
+    }
 
     await this.groupLoadLessonsService.updateHours({
       planSubject: updatedSubjects,
     });
 
-    // return this.repository.save({ ...updatedSubjects, totalHours });
-    return;
+    return this.repository.save({ ...updatedSubjects, totalHours });
   }
 
   remove(id: number) {

@@ -26,6 +26,11 @@ export class GroupsController {
     return this.groupsService.findOne(+id);
   }
 
+  @Get('load/:id')
+  findOneWithLoad(@Param('id') id: string) {
+    return this.groupsService.findOneWithLoad(+id);
+  }
+
   @ApiBody({ type: CreateGroupDto })
   @Post()
   create(@Body() dto: CreateGroupDto) {

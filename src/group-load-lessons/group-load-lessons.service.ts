@@ -1,15 +1,16 @@
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
-import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
-import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
+import { DeepPartial, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GroupLoadLessonEntity } from './entities/group-load-lesson.entity';
-import { DeepPartial, Repository } from 'typeorm';
+import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
 import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
+import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
+import { GroupEntity } from 'src/groups/entities/group.entity';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -19,16 +20,19 @@ export class GroupLoadLessonsService {
 
     @InjectRepository(PlanSubjectEntity)
     private planSubjectsRepository: Repository<PlanSubjectEntity>,
+
+    @InjectRepository(GroupEntity)
+    private groupRepository: Repository<GroupEntity>,
   ) {}
 
+  // Конвертує дисципліну навчального плану в масив group-load-lessons
   convertPlanSubjectsToGroupLoadLessons(
     planSubjects: PlanSubjectEntity[],
     groupId: number,
     planId: number,
     students: number,
   ) {
-    const groupLoadLessons: DeepPartial<GroupLoadLessonEntity>[] /* GroupLoadLessonEntity[] */ =
-      [];
+    const groupLoadLessons: DeepPartial<GroupLoadLessonEntity>[] = [];
 
     const subjectTypes = [
       { name: 'lectures', alias: { ru: 'ЛК', en: 'lectures' } },
@@ -85,7 +89,11 @@ export class GroupLoadLessonsService {
     return groupLoadLessons;
   }
 
-  async create(dto: CreateGroupLoadLessonDto) {
+  // Коли при створенні групи для неї вперше прикріплюється навчальний план - створюю для всіх дисциплін плану group-load-lessons
+  // Або коли для групи прикріплюється інший (відмінний від попереднього) план
+  // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeAll())
+  // Потім створити всі нові group-load-lessons для нового плану (за це відповідає this.createAll())
+  async createAll(dto: CreateGroupLoadLessonDto) {
     try {
       const selectedPlanSubjects = await this.planSubjectsRepository.find({
         where: { plan: { id: dto.educationPlanId } },
@@ -161,14 +169,25 @@ export class GroupLoadLessonsService {
     }
   }
 
-  findAllByGroupId(id: number) {
-    return `This action returns all groupLoadLessons`;
+  // Коли в навчальному плані створюється нова дисципліна (новий семестр) - потрібно знайти всі групи, до яких прикріплений цей план
+  // та для їхнього навантаження створити group-load-lessons
+  async createOne() {
+    // planId // нова дисципліна
+    // За ід плана визначаю до яких груп прикріплений цей план
+    // Для цих груп створюю новий group-load-lessons
   }
 
-  // findOne(id: number) {
-  //   return `This action returns a #${id} groupLoadLesson`;
-  // }
+  async findAllByGroupId(groupId: number) {
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where: { group: { id: groupId } },
+    });
 
+    if (!lessons.length) throw new NotFoundException('Дисципліни не знайдені');
+
+    return lessons;
+  }
+
+  // Коли оновлюється назва дисципліни в навчальному плані - змінюю назву цієї дисципліни для всіх group-load-lessons
   async updateName(dto: UpdateGroupLoadLessonNameDto) {
     // Коли змінюється назва дисципліни в plan-subjects - змінюю назву в group-load-lessons
     const lessons = await this.groupLoadLessonsRepository.find({
@@ -187,80 +206,161 @@ export class GroupLoadLessonsService {
     return true;
   }
 
+  // Коли оновлюється кількість годин в навчальному плані - змінюю години цієї дисципліни для всіх group-load-lessons
   async updateHours(dto: UpdateGroupLoadLessonHoursDto) {
-    // dto = { newPlanSubject, }
-
     const oldLessonsHours = await this.groupLoadLessonsRepository.find({
       where: { planSubjectId: { id: dto.planSubject.id } },
-      relations: { group: true },
+      relations: { group: true, plan: true },
+      select: {
+        id: true,
+        name: true,
+        hours: true,
+        semester: true,
+        specialization: true,
+        stream: true,
+        students: true,
+        subgroupNumber: true,
+        teacher: { id: true },
+        typeEn: true,
+        typeRu: true,
+        planSubjectId: { id: true },
+        group: { id: true },
+        plan: { id: true },
+      },
     });
 
-    const uniqueGroups = [];
+    const uniqueGroups: {
+      groupId: number;
+      groupName: string;
+      planId: number;
+      students: number;
+    }[] = [];
 
     oldLessonsHours.forEach((el) => {
-      const findedGroup = uniqueGroups.find((g) => g.id === el.group.id);
+      const findedGroup = uniqueGroups.find((g) => g.groupId === el.group.id);
 
       if (!findedGroup) {
-        uniqueGroups.push({ id: el.group.id, name: el.group.name });
+        uniqueGroups.push({
+          groupId: el.group.id,
+          groupName: el.group.name,
+          planId: el.plan.id,
+          students: el.students,
+        });
       }
     });
 
-    console.log(uniqueGroups);
+    const newLessonsHours = [];
 
-    const newLessonsHours = this.convertPlanSubjectsToGroupLoadLessons(
-      [dto.planSubject],
-      1,
-      1,
-      12,
-    );
+    uniqueGroups.forEach((group) => {
+      const lessons = this.convertPlanSubjectsToGroupLoadLessons(
+        [dto.planSubject],
+        group.groupId,
+        group.planId,
+        group.students,
+      );
 
-    return 'update hours';
+      newLessonsHours.push(...lessons);
+    });
+
+    // Оновлені, видалені та нові створені дисципліни
+    // const updatedSubjects = [];
+    // const removedSubjects = [];
+    // const addedSubjects = [];
+
+    // Шукаю оновлені та створені дисципліни
+    for (let i = 0; i < newLessonsHours.length; i++) {
+      // Шукаю в старому масиві дисциплін дисципліни з нового масиву
+      const findedLesson = oldLessonsHours.find((el) => {
+        return (
+          el.typeEn === newLessonsHours[i].typeEn &&
+          el.semester === newLessonsHours[i].semester &&
+          el.group.id === newLessonsHours[i].group.id
+        );
+      });
+
+      // Якщо в обох масивах дисципліна є - додаю її до масиву дисциплін, що оновлені
+      if (findedLesson) {
+        // updatedSubjects.push(findedLesson); !!!!!!!
+
+        this.groupLoadLessonsRepository.save({
+          ...findedLesson,
+          ...newLessonsHours[i],
+        });
+      } else {
+        // Оскільки я порівнюю старий масив з новим, то якщо дисципліна не знайдена - її видалено
+        // Якщо в старому масиві дисципліна не знайдена - отже вона була додана
+        // addedSubjects.push(newLessonsHours[i]); !!!!!!!
+
+        const { id, ...rest } = newLessonsHours[i];
+
+        const newLesson = this.groupLoadLessonsRepository.create(rest);
+        await this.groupLoadLessonsRepository.save(newLesson);
+      }
+    }
+
+    // шукаю видалені дисципліни
+    for (let i = 0; i < oldLessonsHours.length; i++) {
+      // Шукаю в новому масиві дисциплін дисципліни з старого масиву
+      const findedLesson = newLessonsHours.find((el) => {
+        if (!oldLessonsHours[i]) return;
+        return (
+          el.typeEn === oldLessonsHours[i].typeEn &&
+          el.semester === oldLessonsHours[i].semester &&
+          el.group.id === oldLessonsHours[i].group.id
+        );
+      });
+
+      // Якщо в новому масиві дисципліна не знайдена - отже вона була видалена
+      if (!findedLesson) {
+        await this.groupLoadLessonsRepository.delete(oldLessonsHours[i].id);
+        // removedSubjects.push(oldLessonsHours[i]); !!!!!!!
+      }
+    }
+
+    // console.log(oldLessonsHours);
+    // console.log(newLessonsHours);
+
+    // console.log(updatedSubjects);
+    // console.log(removedSubjects);
+    // console.log(addedSubjects);
+    return;
+
+    // return {
+    //   update: updatedSubjects,
+    //   removed: removedSubjects,
+    //   added: addedSubjects,
+    // };
   }
+
+  // Коли для групи прикріплюється інший (відмінний від попереднього) план
+  // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeAll())
+  // Потім створити всі нові group-load-lessons для нового плану (за це відповідає this.createAll())
+  async removeAll() {}
+
+  // Коли видаляється дисципліна навчального плану - потрібно видаляти також і group-load-lessons
+  async removeOne() {}
 }
 
 /* 
-
-const plan = [
+const oldLessonsHours = [
   {
-    id: 7,
+    id: 18,
     name: 'subject name 1',
-    totalHours: 34,
-    semesterNumber: 2,
-    lectures: 12,
-    practical: 0,
-    laboratory: 0,
-    seminars: 20,
-    exams: 2,
-    plan: 1,
+    semester: 2,
+    specialization: null,
+    typeRu: 'СЕМ',
+    typeEn: 'seminars',
+    hours: 20,
+    stream: null,
+    subgroupNumber: null,
+    students: 11,
+    group: {
+      id: 8,
+    },
+    plan: {
+      id: 1,
+    },
   },
-  {
-    id: 8,
-    name: 'updated subject name',
-    totalHours: 48,
-    semesterNumber: 2,
-    lectures: 12,
-    practical: 0,
-    laboratory: 36,
-    seminars: 0,
-    exams: 4,
-    plan: 1,
-  },
-];
-
-const newPlan = [plan[1]];
-
-// find by { plan subject id, name, semester, group } all lessons in group-load
-
-const payload = {
-  plan: plan[0].plan,
-  planSubjectId: plan[0].planSubjectId,
-  name: plan[0].name,
-  semester: plan[0].semester,
-  group: plan[0].group,
-  newHours: plan[1],
-};
-
-const lessons = [
   {
     id: 16,
     name: 'subject name 1',
@@ -272,13 +372,15 @@ const lessons = [
     stream: null,
     subgroupNumber: null,
     students: 11,
-    group: 8,
-    teacher: null,
-    planSubjectId: 7,
-    planId: 1,
+    group: {
+      id: 8,
+    },
+    plan: {
+      id: 1,
+    },
   },
   {
-    id: 17,
+    id: 21,
     name: 'subject name 1',
     semester: 2,
     specialization: null,
@@ -288,143 +390,222 @@ const lessons = [
     stream: null,
     subgroupNumber: null,
     students: 11,
-    group: 8,
-    teacher: null,
-    planSubjectId: 7,
-    planId: 1,
+    group: {
+      id: 7,
+    },
+    plan: {
+      id: 1,
+    },
   },
   {
-    id: 18,
+    id: 22,
     name: 'subject name 1',
     semester: 2,
     specialization: null,
-    typeRu: 'ЕКЗ',
-    typeEn: 'exams',
-    hours: 2,
+    typeRu: 'ЛК',
+    typeEn: 'lectures',
+    hours: 12,
     stream: null,
     subgroupNumber: null,
     students: 11,
-    group: 8,
+    group: {
+      id: 7,
+    },
+    plan: {
+      id: 1,
+    },
+  },
+];
+
+const newLessonsHours = [
+  {
+    name: 'subject name 1',
+    group: {
+      id: 8,
+    },
+    plan: {
+      id: 1,
+    },
+    planSubjectId: {
+      id: 7,
+    },
+    semester: 2,
+    specialization: null,
+    typeRu: 'ЛК',
+    typeEn: 'lectures',
+    hours: 14,
     teacher: null,
-    planSubjectId: 7,
-    planId: 1,
+    stream: null,
+    subgroupNumber: null,
+    students: 11,
   },
   {
-    id: 19,
-    name: 'subject name 2',
+    name: 'subject name 1',
+    group: {
+      id: 8,
+    },
+    plan: {
+      id: 1,
+    },
+    planSubjectId: {
+      id: 7,
+    },
+    semester: 2,
+    specialization: null,
+    typeRu: 'ЛАБ',
+    typeEn: 'laboratory',
+    hours: 24,
+    teacher: null,
+    stream: null,
+    subgroupNumber: null,
+    students: 11,
+  },
+  {
+    name: 'subject name 1',
+    group: {
+      id: 8,
+    },
+    plan: {
+      id: 1,
+    },
+    planSubjectId: {
+      id: 7,
+    },
     semester: 2,
     specialization: null,
     typeRu: 'ЕКЗ',
     typeEn: 'exams',
     hours: 2,
+    teacher: null,
     stream: null,
     subgroupNumber: null,
     students: 11,
-    group: 9,
+  },
+  {
+    name: 'subject name 1',
+    group: {
+      id: 7,
+    },
+    plan: {
+      id: 1,
+    },
+    planSubjectId: {
+      id: 7,
+    },
+    semester: 2,
+    specialization: null,
+    typeRu: 'ЛК',
+    typeEn: 'lectures',
+    hours: 14,
     teacher: null,
-    planSubjectId: 7,
-    planId: 1,
+    stream: null,
+    subgroupNumber: null,
+    students: 11,
+  },
+  {
+    name: 'subject name 1',
+    group: {
+      id: 7,
+    },
+    plan: {
+      id: 1,
+    },
+    planSubjectId: {
+      id: 7,
+    },
+    semester: 2,
+    specialization: null,
+    typeRu: 'ЛАБ',
+    typeEn: 'laboratory',
+    hours: 24,
+    teacher: null,
+    stream: null,
+    subgroupNumber: null,
+    students: 11,
+  },
+  {
+    name: 'subject name 1',
+    group: {
+      id: 7,
+    },
+    plan: {
+      id: 1,
+    },
+    planSubjectId: {
+      id: 7,
+    },
+    semester: 2,
+    specialization: null,
+    typeRu: 'ЕКЗ',
+    typeEn: 'exams',
+    hours: 2,
+    teacher: null,
+    stream: null,
+    subgroupNumber: null,
+    students: 11,
   },
 ];
 
-const oldLessonsHours = lessons;
-
-const subjectTypes = [
-  { name: 'lectures', alias: { ru: 'ЛК', en: 'lectures' } },
-  { name: 'practical', alias: { ru: 'ПЗ', en: 'practical' } },
-  { name: 'laboratory', alias: { ru: 'ЛАБ', en: 'laboratory' } },
-  { name: 'seminars', alias: { ru: 'СЕМ', en: 'seminars' } },
-  { name: 'exams', alias: { ru: 'ЕКЗ', en: 'exams' } },
-];
-
-const newLessonsHours = [];
-
-newPlan.map(el => {
-  for (let key in el) {
-    const findedSubjectType = subjectTypes.find(type => type.name === key);
-
-    if (findedSubjectType && el[findedSubjectType.name] !== 0) {
-      const payload = {
-        name: el.name,
-        group: 8,
-        plan: el.plan,
-        planSubjectId: el.id,
-        semester: el.semesterNumber,
-        specialization: null,
-        typeRu: findedSubjectType.alias.ru,
-        typeEn: findedSubjectType.alias.en,
-        hours: el[key],
-        teacher: null,
-        stream: null,
-        subgroupNumber: null,
-        students: 11,
-      };
-
-      newLessonsHours.push(payload);
-    }
-  }
-});
-
-const updatedSubjects = [];
 const removedSubjects = [];
 const addedSubjects = [];
+const updatedSubjects = [];
 
 // Порівнюю в якому масиві (старих дисциплін чи нових) більше дисциплін
 const maxLength = Math.max(oldLessonsHours.length, newLessonsHours.length);
 
 // Шукаю оновлені та видалені дисципліни
-for (let i = 0; i < maxLength; i++) {
+for (let i = 0; i < newLessonsHours.length; i++) {
   if (!newLessonsHours[i]) {
     console.log('Всі дисципліни перевірені');
     break;
   }
 
   // Шукаю в старому масиві дисциплін дисципліни з нового масиву
-  const findedLesson = oldLessonsHours.find(
-    el =>
+  const findedLesson = oldLessonsHours.find(el => {
+    return (
       el.typeEn === newLessonsHours[i].typeEn &&
       el.semester === newLessonsHours[i].semester &&
-      el.group === newLessonsHours[i].group
-  );
+      el.group.id === newLessonsHours[i].group.id
+    );
+  });
 
   // Якщо в обох масивах дисципліна є - додаю її до масиву дисциплін, що оновлені
   if (findedLesson) {
     updatedSubjects.push(findedLesson);
   } else {
     // Оскільки я порівнюю старий масив з новим, то якщо дисципліна не знайдена - її видалено
-    // Якщо в новому масиві дисципліна не знайдена - отже вона була видалена
-    removedSubjects.push(oldLessonsHours[i]);
+    // Якщо в старому масиві дисципліна не знайдена - отже вона була додана
+    addedSubjects.push(newLessonsHours[i]);
   }
-
-  console.log(findedLesson?.typeEn);
 }
 
 // шукаю нові дисципліни
-for (let i = 0; i < maxLength; i++) {
+for (let i = 0; i < oldLessonsHours.length; i++) {
   if (!newLessonsHours[i]) {
     console.log('Всі дисципліни перевірені');
     break;
   }
 
   // Шукаю в новому масиві дисциплін дисципліни з старого масиву
-  const findedLesson = newLessonsHours.find(
-    el =>
+  const findedLesson = newLessonsHours.find(el => {
+    return (
       el.typeEn === oldLessonsHours[i].typeEn &&
       el.semester === oldLessonsHours[i].semester &&
-      el.group === oldLessonsHours[i].group
-  );
+      el.group.id === oldLessonsHours[i].group.id
+    );
+  });
 
-  // Якщо в старому масиві дисципліна не знайдена - отже вона була додана
+  // Якщо в новому масиві дисципліна не знайдена - отже вона була видалена
   if (!findedLesson) {
-    addedSubjects.push(newLessonsHours[i]);
+    removedSubjects.push(oldLessonsHours[i]);
   }
 }
 
-console.log(updatedSubjects);
-console.log(removedSubjects);
-console.log(addedSubjects);
+console.log({
+  removed: removedSubjects,
+  added: addedSubjects,
+  updated: updatedSubjects,
+});
 
-// console.log(oldLessonsHours);
-// console.log(newLessonsHours);
 
 */

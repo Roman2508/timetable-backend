@@ -33,7 +33,7 @@ export class GroupsService {
     return group;
   }
 
-  async findOneFullInfo(id: number) {
+  async findOneWithLoad(id: number) {
     const group = await this.groupsRepository.findOne({
       where: { id },
       relations: { category: true, groupLoad: true },
@@ -55,7 +55,8 @@ export class GroupsService {
 
     const group = await this.groupsRepository.save(newGroup);
 
-    await this.groupLoadLessonsService.create({
+    // Коли створюється нова група і до неї вперше прикріплюється навч.план - створюю для всіх дисциплін плану group-load-lessons
+    await this.groupLoadLessonsService.createAll({
       groupId: newGroup.id,
       educationPlanId: educationPlan,
       students: newGroup.students,
@@ -70,6 +71,8 @@ export class GroupsService {
 
   async remove(id: number) {
     const res = await this.groupsRepository.delete(id);
+
+    // Коли видаляється група потрібно видаляти всі group-load-lessons які були в цієї групи !!!!!!!!!!!!!!!
 
     if (res.affected === 0) {
       throw new NotFoundException('Групу не знайдено');

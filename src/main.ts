@@ -34,3 +34,4 @@ bootstrap();
 /* schedule ??? */
 
 // examsConsultation, metodologicalGuidance - створювати для цих видів зянять group-load-lessons !!!
+// add GoogleCalendarId to groups and teachers 
