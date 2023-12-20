@@ -34,4 +34,5 @@ bootstrap();
 /* schedule ??? */
 
 // examsConsultation, metodologicalGuidance - створювати для цих видів зянять group-load-lessons !!!
-// add GoogleCalendarId to groups and teachers 
+// add GoogleCalendarId to groups and teachers
+// totalHours в plan-subjects повинна вказуватись вручну

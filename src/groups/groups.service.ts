@@ -66,6 +66,8 @@ export class GroupsService {
   }
 
   update(id: number, dto: UpdateGroupDto) {
+    // Потрібно врахувати, що якщо в групі змінено план - потрібно видалити всі старі group-load-lessons які були в цієї групи
+    // та після цього створити нові
     return `This action updates a #${id} group`;
   }
 

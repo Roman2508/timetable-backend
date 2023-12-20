@@ -1,15 +1,15 @@
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
 import {
-  ForbiddenException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 import { PlanSubjectEntity } from './entities/plan-subject.entity';
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
-import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto';
 import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto';
+import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto';
 import { GroupLoadLessonsService } from 'src/group-load-lessons/group-load-lessons.service';
 
 @Injectable()
@@ -21,6 +21,7 @@ export class PlanSubjectsService {
     private groupLoadLessonsService: GroupLoadLessonsService,
   ) {}
 
+  // Створення нової дисципліни в плані (дише ім'я)
   async create(dto: CreatePlanSubjectDto) {
     // Шукаю чи є в плані дисципліни з таким ім'ям
     const planSubjects = await this.repository.find({
@@ -29,18 +30,18 @@ export class PlanSubjectsService {
 
     // Якщо є - повертаю помилку
     if (planSubjects.length) {
-      throw new ForbiddenException('Назви дисциплін повинні бути унікальними');
+      throw new BadRequestException('Назви дисциплін повинні бути унікальними');
     }
 
     // Якщо нема створюю нову дисципліну
-    const newSubject = {
+    const payload = {
       name: dto.name,
       plan: { id: dto.planId },
     };
 
-    const subject = this.repository.create(newSubject);
+    const newSubject = this.repository.create(payload);
 
-    return this.repository.save(subject);
+    return this.repository.save(newSubject);
   }
 
   async findOne(id: number) {
@@ -84,6 +85,7 @@ export class PlanSubjectsService {
     return updatedSubjects;
   }
 
+  // Створення або оновлення семестру для дисципліни
   async updateHours(id: number, dto: UpdatePlanSubjectHoursDto) {
     const subject = await this.repository.findOne({ where: { id } });
 
@@ -93,24 +95,32 @@ export class PlanSubjectsService {
 
     const updatedSubjects = { ...subject, ...dto };
 
-    let totalHours = 0;
-    const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];
+    // let totalHours = 0;
+    // const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];
 
-    for (const propName in updatedSubjects) {
-      if (allLessonsNames.some((el) => propName === el)) {
-        totalHours += updatedSubjects[propName];
-      }
-    }
+    // for (const propName in updatedSubjects) {
+    //   if (allLessonsNames.some((el) => propName === el)) {
+    //     totalHours += updatedSubjects[propName];
+    //   }
+    // }
 
     await this.groupLoadLessonsService.updateHours({
       planSubject: updatedSubjects,
+      planId: dto.planId,
     });
 
-    return this.repository.save({ ...updatedSubjects, totalHours });
+    return this.repository.save({ ...updatedSubjects /* , totalHours  */ });
   }
 
-  remove(id: number) {
-    this.repository.delete({ id });
+  async remove(id: number) {
+    const res = await this.repository.delete(id);
+
+    if (res.affected === 0) {
+      throw new NotFoundException('Групу не знайдено');
+    }
+
+    await this.groupLoadLessonsService.removeOne(id);
+
     return id;
   }
 }

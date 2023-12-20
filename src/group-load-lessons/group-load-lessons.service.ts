@@ -5,12 +5,12 @@ import {
 } from '@nestjs/common';
 import { DeepPartial, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { GroupEntity } from 'src/groups/entities/group.entity';
 import { GroupLoadLessonEntity } from './entities/group-load-lesson.entity';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
 import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
-import { GroupEntity } from 'src/groups/entities/group.entity';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -95,6 +95,7 @@ export class GroupLoadLessonsService {
   // Потім створити всі нові group-load-lessons для нового плану (за це відповідає this.createAll())
   async createAll(dto: CreateGroupLoadLessonDto) {
     try {
+      // Шукаю всі дисципліни в навчальному плані
       const selectedPlanSubjects = await this.planSubjectsRepository.find({
         where: { plan: { id: dto.educationPlanId } },
       });
@@ -153,7 +154,6 @@ export class GroupLoadLessonsService {
         dto.students,
       );
 
-      // ????
       const groupLoadLessons = newLessons.map(
         async (el: DeepPartial<GroupLoadLessonEntity>) => {
           const newLesson = this.groupLoadLessonsRepository.create(el);
@@ -169,14 +169,6 @@ export class GroupLoadLessonsService {
     }
   }
 
-  // Коли в навчальному плані створюється нова дисципліна (новий семестр) - потрібно знайти всі групи, до яких прикріплений цей план
-  // та для їхнього навантаження створити group-load-lessons
-  async createOne() {
-    // planId // нова дисципліна
-    // За ід плана визначаю до яких груп прикріплений цей план
-    // Для цих груп створюю новий group-load-lessons
-  }
-
   async findAllByGroupId(groupId: number) {
     const lessons = await this.groupLoadLessonsRepository.find({
       where: { group: { id: groupId } },
@@ -186,6 +178,9 @@ export class GroupLoadLessonsService {
 
     return lessons;
   }
+
+  // Навантаження, що йде на розклад (без консультацій до екзамену та метод. керівництва)
+  async findAllForSchedule() {}
 
   // Коли оновлюється назва дисципліни в навчальному плані - змінюю назву цієї дисципліни для всіх group-load-lessons
   async updateName(dto: UpdateGroupLoadLessonNameDto) {
@@ -206,7 +201,8 @@ export class GroupLoadLessonsService {
     return true;
   }
 
-  // Коли оновлюється кількість годин в навчальному плані - змінюю години цієї дисципліни для всіх group-load-lessons
+  // Коли створив перший семестр для конкретної дисципліни - треба створити для цієї дисципліни group-load-lessons
+  // Коли оновлюється кількість годин в якомусь семестрі - змінюю години цієї дисципліни для всіх group-load-lessons
   async updateHours(dto: UpdateGroupLoadLessonHoursDto) {
     const oldLessonsHours = await this.groupLoadLessonsRepository.find({
       where: { planSubjectId: { id: dto.planSubject.id } },
@@ -229,38 +225,62 @@ export class GroupLoadLessonsService {
       },
     });
 
-    const uniqueGroups: {
-      groupId: number;
-      groupName: string;
-      planId: number;
-      students: number;
-    }[] = [];
-
-    oldLessonsHours.forEach((el) => {
-      const findedGroup = uniqueGroups.find((g) => g.groupId === el.group.id);
-
-      if (!findedGroup) {
-        uniqueGroups.push({
-          groupId: el.group.id,
-          groupName: el.group.name,
-          planId: el.plan.id,
-          students: el.students,
-        });
-      }
+    // Шукаю всі групи до яких прикріплений навчальний план
+    const groups = await this.groupRepository.find({
+      where: { educationPlan: { id: dto.planId } },
+      relations: { educationPlan: true },
+      select: {
+        id: true,
+        students: true,
+        educationPlan: { id: true },
+      },
     });
 
     const newLessonsHours = [];
 
-    uniqueGroups.forEach((group) => {
+    groups.forEach((group) => {
       const lessons = this.convertPlanSubjectsToGroupLoadLessons(
         [dto.planSubject],
-        group.groupId,
-        group.planId,
+        group.id,
+        group.educationPlan.id,
         group.students,
       );
 
       newLessonsHours.push(...lessons);
     });
+
+    // const uniqueGroups: {
+    //   groupId: number;
+    //   groupName: string;
+    //   planId: number;
+    //   students: number;
+    // }[] = [];
+
+    // oldLessonsHours.forEach((el) => {
+    //   const findedGroup = uniqueGroups.find((g) => g.groupId === el.group.id);
+
+    //   if (!findedGroup) {
+    //     uniqueGroups.push({
+    //       groupId: el.group.id,
+    //       groupName: el.group.name,
+    //       planId: el.plan.id,
+    //       students: el.students,
+    //     });
+    //   }
+    // });
+
+    // uniqueGroups.forEach((group) => {
+    //   const lessons = this.convertPlanSubjectsToGroupLoadLessons(
+    //     [dto.planSubject],
+    //     group.groupId,
+    //     group.planId,
+    //     group.students,
+    //   );
+
+    //   newLessonsHours.push(...lessons);
+    // });
+
+    /*  */
 
     // Оновлені, видалені та нові створені дисципліни
     // const updatedSubjects = [];
@@ -335,10 +355,32 @@ export class GroupLoadLessonsService {
   // Коли для групи прикріплюється інший (відмінний від попереднього) план
   // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeAll())
   // Потім створити всі нові group-load-lessons для нового плану (за це відповідає this.createAll())
-  async removeAll() {}
+  async removeAll(groupId: number) {
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where: { group: { id: groupId } },
+    });
+
+    // removeAll removeOne дуже схожі методи - потрібно відрефакторити !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    lessons.map(async (lesson) => {
+      await this.groupLoadLessonsRepository.delete(lesson.id);
+    });
+
+    return true;
+  }
 
   // Коли видаляється дисципліна навчального плану - потрібно видаляти також і group-load-lessons
-  async removeOne() {}
+  async removeOne(planSubjectId: number) {
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where: { planSubjectId: { id: planSubjectId } },
+    });
+
+    lessons.map(async (lesson) => {
+      await this.groupLoadLessonsRepository.delete(lesson.id);
+    });
+
+    return true;
+  }
 }
 
 /* 

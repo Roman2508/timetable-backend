@@ -11,6 +11,11 @@ export class UpdatePlanSubjectHoursDto extends PartialType(
   semesterNumber: number;
 
   @ApiProperty()
+  @IsNotEmpty({ message: "Загальна кількість годин - обов'язкова" })
+  @IsNumber()
+  totalHours: number;
+
+  @ApiProperty()
   @IsNumber()
   lectures?: number;
 

@@ -31,13 +31,6 @@ export class GroupLoadLessonsController {
     return this.groupLoadLessonsService.createAll(dto);
   }
 
-  // При подальшому створенні нових дисциплін або семестрів в плані
-  // @ApiBody({ type: CreateGroupLoadLessonDto })
-  // @Post()
-  // createOne(@Body() dto: CreateGroupLoadLessonDto) {
-  //   return this.groupLoadLessonsService.createAll(dto);
-  // }
-
   @Get(':id')
   findAll(@Param('id') id: string) {
     return this.groupLoadLessonsService.findAllByGroupId(+id);
