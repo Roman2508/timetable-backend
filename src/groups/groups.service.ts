@@ -19,7 +19,8 @@ export class GroupsService {
   async findOne(id: number) {
     const group = await this.groupsRepository.findOne({
       where: { id },
-      relations: { category: true },
+      relations: { category: true, stream: true },
+      select: { category: { id: true }, stream: { id: true, name: true } },
     });
 
     if (!group) throw new NotFoundException('Групу не знайдено');

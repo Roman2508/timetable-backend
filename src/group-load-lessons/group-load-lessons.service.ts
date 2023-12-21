@@ -172,7 +172,7 @@ export class GroupLoadLessonsService {
         hours: true,
         semester: true,
         specialization: true,
-        stream: true,
+        stream: { id: true },
         students: true,
         subgroupNumber: true,
         teacher: { id: true },

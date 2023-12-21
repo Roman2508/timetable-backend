@@ -27,6 +27,8 @@ import { GroupCategoryEntity } from './group-categories/entities/group-category.
 import { GroupEntity } from './groups/entities/group.entity';
 import { GroupLoadLessonsModule } from './group-load-lessons/group-load-lessons.module';
 import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-lesson.entity';
+import { StreamsModule } from './streams/streams.module';
+import { StreamEntity } from './streams/entities/stream.entity';
 
 @Module({
   imports: [
@@ -50,6 +52,7 @@ import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-
         GroupCategoryEntity,
         GroupEntity,
         GroupLoadLessonEntity,
+        StreamEntity,
       ],
       synchronize: true,
     }),
@@ -65,6 +68,7 @@ import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-
     GroupCategoriesModule,
     GroupsModule,
     GroupLoadLessonsModule,
+    StreamsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

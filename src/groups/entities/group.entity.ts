@@ -2,10 +2,13 @@ import { Max, Min } from 'class-validator';
 import { GroupCategoryEntity } from 'src/group-categories/entities/group-category.entity';
 import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 import { PlanEntity } from 'src/plans/entities/plan.entity';
+import { StreamEntity } from 'src/streams/entities/stream.entity';
 import {
   Column,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -28,12 +31,8 @@ export class GroupEntity {
   @Max(3, { message: 'Номер курсу може бути від 1 до 3' })
   courseNumber: number;
 
-  @Min(2018, {
-    message: 'Рік вступу не може бути менше ніж 2018',
-  })
-  @Max(2100, {
-    message: 'Рік вступу не може бути більше ніж 2100',
-  })
+  @Min(2018, { message: 'Рік вступу не може бути менше ніж 2018' })
+  @Max(2100, { message: 'Рік вступу не може бути більше ніж 2100' })
   @Column({ default: Number(Date().split(' ')[3]) }) // Поточний рік
   yearOfAdmission: number;
 
@@ -58,4 +57,11 @@ export class GroupEntity {
 
   @Column('text', { array: true, default: [] })
   specializationList: string[];
+
+  @ManyToMany(() => StreamEntity, (stream) => stream.groups, {
+    onDelete: 'CASCADE',
+  })
+  @JoinTable()
+  @JoinColumn({ name: 'stream' })
+  stream: StreamEntity[];
 }
