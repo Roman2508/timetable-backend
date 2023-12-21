@@ -37,11 +37,6 @@ export class GroupsController {
     return this.groupsService.create(dto);
   }
 
-  // @Get()
-  // findAll() {
-  //   return this.groupsService.findAll();
-  // }
-
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateGroupDto) {
     return this.groupsService.update(+id, dto);

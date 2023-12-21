@@ -11,6 +11,8 @@ import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
 import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
+import { AttachSpecializationDto } from './dto/attach-specialization.dto';
+import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -104,49 +106,6 @@ export class GroupLoadLessonsService {
         throw new NotFoundException('Навчальний план не знайдено');
       }
 
-      // const groupLoadLessons: GroupLoadLessonEntity[] = [];
-
-      // const subjectTypes = [
-      //   { name: 'lectures', alias: { ru: 'ЛК', en: 'lectures' } },
-      //   { name: 'practical', alias: { ru: 'ПЗ', en: 'practical' } },
-      //   { name: 'laboratory', alias: { ru: 'ЛАБ', en: 'laboratory' } },
-      //   { name: 'seminars', alias: { ru: 'СЕМ', en: 'seminars' } },
-      //   { name: 'exams', alias: { ru: 'ЕКЗ', en: 'exams' } },
-      // ];
-
-      // selectedPlanSubjects.map(async (lesson) => {
-      //   for (let key in lesson) {
-      //     const findedSubjectType = subjectTypes.find(
-      //       (type) => type.name === key,
-      //     );
-
-      //     // Якщо дисципліну знайдено (за типом) і кількість годин !== 0 - створюю group-load-lesson
-      //     if (findedSubjectType && lesson[findedSubjectType?.name] !== 0) {
-      //       const payload = {
-      //         name: lesson.name,
-      //         group: { id: dto.groupId },
-      //         plan: { id: dto.educationPlanId },
-      //         planSubjectId: { id: lesson.id },
-      //         semester: lesson.semesterNumber,
-      //         specialization: null,
-      //         typeRu: findedSubjectType.alias.ru,
-      //         typeEn: findedSubjectType.alias.en,
-      //         hours: lesson[key],
-      //         teacher: null,
-      //         stream: null,
-      //         subgroupNumber: null,
-      //         students: dto.students,
-      //       };
-
-      //       const newLesson = this.groupLoadLessonsRepository.create(payload);
-
-      //       groupLoadLessons.push(
-      //         await this.groupLoadLessonsRepository.save(newLesson),
-      //       );
-      //     }
-      //   }
-      // });
-
       const newLessons = this.convertPlanSubjectsToGroupLoadLessons(
         selectedPlanSubjects,
         dto.groupId,
@@ -156,9 +115,9 @@ export class GroupLoadLessonsService {
 
       const groupLoadLessons = newLessons.map(
         async (el: DeepPartial<GroupLoadLessonEntity>) => {
-          const newLesson = this.groupLoadLessonsRepository.create(el);
-
-          await this.groupLoadLessonsRepository.save(newLesson);
+          const payload = this.groupLoadLessonsRepository.create(el);
+          const newLesson = await this.groupLoadLessonsRepository.save(payload);
+          return newLesson;
         },
       );
 
@@ -355,31 +314,240 @@ export class GroupLoadLessonsService {
   // Коли для групи прикріплюється інший (відмінний від попереднього) план
   // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeAll())
   // Потім створити всі нові group-load-lessons для нового плану (за це відповідає this.createAll())
-  async removeAll(groupId: number) {
-    const lessons = await this.groupLoadLessonsRepository.find({
-      where: { group: { id: groupId } },
+  async removeByGroupId(groupId: number) {
+    await this.groupLoadLessonsRepository.delete({
+      group: { id: groupId },
     });
+    return true;
+  }
 
-    // removeAll removeOne дуже схожі методи - потрібно відрефакторити !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    lessons.map(async (lesson) => {
-      await this.groupLoadLessonsRepository.delete(lesson.id);
+  // Коли видаляється дисципліна навчального плану - потрібно видаляти також і group-load-lessons
+  async removeByPlanId(planSubjectId: number) {
+    await this.groupLoadLessonsRepository.delete({
+      planSubjectId: { id: planSubjectId },
     });
 
     return true;
   }
 
-  // Коли видаляється дисципліна навчального плану - потрібно видаляти також і group-load-lessons
-  async removeOne(planSubjectId: number) {
+  /* specialization */
+
+  async attachSpecialization(dto: AttachSpecializationDto) {
     const lessons = await this.groupLoadLessonsRepository.find({
-      where: { planSubjectId: { id: planSubjectId } },
+      where: {
+        group: { id: dto.groupId },
+        planSubjectId: { id: dto.planSubjectId },
+      },
+      relations: { group: true, plan: true, planSubjectId: true },
+      select: {
+        group: { id: true },
+        plan: { id: true },
+        planSubjectId: { id: true },
+      },
     });
+
+    if (!lessons.length) throw new NotFoundException('Дисципліну не знайдено');
+
+    const updatedLessons: GroupLoadLessonEntity[] = [];
 
     lessons.map(async (lesson) => {
-      await this.groupLoadLessonsRepository.delete(lesson.id);
+      updatedLessons.push({
+        ...lesson,
+        specialization: dto.name,
+      });
+
+      await this.groupLoadLessonsRepository.save({
+        ...lesson,
+        specialization: dto.name,
+      });
     });
 
-    return true;
+    return updatedLessons;
+  }
+
+  /* subgroups */
+
+  // Якщо кількість підгруп змінилась - повертається новий масив підгруп, якщо ні - повертається null
+  async setSubgroupsCount(dto: SetSubgroupsCountDto) {
+    // dto = { planSubjectId, groupId, typeEn, subgroupsCount }
+
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where: {
+        group: { id: dto.groupId },
+        planSubjectId: { id: dto.planSubjectId },
+        typeEn: dto.typeEn,
+      },
+      relations: { group: true, plan: true, planSubjectId: true },
+      select: {
+        group: { id: true },
+        plan: { id: true },
+        planSubjectId: { id: true },
+      },
+    });
+
+    if (!lessons.length) throw new NotFoundException('Дисципліна не знайдена');
+
+    if (lessons.length === dto.subgroupsCount) {
+      console.log('Однакова кількість підгруп');
+      return null;
+    }
+
+    // Видалити всі підгрупи крім першої, а для першої встановити subgroupNumber = null
+    const removeAllSubgroupsWithoutFirst = (): GroupLoadLessonEntity[] => {
+      let firstSubgroup: GroupLoadLessonEntity;
+
+      lessons.map(async (el) => {
+        if (el.subgroupNumber === 1) {
+          firstSubgroup = {
+            ...el,
+            subgroupNumber: null,
+          };
+
+          await this.groupLoadLessonsRepository.save({
+            ...el,
+            subgroupNumber: null,
+          });
+        } else {
+          await this.groupLoadLessonsRepository.delete({ id: el.id });
+        }
+      });
+
+      return [firstSubgroup];
+    };
+
+    // subgroupsNumbers - номери підгруп, які потрібно створити
+    const createSubgroups = (
+      subgroupsNumbers: number[],
+    ): GroupLoadLessonEntity[] => {
+      const newAllLessons: GroupLoadLessonEntity[] = [];
+
+      subgroupsNumbers.map(async (number) => {
+        const { id, ...rest } = lessons[0];
+
+        const newLesson = this.groupLoadLessonsRepository.create({
+          ...rest,
+          subgroupNumber: number,
+        });
+
+        newAllLessons.push(newLesson);
+        await this.groupLoadLessonsRepository.save(newLesson);
+      });
+
+      return newAllLessons;
+    };
+
+    // subgroupsNumbers - номери підгруп, які потрібно видалити
+    const removeSomeSubgroups = (
+      subgroupsNumbers: number[],
+    ): GroupLoadLessonEntity[] => {
+      const newLessons: GroupLoadLessonEntity[] = [];
+
+      lessons.map(async (el) => {
+        // Якщо в масиві subgroupsNumbers номер підгрупи збігається з el.subgroupNumber - цю підгрупу потрібно видалити
+        const isNeedToRemove = subgroupsNumbers.some(
+          (num) => num === el.subgroupNumber,
+        );
+
+        if (isNeedToRemove) {
+          await this.groupLoadLessonsRepository.delete({ id: el.id });
+        } else {
+          // В іншому випадку повертаю цю дисципліну
+          newLessons.push(el);
+        }
+      });
+
+      return newLessons;
+    };
+
+    // Якщо зайдено всього 1 дисципліну - отже вона не поділена на підгрупи
+    if (lessons.length === 1) {
+      const { id, ...rest } = lessons[0];
+
+      const newLessons: GroupLoadLessonEntity[] = [];
+
+      // Спочатку роблю копію дисципліни для всіх підгруп (2, 3 або 4)
+      Array(dto.subgroupsCount - 1)
+        .fill(null)
+        .map(async (_, index) => {
+          const newLessonWithSubgroup = this.groupLoadLessonsRepository.create({
+            ...rest,
+            subgroupNumber: index + 2,
+          });
+
+          newLessons.push(newLessonWithSubgroup);
+
+          await this.groupLoadLessonsRepository.save(newLessonWithSubgroup);
+        });
+
+      // Потім оригінальну дисципліну роблю 1 підгрупою
+      const subgroup1 = await this.groupLoadLessonsRepository.save({
+        ...lessons[0],
+        subgroupNumber: 1,
+      });
+
+      return [subgroup1, ...newLessons];
+    }
+
+    if (lessons.length === 2) {
+      // Якщо було знайдено 2 дисципліни отже в неї 2 підгрупи
+
+      // Якщо було 2 підгрупи, а стала 1 підгрупа - всі інші потрібно видалити
+      if (dto.subgroupsCount === 1) {
+        return removeAllSubgroupsWithoutFirst();
+      }
+
+      // Якщо було 2 підгрупи, а стало 3 підгрупи - потрібно створити ще одну
+      if (dto.subgroupsCount === 3) {
+        const newLessons = createSubgroups([3]);
+        return [...lessons, ...newLessons];
+      }
+
+      // Якщо було 2 підгрупи, а стало 4 підгрупи - потрібно створити ще дві
+      if (dto.subgroupsCount === 4) {
+        const newLessons = createSubgroups([3, 4]);
+        return [...lessons, ...newLessons];
+      }
+      return null;
+    }
+
+    if (lessons.length === 3) {
+      // Якщо було 3 підгрупи, а стала 1 підгрупа - всі інші потрібно видалити
+      if (dto.subgroupsCount === 1) {
+        return removeAllSubgroupsWithoutFirst();
+      }
+
+      // Якщо було 3 підгрупи, а стало 2 підгрупи - третю треба видалити
+      if (dto.subgroupsCount === 2) {
+        return removeSomeSubgroups([3]);
+      }
+
+      // Якщо було 3 підгрупи, а стало 4 підгрупи - потрібно створити ще одну
+      if (dto.subgroupsCount === 4) {
+        const newLessons = createSubgroups([4]);
+        return [...lessons, ...newLessons];
+      }
+      return null;
+    }
+
+    if (lessons.length === 4) {
+      // Якщо було 4 підгрупи, а стала 1 підгрупа - всі інші потрібно видалити
+      if (dto.subgroupsCount === 1) {
+        return removeAllSubgroupsWithoutFirst();
+      }
+
+      // Якщо було 4 підгрупи, а стало 2 підгрупи - третю та четверту треба видалити
+      if (dto.subgroupsCount === 2) {
+        return removeSomeSubgroups([3, 4]);
+      }
+
+      // Якщо було 4 підгрупи, а стало 3 підгрупи - четверту треба видалити
+      if (dto.subgroupsCount === 3) {
+        return removeSomeSubgroups([4]);
+      }
+      return null;
+    }
+
+    return null;
   }
 }
 

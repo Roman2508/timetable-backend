@@ -21,7 +21,7 @@ export class PlanSubjectsService {
     private groupLoadLessonsService: GroupLoadLessonsService,
   ) {}
 
-  // Створення нової дисципліни в плані (дише ім'я)
+  // Створення нової дисципліни в плані (лише ім'я)
   async create(dto: CreatePlanSubjectDto) {
     // Шукаю чи є в плані дисципліни з таким ім'ям
     const planSubjects = await this.repository.find({
@@ -119,7 +119,9 @@ export class PlanSubjectsService {
       throw new NotFoundException('Групу не знайдено');
     }
 
-    await this.groupLoadLessonsService.removeOne(id);
+    // Якщо я видаляю з плану дисципліну або семестр - видаляються також і всі group-load-lessons,
+    // які були створені на основі цієї дисципліни
+    await this.groupLoadLessonsService.removeByPlanId(id);
 
     return id;
   }

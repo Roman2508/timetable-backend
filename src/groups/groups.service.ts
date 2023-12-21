@@ -1,11 +1,11 @@
-import { GroupLoadLessonsService } from './../group-load-lessons/group-load-lessons.service';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { GroupEntity } from './entities/group.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { GroupEntity } from './entities/group.entity';
-import { Repository } from 'typeorm';
-import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
+import { GroupLoadLessonsService } from './../group-load-lessons/group-load-lessons.service';
 
 @Injectable()
 export class GroupsService {
@@ -13,15 +13,8 @@ export class GroupsService {
     @InjectRepository(GroupEntity)
     private groupsRepository: Repository<GroupEntity>,
 
-    // @InjectRepository(PlanSubjectEntity)
-    // private planSubjectsRepository: Repository<PlanSubjectEntity>,
-
     private groupLoadLessonsService: GroupLoadLessonsService,
   ) {}
-
-  // findAll() {
-  //   return `This action returns all groups`;
-  // }
 
   async findOne(id: number) {
     const group = await this.groupsRepository.findOne({
@@ -65,20 +58,54 @@ export class GroupsService {
     return group;
   }
 
-  update(id: number, dto: UpdateGroupDto) {
-    // Потрібно врахувати, що якщо в групі змінено план - потрібно видалити всі старі group-load-lessons які були в цієї групи
-    // та після цього створити нові
-    return `This action updates a #${id} group`;
+  async update(id: number, dto: UpdateGroupDto) {
+    const group = await this.groupsRepository.findOne({
+      where: { id },
+      relations: { educationPlan: true },
+    });
+
+    if (!group) throw new NotFoundException('Групу не знайдено');
+
+    const oldEducationPlanId = Number(group.educationPlan.id);
+    const newEducationPlanId = Number(dto.educationPlan);
+
+    // Якщо при оновленні було змінено навчальний план
+    // потрібно видалити всі старі group-load-lessons які були в цієї групи та створити нові
+    if (oldEducationPlanId !== newEducationPlanId) {
+      const removeRes = await this.groupLoadLessonsService.removeByGroupId(
+        group.id,
+      );
+
+      if (removeRes) {
+        const res = await this.groupLoadLessonsService.createAll({
+          groupId: group.id,
+          educationPlanId: newEducationPlanId,
+          students: dto.students,
+        });
+
+        console.log(res, 'groups.service.ts : 88');
+      }
+    }
+
+    const { category, educationPlan, ...rest } = dto;
+
+    return this.groupsRepository.save({
+      ...group,
+      ...rest,
+      category: { id: category },
+      educationPlan: { id: educationPlan },
+    });
   }
 
+  // Коли видаляється група - видаляються такод всі group-load-lessons які були в цієї групи
   async remove(id: number) {
     const res = await this.groupsRepository.delete(id);
-
-    // Коли видаляється група потрібно видаляти всі group-load-lessons які були в цієї групи !!!!!!!!!!!!!!!
 
     if (res.affected === 0) {
       throw new NotFoundException('Групу не знайдено');
     }
+
+    await this.groupLoadLessonsService.removeByGroupId(id);
 
     return id;
   }

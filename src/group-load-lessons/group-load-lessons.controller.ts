@@ -14,6 +14,8 @@ import { GroupLoadLessonsService } from './group-load-lessons.service';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
+import { AttachSpecializationDto } from './dto/attach-specialization.dto';
+import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
 
 @Controller('group-load-lessons')
 @ApiTags('group-load-lessons')
@@ -32,7 +34,7 @@ export class GroupLoadLessonsController {
   }
 
   @Get(':id')
-  findAll(@Param('id') id: string) {
+  findAllByGroupId(@Param('id') id: string) {
     return this.groupLoadLessonsService.findAllByGroupId(+id);
   }
 
@@ -49,5 +51,17 @@ export class GroupLoadLessonsController {
   @Patch('/hours')
   updateHours(@Body() dto: UpdateGroupLoadLessonHoursDto) {
     return this.groupLoadLessonsService.updateHours(dto);
+  }
+
+  @ApiBody({ type: AttachSpecializationDto })
+  @Patch('/specialization')
+  attachSpecialization(@Body() dto: AttachSpecializationDto) {
+    return this.groupLoadLessonsService.attachSpecialization(dto);
+  }
+
+  @ApiBody({ type: SetSubgroupsCountDto })
+  @Patch('/subgroups')
+  setSubgroupsCount(@Body() dto: SetSubgroupsCountDto) {
+    return this.groupLoadLessonsService.setSubgroupsCount(dto);
   }
 }

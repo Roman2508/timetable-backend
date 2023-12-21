@@ -1,15 +1,26 @@
-import { GroupEntity } from 'src/groups/entities/group.entity';
-import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
-import { PlanEntity } from 'src/plans/entities/plan.entity';
-import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import {
   Column,
   Entity,
-  JoinColumn,
   ManyToOne,
-  OneToOne,
+  JoinColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Max, Min } from 'class-validator';
+
+import { PlanEntity } from 'src/plans/entities/plan.entity';
+import { GroupEntity } from 'src/groups/entities/group.entity';
+import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
+import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
+
+// type TypeRu = 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ' | 'КОНС' | 'МЕТОД';
+// type TypeEn =
+//   | 'lectures'
+//   | 'practical'
+//   | 'laboratory'
+//   | 'seminars'
+//   | 'exams'
+//   | 'examsConsulation'
+//   | 'metodologicalGuidance';
 
 @Entity('group-load-lessons')
 export class GroupLoadLessonEntity {
@@ -58,6 +69,8 @@ export class GroupLoadLessonEntity {
   stream: number;
 
   @Column({ default: null })
+  @Max(4, { message: 'Максимальна кількість підгруп - 4' })
+  @Min(1, { message: 'Мінімальна кількість підгруп - 1' })
   subgroupNumber: number;
 
   @Column({ default: 1 })
