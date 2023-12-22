@@ -15,13 +15,18 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { CreateStreamDto } from './dto/create-stream.dto';
 import { UpdateStreamNameDto } from './dto/update-stream-name.dto';
 import { AddGroupToStreamDto } from './dto/add-group-to-stream.dto';
+import { AddLessonsToStreamDto } from './dto/add-lessons-to-stream.dto';
+import { GroupLoadLessonsService } from 'src/group-load-lessons/group-load-lessons.service';
 
 @Controller('streams')
 @ApiTags('streams')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class StreamsController {
-  constructor(private readonly streamsService: StreamsService) {}
+  constructor(
+    private readonly streamsService: StreamsService,
+    private readonly groupLoadLessonsService: GroupLoadLessonsService,
+  ) {}
 
   @ApiBody({ type: CreateStreamDto })
   @Post()
@@ -57,6 +62,23 @@ export class StreamsController {
     return this.streamsService.removeGroupFromStream(+streamId, +groupId);
   }
 
+  // Об'єднати дисципліну в потік
+  @ApiBody({ type: AddLessonsToStreamDto })
+  @Patch('/lesson/add/:streamId')
+  addLessonsToStream(
+    @Param('streamId') streamId: string,
+    @Body() dto: AddLessonsToStreamDto,
+  ) {
+    return this.groupLoadLessonsService.addLessonsToStream(+streamId, dto);
+  }
+
+  // Видалити дисципліну з потоку
+  @ApiBody({ type: AddLessonsToStreamDto })
+  @Patch('/lesson/remove')
+  removeLessonsFromStream(@Body() dto: AddLessonsToStreamDto) {
+    // return this.groupLoadLessonsService.addLessonsToStream(dto);
+  }
+
   // @Patch(':id')
   // addLessonToStream(@Param('id') id: string, @Body() dto: {}) {
   //   return this.streamsService.addGroupToStream(+id, dto);
@@ -71,11 +93,7 @@ export class StreamsController {
   //   return this.streamsService.removeGroupFromStream(+streamId, +groupId, +lessonId);
   // }
 
-  // @Patch(':id')
-  // updateStreamLessons(@Param('id') id: string, @Body() dto: {}) {
-  //   return this.streamsService.updateStreamName(+id, dto);
-  // }
-
+  // Видалити потік
   @Delete(':id')
   removeStream(@Param('id') id: string) {
     return this.streamsService.removeStream(+id);

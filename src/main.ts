@@ -36,3 +36,8 @@ bootstrap();
 // examsConsultation, metodologicalGuidance - створювати для цих видів зянять group-load-lessons !!!
 // add GoogleCalendarId to groups and teachers
 // totalHours в plan-subjects повинна вказуватись вручну
+
+// frontend: notifications react-toastify
+
+// на frontend в таблиці дисциплін потоку потрібно відображати тільки ті дисципліни, які можна об'єднати
+// тобто ті в яких однакові такі поля: name, semesterNumber, typeEn, hours, subgroupNumber

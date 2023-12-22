@@ -16,6 +16,7 @@ import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-nam
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
 import { AttachSpecializationDto } from './dto/attach-specialization.dto';
 import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
+import { AddLessonsToStreamDto } from '../streams/dto/add-lessons-to-stream.dto';
 
 @Controller('group-load-lessons')
 @ApiTags('group-load-lessons')

@@ -13,6 +13,7 @@ import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-nam
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
 import { AttachSpecializationDto } from './dto/attach-specialization.dto';
 import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
+import { AddLessonsToStreamDto } from '../streams/dto/add-lessons-to-stream.dto';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -131,6 +132,23 @@ export class GroupLoadLessonsService {
   async findAllByGroupId(groupId: number) {
     const lessons = await this.groupLoadLessonsRepository.find({
       where: { group: { id: groupId } },
+      relations: {
+        group: true,
+        planSubjectId: true,
+        stream: true,
+        teacher: true,
+      },
+      select: {
+        group: { id: true, name: true },
+        planSubjectId: { id: true },
+        stream: { id: true, name: true, groups: { id: true, name: true } },
+        teacher: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+      },
     });
 
     if (!lessons.length) throw new NotFoundException('Дисципліни не знайдені');
@@ -548,6 +566,64 @@ export class GroupLoadLessonsService {
     }
 
     return null;
+  }
+
+  /* streams */
+  async addLessonsToStream(streamId: number, dto: AddLessonsToStreamDto) {
+    try {
+      // Якщо передано 1 або 0 id
+      if (dto.lessonsIds.length < 2) {
+        throw new BadRequestException(
+          "В потік можна об'єднати 2 і більше групи",
+        );
+      }
+
+      const lessons: GroupLoadLessonEntity[] = [];
+
+      await Promise.all(
+        dto.lessonsIds.map(async (id) => {
+          const findedLesson = await this.groupLoadLessonsRepository.findOne({
+            where: { id },
+            relations: { group: true, planSubjectId: true, stream: true },
+            select: { group: {} },
+          });
+
+          lessons.push(findedLesson);
+        }),
+      );
+
+      // Перевірка чи можна об'єднати дисципліни, які передано
+      // тобто чи однакові в дисциплін поля: name, semesterNumber (semester), typeEn, hours, subgroupNumber
+      const isAllLessonsSame = lessons.every(
+        (value) =>
+          value.name === lessons[0].name &&
+          value.semester === lessons[0].semester &&
+          value.typeEn === lessons[0].typeEn &&
+          value.subgroupNumber === lessons[0].subgroupNumber &&
+          value.hours === lessons[0].hours,
+      );
+
+      // Якщо хоча б 1 поле в 1 дисципліні не однакове
+      if (!isAllLessonsSame) {
+        throw new BadRequestException(
+          "Вибрані дисципліни не можна об'єднати в потік",
+        );
+      }
+
+      // Якщо всі потрібні поля у всіх дисциплін однакові - можна об'єднувати в потік
+      return Promise.all(
+        lessons.map(async (lesson) => {
+          return await this.groupLoadLessonsRepository.save({
+            ...lesson,
+            stream: { id: streamId },
+            // При об'єднанні дисциплін в потік видаляю прикріпленого викладача в кожній дисципліні
+            teacher: null,
+          });
+        }),
+      );
+    } catch (err) {
+      console.log(err?.message);
+    }
   }
 }
 

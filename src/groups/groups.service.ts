@@ -20,7 +20,10 @@ export class GroupsService {
     const group = await this.groupsRepository.findOne({
       where: { id },
       relations: { category: true, stream: true },
-      select: { category: { id: true }, stream: { id: true, name: true } },
+      select: {
+        category: { id: true },
+        stream: { id: true, name: true, groups: { id: true, name: true } },
+      },
     });
 
     if (!group) throw new NotFoundException('Групу не знайдено');
