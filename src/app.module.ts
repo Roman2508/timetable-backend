@@ -29,6 +29,7 @@ import { GroupLoadLessonsModule } from './group-load-lessons/group-load-lessons.
 import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-lesson.entity';
 import { StreamsModule } from './streams/streams.module';
 import { StreamEntity } from './streams/entities/stream.entity';
+import { ScheduleLessonsModule } from './schedule-lessons/schedule-lessons.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { StreamEntity } from './streams/entities/stream.entity';
     GroupsModule,
     GroupLoadLessonsModule,
     StreamsModule,
+    ScheduleLessonsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
