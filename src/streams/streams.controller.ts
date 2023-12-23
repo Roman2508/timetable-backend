@@ -17,6 +17,7 @@ import { UpdateStreamNameDto } from './dto/update-stream-name.dto';
 import { AddGroupToStreamDto } from './dto/add-group-to-stream.dto';
 import { AddLessonsToStreamDto } from './dto/add-lessons-to-stream.dto';
 import { GroupLoadLessonsService } from 'src/group-load-lessons/group-load-lessons.service';
+import { RemoveLessonsFromStreamDto } from './dto/remove-lessons-from-stream.dto';
 
 @Controller('streams')
 @ApiTags('streams')
@@ -73,10 +74,13 @@ export class StreamsController {
   }
 
   // Видалити дисципліну з потоку
-  @ApiBody({ type: AddLessonsToStreamDto })
-  @Patch('/lesson/remove')
-  removeLessonsFromStream(@Body() dto: AddLessonsToStreamDto) {
-    // return this.groupLoadLessonsService.addLessonsToStream(dto);
+  @ApiBody({ type: RemoveLessonsFromStreamDto })
+  @Patch('/lesson/remove/:streamId')
+  removeLessonsFromStream(
+    @Param('streamId') streamId: string,
+    @Body() dto: RemoveLessonsFromStreamDto,
+  ) {
+    return this.groupLoadLessonsService.removeLessonsFromStream(+streamId, dto);
   }
 
   // @Patch(':id')

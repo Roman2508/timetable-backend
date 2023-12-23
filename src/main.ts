@@ -27,11 +27,18 @@ bootstrap();
 /* plans */
 /* auditories */
 /* teachers */
+/* groups */
+/* streams */
+/* load */
 
-/* groups ??? */
-/* streams ??? */
-/* load ??? */
 /* schedule ??? */
+
+// todo:
+// отримання розкладу (групи, розкладу, аудиторії) (отримати певний рік і певний семестр)
+// створення розкладу (для 1 групи і для потоку)
+// оновлення розкладу (для 1 групи і для потоку)
+// видалення розкладу (1 групи і потоку)
+// клонування розкладу (1 групи і потоку)
 
 // examsConsultation, metodologicalGuidance - створювати для цих видів зянять group-load-lessons !!!
 // add GoogleCalendarId to groups and teachers

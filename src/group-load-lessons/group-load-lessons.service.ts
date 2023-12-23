@@ -14,6 +14,7 @@ import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-ho
 import { AttachSpecializationDto } from './dto/attach-specialization.dto';
 import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
 import { AddLessonsToStreamDto } from '../streams/dto/add-lessons-to-stream.dto';
+import { RemoveLessonsFromStreamDto } from 'src/streams/dto/remove-lessons-from-stream.dto';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -90,6 +91,32 @@ export class GroupLoadLessonsService {
     });
 
     return groupLoadLessons;
+  }
+
+  async findOneLessonById(id: number) {
+    const lesson = await this.groupLoadLessonsRepository.findOne({
+      where: { id },
+      relations: {
+        stream: true,
+        teacher: true,
+        group: true,
+        planSubjectId: true,
+      },
+      select: {
+        stream: { id: true, name: true },
+        teacher: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+        group: { id: true, name: true },
+      },
+    });
+
+    if (!lesson) throw new NotFoundException('Дисципліну не знайдено');
+
+    return lesson;
   }
 
   // Коли при створенні групи для неї вперше прикріплюється навчальний план - створюю для всіх дисциплін плану group-load-lessons
@@ -624,6 +651,98 @@ export class GroupLoadLessonsService {
     } catch (err) {
       console.log(err?.message);
     }
+  }
+
+  async removeLessonsFromStream(
+    streamId: number,
+    dto: RemoveLessonsFromStreamDto,
+  ) {
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where: {
+        name: dto.name,
+        semester: dto.semester,
+        hours: dto.hours,
+        typeEn: dto.typeEn,
+        subgroupNumber: dto.subgroupNumber,
+        stream: { id: streamId },
+      },
+    });
+
+    if (!lessons.length) throw new NotFoundException('Дисципліни не знайдено');
+
+    return Promise.all(
+      lessons.map(async (lesson) => {
+        return await this.groupLoadLessonsRepository.save({
+          ...lesson,
+          stream: null,
+        });
+      }),
+    );
+  }
+
+  /* teacher */
+  async attachTeacher(lessonId: number, dto: any) {
+    // lesson id, teacher id
+    const lesson = await this.findOneLessonById(lessonId);
+
+    // Якщо дисципліна не об'єднана в потік
+    if (!lesson.stream) {
+      return this.groupLoadLessonsRepository.save({
+        ...lesson,
+        teacher: { id: dto.teacherId },
+      });
+    }
+
+    // Якщо дисципліна об'єднана в потік
+    const streamLesson = await this.groupLoadLessonsRepository.find({
+      where: {
+        stream: { id: lesson.stream.id },
+        name: lesson.name,
+        typeEn: lesson.typeEn,
+        hours: lesson.hours,
+        semester: lesson.semester,
+        subgroupNumber: lesson.subgroupNumber,
+      },
+    });
+
+    return Promise.all(
+      streamLesson.map(async (el) => {
+        return await this.groupLoadLessonsRepository.save({
+          ...el,
+          teacher: { id: dto.teacherId },
+        });
+      }),
+    );
+  }
+
+  async unpinTeacher(lessonId: number) {
+    const lesson = await this.findOneLessonById(lessonId);
+
+    // Якщо дисципліна не об`єднана в потік
+    if (!lesson.stream) {
+      return this.groupLoadLessonsRepository.save({ ...lesson, teacher: null });
+    }
+
+    // Якщо дисципліна об`єднана в потік
+    const streamLesson = await this.groupLoadLessonsRepository.find({
+      where: {
+        stream: { id: lesson.stream.id },
+        name: lesson.name,
+        typeEn: lesson.typeEn,
+        hours: lesson.hours,
+        semester: lesson.semester,
+        subgroupNumber: lesson.subgroupNumber,
+      },
+    });
+
+    return Promise.all(
+      streamLesson.map(async (el) => {
+        return await this.groupLoadLessonsRepository.save({
+          ...el,
+          teacher: null,
+        });
+      }),
+    );
   }
 }
 
