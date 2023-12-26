@@ -68,7 +68,6 @@ export class ScheduleLessonsService {
         }),
       );
 
-      // Можливо el.group.id === undefined !!!!!!!!!!!!!!!!!!!!!
       return newLessons.find((el) => el.group.id === dto.group);
     }
 
@@ -92,6 +91,23 @@ export class ScheduleLessonsService {
         [type]: { id },
         semester: semester,
       },
+      relations: {
+        group: true,
+        teacher: true,
+        stream: { groups: true },
+        auditory: true,
+      },
+      select: {
+        group: { id: true, name: true },
+        teacher: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+        auditory: { id: true, name: true },
+        stream: { id: true, name: true, groups: { id: true, name: true } },
+      },
     });
 
     return lessons;
@@ -106,9 +122,12 @@ export class ScheduleLessonsService {
     const lesson = await this.repository.findOne({
       where: { id },
       relations: {
-        group: true,
-        teacher: true,
-        stream: true,
+        auditory: true,
+        stream: { groups: true },
+      },
+      select: {
+        auditory: { id: true },
+        stream: { id: true, name: true, groups: { id: true, name: true } },
       },
     });
 
@@ -131,6 +150,17 @@ export class ScheduleLessonsService {
           stream: { id: lesson.stream.id },
           lessonNumber: currentsLessonDate.lessonNumber,
         },
+        relations: {
+          auditory: { category: true },
+        },
+        select: {
+          auditory: {
+            id: true,
+            name: true,
+            seatsNumber: true,
+            category: { id: true, name: true },
+          },
+        },
       });
 
       Promise.all(
@@ -142,11 +172,18 @@ export class ScheduleLessonsService {
         }),
       );
 
-      return streamLessonsInCurrentDate.find((el) => el.id === id)[0];
+      const updatedItem = streamLessonsInCurrentDate.find((el) => el.id === id);
+
+      return {
+        id: updatedItem.id,
+        auditory: {
+          ...updatedItem.auditory,
+        },
+      };
     }
 
     // Якщо група не об'єднана в потік
-    const { group, teacher, auditory, stream, ...rest } = lesson;
+    const { auditory, stream, ...rest } = lesson;
 
     return this.repository.save({
       ...rest,
@@ -158,7 +195,12 @@ export class ScheduleLessonsService {
     const lesson = await this.repository.findOne({
       where: { id },
       relations: {
-        stream: true,
+        auditory: true,
+        stream: { groups: true },
+      },
+      select: {
+        auditory: { id: true },
+        stream: { id: true, name: true, groups: { id: true, name: true } },
       },
     });
 
@@ -194,7 +236,6 @@ export class ScheduleLessonsService {
       );
 
       return id;
-      // return streamLessonsInCurrentDate.find((el) => el.id === id)[0];
     }
 
     // Якщо дисипліна не об'єднана в потік

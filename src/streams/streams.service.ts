@@ -63,14 +63,23 @@ export class StreamsService {
     const stream = await this.repository.findOne({
       where: { id },
       relations: { groups: true },
-      select: { groups: { id: true, name: true } },
+      select: { groups: { id: true } },
     });
     if (!stream) throw new NotFoundException('Потік не знайдено');
 
-    return this.repository.save({
+    // Додаю групу до потоку
+    await this.repository.save({
       ...stream,
       groups: [...stream.groups, { id: dto.groupId }],
     });
+
+    const updatedStream = await this.repository.findOne({
+      where: { id },
+      relations: { groups: true },
+      select: { groups: { id: true, name: true } },
+    });
+
+    return updatedStream;
   }
 
   async removeGroupFromStream(streamId: number, groupId: number) {

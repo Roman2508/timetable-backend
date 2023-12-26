@@ -30,6 +30,7 @@ import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-
 import { StreamsModule } from './streams/streams.module';
 import { StreamEntity } from './streams/entities/stream.entity';
 import { ScheduleLessonsModule } from './schedule-lessons/schedule-lessons.module';
+import { ScheduleLessonsEntity } from './schedule-lessons/entities/schedule-lesson.entity';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ScheduleLessonsModule } from './schedule-lessons/schedule-lessons.modul
         GroupEntity,
         GroupLoadLessonEntity,
         StreamEntity,
+        ScheduleLessonsEntity,
       ],
       synchronize: true,
     }),
