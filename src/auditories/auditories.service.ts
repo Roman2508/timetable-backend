@@ -12,9 +12,9 @@ export class AuditoriesService {
     private repository: Repository<AuditoryEntity>,
   ) {}
 
-  findAll() {
-    return this.repository.find({ relations: { category: true } });
-  }
+  // findAll() {
+  //   return this.repository.find({ relations: { category: true } });
+  // }
 
   create(dto: CreateAuditoryDto) {
     const { category, ...rest } = dto;

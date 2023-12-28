@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateAuditoryCategoryDto } from './dto/create-auditory-category.dto';
 import { UpdateAuditoryCategoryDto } from './dto/update-auditory-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,7 +18,17 @@ export class AuditoryCategoriesService {
 
   findAll() {
     return this.repository.find({
-      relations: { auditories: true },
+      relations: { auditories: { category: true } },
+      select: {
+        id: true,
+        name: true,
+        auditories: {
+          id: true,
+          name: true,
+          seatsNumber: true,
+          category: { id: true },
+        },
+      },
     });
   }
 
@@ -41,6 +55,21 @@ export class AuditoryCategoriesService {
   }
 
   async remove(id: number) {
+    const category = await this.repository.findOne({
+      where: { id },
+      relations: { auditories: true },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Не знайдено');
+    }
+
+    if (category.auditories.length > 0) {
+      throw new BadRequestException(
+        'Не можна видалити категорію в якій є аудиторії',
+      );
+    }
+
     const res = await this.repository.delete(id);
 
     if (res.affected === 0) {

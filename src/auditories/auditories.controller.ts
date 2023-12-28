@@ -21,10 +21,10 @@ import { UpdateAuditoryDto } from './dto/update-auditory.dto';
 export class AuditoriesController {
   constructor(private readonly auditoriesService: AuditoriesService) {}
 
-  @Get()
-  findAll() {
-    return this.auditoriesService.findAll();
-  }
+  // @Get()
+  // findAll() {
+  //   return this.auditoriesService.findAll();
+  // }
 
   @ApiBody({ type: CreateAuditoryDto })
   @Post()
