@@ -26,7 +26,7 @@ export class AuditoryCategoriesService {
           id: true,
           name: true,
           seatsNumber: true,
-          category: { id: true },
+          category: { id: true, name: true },
         },
       },
     });
