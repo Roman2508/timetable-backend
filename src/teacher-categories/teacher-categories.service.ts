@@ -1,5 +1,9 @@
 import { Repository } from 'typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { TeacherCategoryEntity } from './entities/teacher-category.entity';
@@ -16,7 +20,18 @@ export class TeacherCategoriesService {
   findAll() {
     return this.repository.find({
       relations: {
-        teachers: true,
+        teachers: { category: true },
+      },
+      select: {
+        id: true,
+        name: true,
+        teachers: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+          category: { id: true, name: true },
+        },
       },
     });
   }
@@ -42,6 +57,17 @@ export class TeacherCategoriesService {
   }
 
   async remove(id: number) {
+    const category = await this.repository.findOne({
+      where: { id },
+      relations: { teachers: true },
+    });
+
+    if (category.teachers.length > 0) {
+      throw new BadRequestException(
+        'Не можна видалити категорію в якій є викладачi',
+      );
+    }
+
     const res = await this.repository.delete(id);
 
     if (res.affected === 0) {
