@@ -31,17 +31,25 @@ export class PlansService {
   }
 
   async update(id: number, dto: UpdatePlanDto) {
-    const plan = await this.repository.find({ where: { id } });
+    const plan = await this.repository.findOne({
+      where: { id },
+      relations: { category: true },
+      select: { category: { id: true, name: true } },
+    });
 
-    if (!plan[0]) {
+    if (!plan) {
       throw new NotFoundException('План не знайдено');
     }
 
-    return this.repository.save({ ...plan[0], ...dto });
+    return this.repository.save({ ...plan, ...dto });
   }
 
-  remove(id: number) {
-    this.repository.delete(id);
+  async remove(id: number) {
+    const res = await this.repository.delete(id);
+
+    if (res.affected === 0) {
+      throw new NotFoundException('Не знайдено');
+    }
 
     return id;
   }

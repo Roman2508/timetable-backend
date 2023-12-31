@@ -15,8 +15,9 @@ export class PlanCategoriesService {
   findAll() {
     return this.repository.find({
       relations: {
-        plans: true,
+        plans: { category: true },
       },
+      select: { plans: { category: { id: true, name: true } } },
     });
   }
 
