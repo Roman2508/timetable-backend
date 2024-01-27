@@ -17,7 +17,11 @@ export class PlanCategoriesService {
       relations: {
         plans: { category: true },
       },
-      select: { plans: { category: { id: true, name: true } } },
+      select: {
+        id: true,
+        name: true,
+        plans: { id: true, name: true, category: { id: true, name: true } },
+      },
     });
   }
 
