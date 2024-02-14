@@ -21,8 +21,10 @@ export class GroupsService {
       where: { id },
       relations: { category: true, stream: true },
       select: {
-        category: { id: true },
+        category: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
+        educationPlan: { id: true, name: true },
+        groupLoad: { id: true, name: true },
       },
     });
 
