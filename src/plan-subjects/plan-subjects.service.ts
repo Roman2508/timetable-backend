@@ -48,6 +48,7 @@ export class PlanSubjectsService {
     return this.repository.findOneBy({ id });
   }
 
+  // При оновленні назви дисципліни в plan-subjects потрібно оновлювати аналогічну дисципліну в group-load-lessons
   async updateName(dto: UpdatePlanSubjectNameDto) {
     // find all subjects by plan id
     const subject = await this.repository.find({

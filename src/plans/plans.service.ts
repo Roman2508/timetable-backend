@@ -24,9 +24,9 @@ export class PlansService {
   }
 
   findOne(id: number) {
-    return this.repository.find({
+    return this.repository.findOne({
       where: { id },
-      relations: { subjects: true },
+      relations: { subjects: { plan: true } },
     });
   }
 
