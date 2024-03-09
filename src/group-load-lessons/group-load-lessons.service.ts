@@ -130,8 +130,9 @@ export class GroupLoadLessonsService {
         where: { plan: { id: dto.educationPlanId } },
       });
 
+      // В плані відсутні дисципліни
       if (!selectedPlanSubjects.length) {
-        throw new NotFoundException('Навчальний план не знайдено');
+        return [];
       }
 
       const newLessons = this.convertPlanSubjectsToGroupLoadLessons(

@@ -19,7 +19,12 @@ export class GroupsService {
   async findOne(id: number) {
     const group = await this.groupsRepository.findOne({
       where: { id },
-      relations: { category: true, stream: true },
+      relations: {
+        category: true,
+        stream: true,
+        educationPlan: true,
+        groupLoad: true,
+      },
       select: {
         category: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
