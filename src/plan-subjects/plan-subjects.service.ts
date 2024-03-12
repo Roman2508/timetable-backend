@@ -21,7 +21,7 @@ export class PlanSubjectsService {
     private groupLoadLessonsService: GroupLoadLessonsService,
   ) {}
 
-  // Створення нової дисципліни в плані (лише ім'я)
+  // Створення нової дисципліни в плані (лише ім'я та ЦК)
   async create(dto: CreatePlanSubjectDto) {
     // Шукаю чи є в плані дисципліни з таким ім'ям
     const planSubjects = await this.repository.find({
@@ -65,13 +65,14 @@ export class PlanSubjectsService {
     await this.repository
       .createQueryBuilder('updateSubjects')
       .update(PlanSubjectEntity)
-      .set({ name: dto.newName })
+      .set({ name: dto.newName, cmk: { id: dto.cmk } })
       .whereInIds(subjectsIds)
       .execute();
 
     const updatedSubjects = subjectsIds.map((el) => ({
       id: el,
       name: dto.newName,
+      cmk: { id: dto.cmk },
     }));
 
     subjectsIds.map(async (id) => {
@@ -79,6 +80,7 @@ export class PlanSubjectsService {
         oldName: dto.oldName,
         newName: dto.newName,
         planSubjectId: id,
+        cmk: dto.cmk,
       });
     });
 
@@ -96,7 +98,7 @@ export class PlanSubjectsService {
     const updatedSubjects = { ...subject, ...dto };
 
     // let totalHours = 0;
-    // const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];
+    // const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];,
 
     // for (const propName in updatedSubjects) {
     //   if (allLessonsNames.some((el) => propName === el)) {
@@ -105,10 +107,12 @@ export class PlanSubjectsService {
     // }
 
     await this.groupLoadLessonsService.updateHours({
+      /* @ts-ignore */
       planSubject: updatedSubjects,
       planId: dto.planId,
     });
 
+    /* @ts-ignore */
     return this.repository.save({ ...updatedSubjects /* , totalHours  */ });
   }
 

@@ -1,17 +1,25 @@
 import { PlanEntity } from 'src/plans/entities/plan.entity';
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('plan-subjects')
 export class PlanSubjectEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(
-    () => PlanEntity,
-    (plan) => plan.subjects /* , { onDelete: 'CASCADE' } */,
-  )
+  @ManyToOne(() => PlanEntity, (plan) => plan.subjects, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'plan' })
   plan: PlanEntity;
+
+  @ManyToOne(() => TeacherCategoryEntity)
+  @JoinColumn({ name: 'cmk' })
+  cmk: TeacherCategoryEntity;
 
   @Column()
   name: string;

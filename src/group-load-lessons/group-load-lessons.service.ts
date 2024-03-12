@@ -194,12 +194,14 @@ export class GroupLoadLessonsService {
       where: { planSubjectId: { id: dto.planSubjectId }, name: dto.oldName },
     });
 
-    if (!lessons.length) throw new NotFoundException('Дисципліну не знайдено');
+    if (!lessons.length) return;
+    // if (!lessons.length) throw new NotFoundException('Дисципліну не знайдено');
 
     lessons.map(async (el) => {
       this.groupLoadLessonsRepository.save({
         ...el,
         name: dto.newName,
+        cmk: { id: dto.cmk },
       });
     });
 

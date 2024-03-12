@@ -12,6 +12,7 @@ import { GroupEntity } from 'src/groups/entities/group.entity';
 import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
 import { StreamEntity } from 'src/streams/entities/stream.entity';
+import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
 
 // type TypeRu = 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ' | 'КОНС' | 'МЕТОД';
 // type TypeEn =
@@ -44,6 +45,10 @@ export class GroupLoadLessonEntity {
   @ManyToOne(() => PlanEntity, (plan) => plan.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'plan' })
   plan: PlanEntity;
+
+  @ManyToOne(() => TeacherCategoryEntity)
+  @JoinColumn({ name: 'cmk' })
+  cmk: TeacherCategoryEntity;
 
   @ManyToOne(() => PlanSubjectEntity, (plan) => plan.id, {
     onDelete: 'CASCADE',

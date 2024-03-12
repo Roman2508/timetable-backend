@@ -6,6 +6,11 @@ export class CreatePlanSubjectDto {
   @IsNotEmpty({ message: 'Ім`я обов`язкове' })
   @IsString()
   name: string;
+ 
+  @ApiProperty()
+  @IsNotEmpty({ message: 'Ім`я обов`язкове' })
+  @IsNumber()
+  cmk: number;
 
   @ApiProperty()
   @IsNotEmpty({ message: 'ID навчального плану - обов`язкове поле' })

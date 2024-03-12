@@ -7,7 +7,10 @@ export class UpdateGroupLoadLessonNameDto {
 
   @ApiProperty()
   oldName: string;
-  
+
   @ApiProperty()
   newName: string;
+
+  @ApiProperty()
+  cmk: number;
 }
