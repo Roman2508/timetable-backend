@@ -57,6 +57,9 @@ import { ScheduleLessonsEntity } from './schedule-lessons/entities/schedule-less
         StreamEntity,
         ScheduleLessonsEntity,
       ],
+      extra: {
+        max: 1, // set pool max size
+      },
       synchronize: true,
     }),
     PlanCategoriesModule,

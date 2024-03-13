@@ -61,11 +61,15 @@ export class GroupLoadLessonsService {
         );
 
         // Якщо дисципліну знайдено (за типом) і кількість годин !== 0 - створюю group-load-lesson
-        if (findedSubjectType && lesson[findedSubjectType?.name] !== 0) {
+        if (
+          findedSubjectType &&
+          Number(lesson[findedSubjectType?.name]) !== 0
+        ) {
           const payload = {
             name: lesson.name,
             group: { id: groupId },
             plan: { id: planId },
+            cmk: { id: lesson.cmk ? lesson.cmk.id : null },
             planSubjectId: { id: lesson.id },
             semester: lesson.semesterNumber,
             specialization: null,
@@ -128,6 +132,8 @@ export class GroupLoadLessonsService {
       // Шукаю всі дисципліни в навчальному плані
       const selectedPlanSubjects = await this.planSubjectsRepository.find({
         where: { plan: { id: dto.educationPlanId } },
+        relations: { cmk: true },
+        select: { cmk: { id: true } },
       });
 
       // В плані відсутні дисципліни
@@ -142,7 +148,7 @@ export class GroupLoadLessonsService {
         dto.students,
       );
 
-      const groupLoadLessons = newLessons.map(
+      const groupLoadLessons = await newLessons.map(
         async (el: DeepPartial<GroupLoadLessonEntity>) => {
           const payload = this.groupLoadLessonsRepository.create(el);
           const newLesson = await this.groupLoadLessonsRepository.save(payload);
@@ -213,7 +219,7 @@ export class GroupLoadLessonsService {
   async updateHours(dto: UpdateGroupLoadLessonHoursDto) {
     const oldLessonsHours = await this.groupLoadLessonsRepository.find({
       where: { planSubjectId: { id: dto.planSubject.id } },
-      relations: { group: true, plan: true },
+      relations: { group: true, plan: true /*,  cmk: true */ },
       select: {
         id: true,
         name: true,
@@ -229,6 +235,7 @@ export class GroupLoadLessonsService {
         planSubjectId: { id: true },
         group: { id: true },
         plan: { id: true },
+        // cmk: { id: true },
       },
     });
 

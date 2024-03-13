@@ -37,6 +37,7 @@ export class PlanSubjectsService {
     const payload = {
       name: dto.name,
       plan: { id: dto.planId },
+      cmk: { id: dto.cmk },
     };
 
     const newSubject = this.repository.create(payload);
@@ -89,32 +90,76 @@ export class PlanSubjectsService {
 
   // Створення або оновлення семестру для дисципліни
   async updateHours(id: number, dto: UpdatePlanSubjectHoursDto) {
-    const subject = await this.repository.findOne({ where: { id } });
-
-    if (!subject) {
-      throw new NotFoundException('Дисципліну не знайдено');
-    }
-
-    const updatedSubjects = { ...subject, ...dto };
-
-    // let totalHours = 0;
-    // const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];,
-
-    // for (const propName in updatedSubjects) {
-    //   if (allLessonsNames.some((el) => propName === el)) {
-    //     totalHours += updatedSubjects[propName];
-    //   }
-    // }
-
-    await this.groupLoadLessonsService.updateHours({
-      /* @ts-ignore */
-      planSubject: updatedSubjects,
-      planId: dto.planId,
+    const subject = await this.repository.findOne({
+      where: {
+        plan: {
+          id: dto.planId,
+        },
+        name: dto.name,
+        semesterNumber: dto.semesterNumber,
+      },
     });
 
-    /* @ts-ignore */
-    return this.repository.save({ ...updatedSubjects /* , totalHours  */ });
+    // Якщо дисципліни немає - її треба створити
+    if (!subject) {
+      const subjectDto = this.repository.create({
+        ...dto,
+        cmk: { id: dto.cmk },
+        plan: { id: dto.planId },
+      });
+
+      const newSubject = await this.repository.save(subjectDto);
+
+      await this.groupLoadLessonsService.updateHours({
+        planSubject: newSubject,
+        planId: dto.planId,
+      });
+
+      return newSubject;
+    } else {
+      // Якщо дисципліна є - треба оновити
+
+      const updatedSubjects = { ...subject, ...dto, cmk: { id: dto.cmk } };
+
+      await this.groupLoadLessonsService.updateHours({
+        /* @ts-ignore */
+        planSubject: updatedSubjects,
+        planId: dto.planId,
+      });
+
+      /* @ts-ignore */
+      return this.repository.save(updatedSubjects);
+    }
   }
+
+  // Створення або оновлення семестру для дисципліни
+  // async updateHours(id: number, dto: UpdatePlanSubjectHoursDto) {
+  //   const subject = await this.repository.findOne({ where: { id } });
+
+  //   if (!subject) {
+  //     throw new NotFoundException('Дисципліну не знайдено');
+  //   }
+
+  //   const updatedSubjects = { ...subject, ...dto };
+
+  //   // let totalHours = 0;
+  //   // const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];,
+
+  //   // for (const propName in updatedSubjects) {
+  //   //   if (allLessonsNames.some((el) => propName === el)) {
+  //   //     totalHours += updatedSubjects[propName];
+  //   //   }
+  //   // }
+
+  //   await this.groupLoadLessonsService.updateHours({
+  //     /* @ts-ignore */
+  //     planSubject: updatedSubjects,
+  //     planId: dto.planId,
+  //   });
+
+  //   /* @ts-ignore */
+  //   return this.repository.save({ ...updatedSubjects /* , totalHours  */ });
+  // }
 
   async remove(id: number) {
     const res = await this.repository.delete(id);

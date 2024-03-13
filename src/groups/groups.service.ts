@@ -88,13 +88,11 @@ export class GroupsService {
       );
 
       if (removeRes) {
-        const res = await this.groupLoadLessonsService.createAll({
+        await this.groupLoadLessonsService.createAll({
           groupId: group.id,
           educationPlanId: newEducationPlanId,
           students: dto.students,
         });
-
-        console.log(res, 'groups.service.ts : 88');
       }
     }
 
