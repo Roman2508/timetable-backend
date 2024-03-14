@@ -14,6 +14,8 @@ import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { CreateGroupSpecializationDto } from './dto/create-group-specialization.dto';
+import { UpdateGroupSpecializationDto } from './dto/update-group-specialization.dto';
 
 @Controller('groups')
 @ApiTags('groups')
@@ -27,15 +29,27 @@ export class GroupsController {
     return this.groupsService.findOne(+id);
   }
 
-  @Get('load/:id')
-  findOneWithLoad(@Param('id') id: string) {
-    return this.groupsService.findOneWithLoad(+id);
-  }
-
   @ApiBody({ type: CreateGroupDto })
   @Post()
   create(@Body() dto: CreateGroupDto) {
     return this.groupsService.create(dto);
+  }
+
+  @ApiBody({ type: CreateGroupSpecializationDto })
+  @Post('/specialization')
+  createSpecialization(@Body() dto: CreateGroupSpecializationDto) {
+    return this.groupsService.createSpecialization(dto);
+  }
+
+  @ApiBody({ type: UpdateGroupSpecializationDto })
+  @Patch('/specialization')
+  updateSpecialization(@Body() dto: UpdateGroupSpecializationDto) {
+    return this.groupsService.updateSpecialization(dto);
+  }
+
+  @Delete('/specialization/:id/:name')
+  deleteSpecialization(@Param('id') id: string, @Param('name') name: string) {
+    return this.groupsService.deleteSpecialization(+id, name);
   }
 
   @Patch(':id')

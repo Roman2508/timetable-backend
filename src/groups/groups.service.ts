@@ -1,11 +1,17 @@
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { GroupEntity } from './entities/group.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { GroupLoadLessonsService } from './../group-load-lessons/group-load-lessons.service';
+import { CreateGroupSpecializationDto } from './dto/create-group-specialization.dto';
+import { UpdateGroupSpecializationDto } from './dto/update-group-specialization.dto';
 
 @Injectable()
 export class GroupsService {
@@ -29,18 +35,28 @@ export class GroupsService {
         category: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
         educationPlan: { id: true, name: true },
-        groupLoad: { id: true, name: true },
+        groupLoad: {
+          id: true,
+          name: true,
+          semester: true,
+          specialization: true,
+          typeRu: true,
+          typeEn: true,
+          hours: true,
+          subgroupNumber: true,
+          students: true,
+          group: { id: true, name: true },
+          planSubjectId: { id: true },
+          plan: { id: true },
+          stream: {
+            id: true,
+            name: true,
+            groups: { id: true, name: true },
+            lessons: { id: true, name: true },
+          },
+          cmk: { id: true },
+        },
       },
-    });
-
-    if (!group) throw new NotFoundException('Групу не знайдено');
-    return group;
-  }
-
-  async findOneWithLoad(id: number) {
-    const group = await this.groupsRepository.findOne({
-      where: { id },
-      relations: { category: true, groupLoad: true },
     });
 
     if (!group) throw new NotFoundException('Групу не знайдено');
@@ -117,6 +133,70 @@ export class GroupsService {
     await this.groupLoadLessonsService.removeByGroupId(id);
 
     return id;
+  }
+
+  // Specialization
+  async createSpecialization(dto: CreateGroupSpecializationDto) {
+    const group = await this.groupsRepository.findOne({
+      where: { id: dto.groupId },
+    });
+
+    if (!group) throw new NotFoundException('Групу не знайдено');
+
+    const isSpecializationExist = group.specializationList.find(
+      (el) => el === dto.name,
+    );
+
+    if (isSpecializationExist)
+      throw new BadRequestException(
+        'Назви спец. підгруп повинні бути унікальними',
+      );
+
+    await this.groupsRepository.save({
+      ...group,
+      specializationList: [...group.specializationList, dto.name],
+    });
+
+    return [...group.specializationList, dto.name];
+  }
+
+  async updateSpecialization(dto: UpdateGroupSpecializationDto) {
+    const group = await this.groupsRepository.findOne({
+      where: { id: dto.groupId },
+    });
+
+    if (!group) throw new NotFoundException('Групу не знайдено');
+
+    const specializationList = group.specializationList.map((el) => {
+      if (el === dto.oldName) return dto.newName;
+      else return el;
+    });
+
+    await this.groupsRepository.save({
+      ...group,
+      specializationList,
+    });
+
+    return specializationList;
+  }
+
+  async deleteSpecialization(id: number, name: string) {
+    const group = await this.groupsRepository.findOne({
+      where: { id: id },
+    });
+
+    if (!group) throw new NotFoundException('Групу не знайдено');
+
+    const specializationList = group.specializationList.filter(
+      (el) => el !== name,
+    );
+
+    await this.groupsRepository.save({
+      ...group,
+      specializationList,
+    });
+
+    return specializationList;
   }
 }
 
