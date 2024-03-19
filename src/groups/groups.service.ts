@@ -29,7 +29,13 @@ export class GroupsService {
         category: true,
         stream: true,
         educationPlan: true,
-        groupLoad: true,
+        groupLoad: {
+          group: true,
+          planSubjectId: true,
+          plan: true,
+          stream: true,
+          cmk: true,
+        },
       },
       select: {
         category: { id: true, name: true },

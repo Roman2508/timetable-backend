@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { DeepPartial, Repository } from 'typeorm';
+import { DeepPartial, In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { GroupLoadLessonEntity } from './entities/group-load-lesson.entity';
@@ -388,36 +388,46 @@ export class GroupLoadLessonsService {
   /* specialization */
 
   async attachSpecialization(dto: AttachSpecializationDto) {
-    const lessons = await this.groupLoadLessonsRepository.find({
-      where: {
+    // const lessons = await this.groupLoadLessonsRepository.find({
+    //   where: {
+    //     group: { id: dto.groupId },
+    //     planSubjectId: { id: dto.planSubjectId },
+    //   },
+    //   relations: { group: true, plan: true, planSubjectId: true },
+    //   select: {
+    //     group: { id: true },
+    //     plan: { id: true },
+    //     planSubjectId: { id: true },
+    //   },
+    // });
+
+    // if (!lessons.length) throw new NotFoundException('Дисципліну не знайдено');
+
+    // const updatedLessons: GroupLoadLessonEntity[] = [];
+
+    // lessons.map(async (lesson) => {
+    //   updatedLessons.push({
+    //     ...lesson,
+    //     specialization: dto.name,
+    //   });
+
+    //   await this.groupLoadLessonsRepository.save({
+    //     ...lesson,
+    //     specialization: dto.name,
+    //   });
+    // });
+
+    await this.groupLoadLessonsRepository.update(
+      {
         group: { id: dto.groupId },
         planSubjectId: { id: dto.planSubjectId },
       },
-      relations: { group: true, plan: true, planSubjectId: true },
-      select: {
-        group: { id: true },
-        plan: { id: true },
-        planSubjectId: { id: true },
+      {
+        specialization: dto.name,
       },
-    });
+    );
 
-    if (!lessons.length) throw new NotFoundException('Дисципліну не знайдено');
-
-    const updatedLessons: GroupLoadLessonEntity[] = [];
-
-    lessons.map(async (lesson) => {
-      updatedLessons.push({
-        ...lesson,
-        specialization: dto.name,
-      });
-
-      await this.groupLoadLessonsRepository.save({
-        ...lesson,
-        specialization: dto.name,
-      });
-    });
-
-    return updatedLessons;
+    return dto;
   }
 
   /* subgroups */
