@@ -442,11 +442,12 @@ export class GroupLoadLessonsService {
         planSubjectId: { id: dto.planSubjectId },
         typeEn: dto.typeEn,
       },
-      relations: { group: true, plan: true, planSubjectId: true },
+      relations: { group: true, plan: true, planSubjectId: true, cmk: true },
       select: {
         group: { id: true },
         plan: { id: true },
         planSubjectId: { id: true },
+        cmk: { id: true },
       },
     });
 
