@@ -665,7 +665,6 @@ export class GroupLoadLessonsService {
       // Якщо всі потрібні поля у всіх дисциплін однакові - можна об'єднувати в потік
       return Promise.all(
         lessons.map(async (lesson) => {
-          console.log(lesson, `lesson: ${lesson.name}`);
           return await this.groupLoadLessonsRepository.save({
             ...lesson,
             stream: { id: streamId, name: dto.streamName },
@@ -679,31 +678,49 @@ export class GroupLoadLessonsService {
     }
   }
 
-  async removeLessonsFromStream(
-    streamId: number,
-    dto: RemoveLessonsFromStreamDto,
-  ) {
-    const lessons = await this.groupLoadLessonsRepository.find({
-      where: {
-        name: dto.name,
-        hours: dto.hours,
-        typeEn: dto.typeEn,
-        semester: dto.semester,
-        stream: { id: streamId },
-        subgroupNumber: dto.subgroupNumber,
-      },
-    });
+  async removeLessonsFromStream(dto: RemoveLessonsFromStreamDto) {
+    const updatedLessons = [];
 
-    if (!lessons.length) throw new NotFoundException('Дисципліни не знайдено');
+    await Promise.allSettled(
+      dto.lessonsIds.map(async (id: number) => {
+        const lesson = await this.groupLoadLessonsRepository.findOne({
+          where: { id },
+        });
 
-    return Promise.all(
-      lessons.map(async (lesson) => {
-        return await this.groupLoadLessonsRepository.save({
+        if (!lesson) throw new NotFoundException('Дисципліну не знайдено');
+
+        const updatedLesson = await this.groupLoadLessonsRepository.save({
           ...lesson,
           stream: null,
         });
+
+        updatedLessons.push(updatedLesson);
       }),
     );
+
+    return updatedLessons;
+
+    // const lessons = await this.groupLoadLessonsRepository.find({
+    //   where: {
+    //     name: dto.name,
+    //     hours: dto.hours,
+    //     typeEn: dto.typeEn,
+    //     semester: dto.semester,
+    //     stream: { id: streamId },
+    //     subgroupNumber: dto.subgroupNumber,
+    //   },
+    // });
+
+    // if (!lessons.length) throw new NotFoundException('Дисципліни не знайдено');
+
+    // return Promise.all(
+    //   lessons.map(async (lesson) => {
+    //     return await this.groupLoadLessonsRepository.save({
+    //       ...lesson,
+    //       stream: null,
+    //     });
+    //   }),
+    // );
   }
 
   /* teacher */
