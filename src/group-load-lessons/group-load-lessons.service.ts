@@ -633,7 +633,11 @@ export class GroupLoadLessonsService {
           const findedLesson = await this.groupLoadLessonsRepository.findOne({
             where: { id },
             relations: { group: true, planSubjectId: true, stream: true },
-            select: { group: {} },
+            select: {
+              group: { id: true, name: true },
+              planSubjectId: { id: true },
+              stream: { id: true, name: true },
+            },
           });
 
           lessons.push(findedLesson);
@@ -661,9 +665,10 @@ export class GroupLoadLessonsService {
       // Якщо всі потрібні поля у всіх дисциплін однакові - можна об'єднувати в потік
       return Promise.all(
         lessons.map(async (lesson) => {
+          console.log(lesson, `lesson: ${lesson.name}`);
           return await this.groupLoadLessonsRepository.save({
             ...lesson,
-            stream: { id: streamId },
+            stream: { id: streamId, name: dto.streamName },
             // При об'єднанні дисциплін в потік видаляю прикріпленого викладача в кожній дисципліні
             teacher: null,
           });
@@ -681,11 +686,11 @@ export class GroupLoadLessonsService {
     const lessons = await this.groupLoadLessonsRepository.find({
       where: {
         name: dto.name,
-        semester: dto.semester,
         hours: dto.hours,
         typeEn: dto.typeEn,
-        subgroupNumber: dto.subgroupNumber,
+        semester: dto.semester,
         stream: { id: streamId },
+        subgroupNumber: dto.subgroupNumber,
       },
     });
 

@@ -6,4 +6,7 @@ export class AddLessonsToStreamDto {
 
   @ApiProperty()
   streamId: number;
+
+  @ApiProperty()
+  streamName: string;
 }
