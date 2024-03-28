@@ -3,18 +3,20 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { DeepPartial, In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DeepPartial, In, Repository } from 'typeorm';
+
 import { GroupEntity } from 'src/groups/entities/group.entity';
+import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
+import { AttachSpecializationDto } from './dto/attach-specialization.dto';
 import { GroupLoadLessonEntity } from './entities/group-load-lesson.entity';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
+import { AddLessonsToStreamDto } from '../streams/dto/add-lessons-to-stream.dto';
 import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
-import { AttachSpecializationDto } from './dto/attach-specialization.dto';
-import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
-import { AddLessonsToStreamDto } from '../streams/dto/add-lessons-to-stream.dto';
 import { RemoveLessonsFromStreamDto } from 'src/streams/dto/remove-lessons-from-stream.dto';
+import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -27,6 +29,9 @@ export class GroupLoadLessonsService {
 
     @InjectRepository(GroupEntity)
     private groupRepository: Repository<GroupEntity>,
+
+    @InjectRepository(TeacherEntity)
+    private teacherRepository: Repository<TeacherEntity>,
   ) {}
 
   // Конвертує дисципліну навчального плану в масив group-load-lessons
@@ -724,16 +729,23 @@ export class GroupLoadLessonsService {
   }
 
   /* teacher */
-  async attachTeacher(lessonId: number, dto: any) {
-    // lesson id, teacher id
+  async attachTeacher(lessonId: number, teacherId: number) {
     const lesson = await this.findOneLessonById(lessonId);
+
+    const teacher = await this.teacherRepository.findOne({
+      where: { id: teacherId },
+    });
+
+    if (!teacher) throw new BadRequestException('Викладача не знайдено!');
 
     // Якщо дисципліна не об'єднана в потік
     if (!lesson.stream) {
-      return this.groupLoadLessonsRepository.save({
+      await this.groupLoadLessonsRepository.save({
         ...lesson,
-        teacher: { id: dto.teacherId },
+        teacher: { id: teacherId },
       });
+
+      return { lessonId, teacher };
     }
 
     // Якщо дисципліна об'єднана в потік
@@ -748,14 +760,16 @@ export class GroupLoadLessonsService {
       },
     });
 
-    return Promise.all(
+    await Promise.all(
       streamLesson.map(async (el) => {
         return await this.groupLoadLessonsRepository.save({
           ...el,
-          teacher: { id: dto.teacherId },
+          teacher: { id: teacherId },
         });
       }),
     );
+
+    return { lessonId, teacher };
   }
 
   async unpinTeacher(lessonId: number) {
@@ -763,7 +777,8 @@ export class GroupLoadLessonsService {
 
     // Якщо дисципліна не об`єднана в потік
     if (!lesson.stream) {
-      return this.groupLoadLessonsRepository.save({ ...lesson, teacher: null });
+      await this.groupLoadLessonsRepository.save({ ...lesson, teacher: null });
+      return { lessonId };
     }
 
     // Якщо дисципліна об`єднана в потік
@@ -778,7 +793,7 @@ export class GroupLoadLessonsService {
       },
     });
 
-    return Promise.all(
+    await Promise.all(
       streamLesson.map(async (el) => {
         return await this.groupLoadLessonsRepository.save({
           ...el,
@@ -786,6 +801,8 @@ export class GroupLoadLessonsService {
         });
       }),
     );
+
+    return { lessonId };
   }
 }
 

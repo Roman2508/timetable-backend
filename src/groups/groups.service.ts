@@ -35,6 +35,7 @@ export class GroupsService {
           plan: true,
           stream: true,
           cmk: true,
+          teacher: true,
         },
       },
       select: {
@@ -59,6 +60,12 @@ export class GroupsService {
             name: true,
             groups: { id: true, name: true },
             lessons: { id: true, name: true },
+          },
+          teacher: {
+            id: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
           },
           cmk: { id: true },
         },

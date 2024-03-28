@@ -65,4 +65,17 @@ export class GroupLoadLessonsController {
   setSubgroupsCount(@Body() dto: SetSubgroupsCountDto) {
     return this.groupLoadLessonsService.setSubgroupsCount(dto);
   }
+
+  @Patch('attach-teacher/:lessonId/:teacherId')
+  attachTeacher(
+    @Param('lessonId') lessonId: string,
+    @Param('teacherId') teacherId: string,
+  ) {
+    return this.groupLoadLessonsService.attachTeacher(+lessonId, +teacherId);
+  }
+
+  @Patch('unpin-teacher/:lessonId')
+  unpinTeacher(@Param('lessonId') lessonId: string) {
+    return this.groupLoadLessonsService.unpinTeacher(+lessonId);
+  }
 }

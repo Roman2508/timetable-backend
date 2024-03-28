@@ -6,6 +6,7 @@ import { GroupLoadLessonsController } from './group-load-lessons.controller';
 import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
+import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 
 @Module({
   controllers: [GroupLoadLessonsController],
@@ -15,6 +16,7 @@ import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-c
       GroupLoadLessonEntity,
       TeacherCategoryEntity,
       PlanSubjectEntity,
+      TeacherEntity,
       GroupEntity,
     ]),
   ],
