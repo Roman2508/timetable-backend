@@ -4,19 +4,18 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   UseGuards,
   Controller,
 } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
 import { GroupLoadLessonsService } from './group-load-lessons.service';
+import { AttachSpecializationDto } from './dto/attach-specialization.dto';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
-import { AttachSpecializationDto } from './dto/attach-specialization.dto';
-import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
-import { AddLessonsToStreamDto } from '../streams/dto/add-lessons-to-stream.dto';
 
 @Controller('group-load-lessons')
 @ApiTags('group-load-lessons')
@@ -39,10 +38,16 @@ export class GroupLoadLessonsController {
     return this.groupLoadLessonsService.findAllByGroupId(+id);
   }
 
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.groupLoadLessonsService.findOne(+id);
-  // }
+  @Get('/:semester/:groupId')
+  findLessonsForSchedule(
+    @Param('semester') semester: string,
+    @Param('groupId') groupId: string,
+  ) {
+    return this.groupLoadLessonsService.findLessonsForSchedule(
+      +semester,
+      +groupId,
+    );
+  }
 
   @Patch('/name')
   updateName(@Body() dto: UpdateGroupLoadLessonNameDto) {

@@ -36,6 +36,13 @@ export class ScheduleLessonsEntity {
   @IsNotEmpty()
   students: number;
 
+  @ManyToOne(() => TeacherEntity, (teacher) => teacher.id)
+  @JoinColumn({ name: 'replacement' })
+  replacement: TeacherEntity;
+
+  @Column({ default: null })
+  note: string;
+
   @ManyToOne(() => GroupEntity, (group) => group.id)
   @JoinColumn({ name: 'group' })
   group: GroupEntity;

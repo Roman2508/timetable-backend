@@ -4,10 +4,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, In, Repository } from 'typeorm';
+import { DeepPartial, IsNull, Not, Repository, And } from 'typeorm';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
+import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import { AttachSpecializationDto } from './dto/attach-specialization.dto';
 import { GroupLoadLessonEntity } from './entities/group-load-lesson.entity';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
@@ -16,7 +17,6 @@ import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entit
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
 import { RemoveLessonsFromStreamDto } from 'src/streams/dto/remove-lessons-from-stream.dto';
-import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -196,7 +196,37 @@ export class GroupLoadLessonsService {
   }
 
   // Навантаження, що йде на розклад (без консультацій до екзамену та метод. керівництва)
-  async findAllForSchedule() {}
+  async findLessonsForSchedule(semester: number, groupId: number) {
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where: {
+        group: { id: groupId },
+        semester,
+        teacher: Not(IsNull()),
+        typeEn: And(Not('examsConsulation'), Not('metodologicalGuidance')),
+      },
+      relations: {
+        group: true,
+        planSubjectId: true,
+        stream: true,
+        teacher: true,
+      },
+      select: {
+        group: { id: true, name: true },
+        planSubjectId: { id: true },
+        stream: { id: true, name: true, groups: { id: true, name: true } },
+        teacher: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+      },
+    });
+
+    if (!lessons.length) throw new NotFoundException('Дисципліни не знайдені');
+
+    return lessons;
+  }
 
   // Коли оновлюється назва дисципліни в навчальному плані - змінюю назву цієї дисципліни для всіх group-load-lessons
   async updateName(dto: UpdateGroupLoadLessonNameDto) {
