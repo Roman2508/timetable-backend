@@ -1,15 +1,15 @@
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
+import { StreamEntity } from 'src/streams/entities/stream.entity';
 import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
-import { StreamEntity } from 'src/streams/entities/stream.entity';
 
 @Injectable()
 export class ScheduleLessonsService {

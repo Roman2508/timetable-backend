@@ -1,15 +1,16 @@
-import { IsNotEmpty } from 'class-validator';
-import { AuditoryEntity } from 'src/auditories/entities/auditory.entity';
-import { GroupEntity } from 'src/groups/entities/group.entity';
-import { StreamEntity } from 'src/streams/entities/stream.entity';
-import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import {
   Column,
   Entity,
-  JoinColumn,
   ManyToOne,
+  JoinColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { IsNotEmpty } from 'class-validator';
+
+import { GroupEntity } from 'src/groups/entities/group.entity';
+import { StreamEntity } from 'src/streams/entities/stream.entity';
+import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
+import { AuditoryEntity } from 'src/auditories/entities/auditory.entity';
 
 @Entity('schedule-lessons')
 export class ScheduleLessonsEntity {

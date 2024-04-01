@@ -25,10 +25,10 @@ export class SettingsController {
     return this.settingsService.find(+id);
   }
 
-  @Post('')
-  create(@Body() dto: UpdateSettingDto) {
-    return this.settingsService.create(dto);
-  }
+  // @Post('')
+  // create(@Body() dto: UpdateSettingDto) {
+  //   return this.settingsService.create(dto);
+  // }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateSettingDto) {

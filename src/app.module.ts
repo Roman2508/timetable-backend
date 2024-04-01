@@ -7,31 +7,32 @@ import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
 import { UsersModule } from './users/users.module';
 import { PlansModule } from './plans/plans.module';
+import { GroupsModule } from './groups/groups.module';
+import { StreamsModule } from './streams/streams.module';
 import { UserEntity } from './users/entities/user.entity';
 import { PlanEntity } from './plans/entities/plan.entity';
 import { TeachersModule } from './teachers/teachers.module';
+import { SettingsModule } from './settings/settings.module';
+import { GroupEntity } from './groups/entities/group.entity';
+import { StreamEntity } from './streams/entities/stream.entity';
 import { AuditoriesModule } from './auditories/auditories.module';
 import { TeacherEntity } from './teachers/entities/teacher.entity';
+import { SettingsEntity } from './settings/entities/setting.entity';
 import { AuditoryEntity } from './auditories/entities/auditory.entity';
 import { PlanSubjectsModule } from './plan-subjects/plan-subjects.module';
 import { PlanCategoriesModule } from './plan-categories/plan-categories.module';
 import { PlanSubjectEntity } from './plan-subjects/entities/plan-subject.entity';
+import { GroupCategoriesModule } from './group-categories/group-categories.module';
+import { ScheduleLessonsModule } from './schedule-lessons/schedule-lessons.module';
 import { PlanCategoryEntity } from './plan-categories/entities/plan-category.entity';
+import { GroupCategoryEntity } from './group-categories/entities/group-category.entity';
+import { GroupLoadLessonsModule } from './group-load-lessons/group-load-lessons.module';
 import { TeacherCategoriesModule } from './teacher-categories/teacher-categories.module';
+import { ScheduleLessonsEntity } from './schedule-lessons/entities/schedule-lesson.entity';
 import { AuditoryCategoriesModule } from './auditory-categories/auditory-categories.module';
 import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-category.entity';
-import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
-import { GroupCategoriesModule } from './group-categories/group-categories.module';
-import { GroupsModule } from './groups/groups.module';
-import { GroupCategoryEntity } from './group-categories/entities/group-category.entity';
-import { GroupEntity } from './groups/entities/group.entity';
-import { GroupLoadLessonsModule } from './group-load-lessons/group-load-lessons.module';
 import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-lesson.entity';
-import { StreamsModule } from './streams/streams.module';
-import { StreamEntity } from './streams/entities/stream.entity';
-import { ScheduleLessonsModule } from './schedule-lessons/schedule-lessons.module';
-import { ScheduleLessonsEntity } from './schedule-lessons/entities/schedule-lesson.entity';
-import { SettingsModule } from './settings/settings.module';
+import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { SettingsModule } from './settings/settings.module';
         GroupLoadLessonEntity,
         StreamEntity,
         ScheduleLessonsEntity,
+        SettingsEntity,
       ],
       extra: {
         max: 1, // set pool max size

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-class LessonCall {
+export class LessonCall {
   @ApiProperty({ default: '08:30' })
   start: string;
 
@@ -8,7 +8,7 @@ class LessonCall {
   end: string;
 }
 
-class Lesson {
+export class Lesson {
   @ApiProperty()
   ['1']: LessonCall;
 
@@ -45,5 +45,5 @@ export class UpdateSettingDto {
   secondSemesterEnd: string;
 
   @ApiProperty()
-  callSchedule: Lesson[];
+  callSchedule: Lesson;
 }

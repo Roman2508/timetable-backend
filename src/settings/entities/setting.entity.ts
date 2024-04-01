@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
 
-class LessonCall {
+export class LessonCall {
   @Column({ default: '08:30' })
   start: string;
 
@@ -8,7 +8,7 @@ class LessonCall {
   end: string;
 }
 
-class Lesson {
+export class Lesson {
   @Column((type) => LessonCall)
   @JoinColumn({ name: '1' })
   ['1']: LessonCall;
@@ -55,7 +55,7 @@ export class SettingsEntity {
   @Column()
   secondSemesterEnd: string;
 
-  @Column((type) => Lesson)
+  @Column((type) => Lesson, { array: true })
   @JoinColumn({ name: 'callSchedule' })
-  callSchedule: Lesson[];
+  callSchedule: Lesson;
 }

@@ -13,13 +13,13 @@ export class SettingsService {
   ) {}
 
   find(id: number) {
-    return this.repository.findBy({ id });
+    return this.repository.findOne({ where: { id } });
   }
 
-  create(dto: UpdateSettingDto) {
-    const entity = this.repository.create(dto);
-    return this.repository.save(entity);
-  }
+  // create(dto: UpdateSettingDto) {
+  //   const entity = this.repository.create(dto);
+  //   return this.repository.save(entity);
+  // }
 
   update(id: number, dto: UpdateSettingDto) {
     return this.repository.update({ id }, dto);
