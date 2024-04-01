@@ -36,6 +36,13 @@ export class ScheduleLessonsEntity {
   @IsNotEmpty()
   students: number;
 
+  @Column()
+  @IsNotEmpty()
+  typeRu: 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ';
+
+  @Column({ default: null })
+  subgroupNumber: number;
+
   @ManyToOne(() => TeacherEntity, (teacher) => teacher.id)
   @JoinColumn({ name: 'replacement' })
   replacement: TeacherEntity;

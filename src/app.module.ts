@@ -31,6 +31,7 @@ import { StreamsModule } from './streams/streams.module';
 import { StreamEntity } from './streams/entities/stream.entity';
 import { ScheduleLessonsModule } from './schedule-lessons/schedule-lessons.module';
 import { ScheduleLessonsEntity } from './schedule-lessons/entities/schedule-lesson.entity';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { ScheduleLessonsEntity } from './schedule-lessons/entities/schedule-less
     GroupLoadLessonsModule,
     StreamsModule,
     ScheduleLessonsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

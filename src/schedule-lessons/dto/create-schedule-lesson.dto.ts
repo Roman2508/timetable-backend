@@ -14,6 +14,12 @@ export class CreateScheduleLessonDto {
   semester: number;
 
   @ApiProperty()
+  typeRu: 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ';
+
+  @ApiProperty()
+  subgroupNumber: number | null;
+
+  @ApiProperty()
   students: number;
 
   @ApiProperty()
