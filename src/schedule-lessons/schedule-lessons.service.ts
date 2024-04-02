@@ -13,7 +13,7 @@ import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
 import { SettingsEntity } from 'src/settings/entities/setting.entity';
 import { getCurrentSemester } from './helpers/getCurrentSemester';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class ScheduleLessonsService {
@@ -97,19 +97,17 @@ export class ScheduleLessonsService {
   async findByTypeIdAndSemester(
     type: string,
     id: number,
-    semester?: number,
-    year?: number,
+    semesterStart?: string,
+    semesterEnd?: string,
   ) {
-    const startOfYear = year && dayjs(year).startOf('year').toDate();
-    const endOfYear = year && dayjs(year).endOf('year').toDate();
-
-    const date =
-      startOfYear && endOfYear ? Between(startOfYear, endOfYear) : undefined;
+    const start = semesterStart && dayjs(semesterStart, 'MM.DD.YYYY').toDate();
+    const end = semesterEnd && dayjs(semesterEnd, 'MM.DD.YYYY').toDate();
+    const date = start && end ? Between(start, end) : undefined;
 
     return this.repository.find({
       where: {
         [type]: { id },
-        semester: semester ? semester : undefined,
+        // semester: semester ? semester : undefined,
         date,
       },
       relations: {
@@ -140,48 +138,41 @@ export class ScheduleLessonsService {
     });
     if (!settings) throw new NotFoundException('Налаштування не знайдено');
 
-    if (type === 'group') {
-      const group = await this.groupsRepository.findOne({ where: { id } });
-      if (!group) throw new NotFoundException('Групу не знайдено');
+    // if (type === 'group') {
+    //   const group = await this.groupsRepository.findOne({ where: { id } });
+    //   if (!group) throw new NotFoundException('Групу не знайдено');
 
-      const currentSemester = getCurrentSemester(
-        settings.firstSemesterStart,
-        semester,
-        group.yearOfAdmission,
-      );
+    //   const currentSemester = getCurrentSemester(
+    //     settings.firstSemesterStart,
+    //     semester,
+    //     group.yearOfAdmission,
+    //   );
 
-      if (!currentSemester)
-        throw new BadRequestException('Семестр не знайдено');
+    //   if (!currentSemester)
+    //     throw new BadRequestException('Семестр не знайдено');
 
-      return await this.findByTypeIdAndSemester(type, id, currentSemester);
-    }
+    //   return await this.findByTypeIdAndSemester(type, id, currentSemester);
+    // }
 
-    if (type === 'teacher') {
+    if (type === 'group' || type === 'teacher' || type === 'auditory') {
       // semester = 1 | 2
-      const first = settings.firstSemesterStart;
-      const second = settings.secondSemesterStart;
-      const firstDate = semester === 1 ? first : second;
+      const {
+        firstSemesterStart,
+        secondSemesterStart,
+        firstSemesterEnd,
+        secondSemesterEnd,
+      } = settings;
 
-      const year = Number(firstDate.split('-')[0]);
+      const semesterStart =
+        semester === 1 ? firstSemesterStart : secondSemesterStart;
+      const semesterEnd = semester === 1 ? firstSemesterEnd : secondSemesterEnd;
 
-      return await this.findByTypeIdAndSemester(type, id, undefined, year);
-
-      // const showedSemesterYear = Number(showedSemesterStart.split('-')[0]);
-      // const currentSemester = getCurrentSemester(
-      //   settings.firstSemesterStart,
-      //   semester,
-      //   showedSemesterYear,
-      // );
-      // return await this.findByTypeIdAndSemester(
-      //   semester,
-      //   type,
-      //   id,
-      //   showedSemesterYear,
-      // );
-    }
-
-    if (type === 'auditory') {
-      return;
+      return await this.findByTypeIdAndSemester(
+        type,
+        id,
+        semesterStart,
+        semesterEnd,
+      );
     }
   }
 
