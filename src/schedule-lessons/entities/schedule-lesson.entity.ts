@@ -39,6 +39,10 @@ export class ScheduleLessonsEntity {
 
   @Column()
   @IsNotEmpty()
+  totalHours: number;
+
+  @Column()
+  @IsNotEmpty()
   typeRu: 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ';
 
   @Column({ default: null })

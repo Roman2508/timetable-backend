@@ -3,17 +3,16 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import * as dayjs from 'dayjs';
 import { Between, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { StreamEntity } from 'src/streams/entities/stream.entity';
+import { SettingsEntity } from 'src/settings/entities/setting.entity';
 import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
-import { SettingsEntity } from 'src/settings/entities/setting.entity';
-import { getCurrentSemester } from './helpers/getCurrentSemester';
-import * as dayjs from 'dayjs';
 
 @Injectable()
 export class ScheduleLessonsService {
@@ -24,12 +23,37 @@ export class ScheduleLessonsService {
     @InjectRepository(StreamEntity)
     private streamRepository: Repository<StreamEntity>,
 
-    @InjectRepository(GroupEntity)
-    private groupsRepository: Repository<GroupEntity>,
-
     @InjectRepository(SettingsEntity)
     private settingsRepository: Repository<SettingsEntity>,
   ) {}
+
+  async findOneByDateAndGroup(
+    date: Date,
+    lessonNumber: number,
+    semester: number,
+    groupId: number,
+  ) {
+    return this.repository.findOne({
+      where: { date, lessonNumber, semester, group: { id: groupId } },
+      relations: {
+        group: true,
+        teacher: true,
+        stream: { groups: true },
+        auditory: true,
+      },
+      select: {
+        group: { id: true, name: true },
+        teacher: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+        auditory: { id: true, name: true },
+        stream: { id: true, name: true, groups: { id: true, name: true } },
+      },
+    });
+  }
 
   async create(dto: CreateScheduleLessonDto) {
     // Спочатку треба перевірити чи в цей час та дату для цієї групи немає виставлених занять
@@ -62,7 +86,7 @@ export class ScheduleLessonsService {
         );
       }
 
-      const newLessons = await Promise.all(
+      await Promise.all(
         stream.groups.map(async (el) => {
           const { group, teacher, auditory, stream, ...rest } = dto;
 
@@ -78,7 +102,12 @@ export class ScheduleLessonsService {
         }),
       );
 
-      return newLessons.find((el) => el.group.id === dto.group);
+      return this.findOneByDateAndGroup(
+        dto.date,
+        dto.lessonNumber,
+        dto.semester,
+        dto.group,
+      );
     }
 
     const { group, teacher, auditory, stream, ...rest } = dto;
@@ -91,7 +120,14 @@ export class ScheduleLessonsService {
       stream: { id: stream },
     });
 
-    return this.repository.save(newLesson);
+    await this.repository.save(newLesson);
+
+    return this.findOneByDateAndGroup(
+      dto.date,
+      dto.lessonNumber,
+      dto.semester,
+      dto.group,
+    );
   }
 
   async findByTypeIdAndSemester(
@@ -138,22 +174,6 @@ export class ScheduleLessonsService {
     });
     if (!settings) throw new NotFoundException('Налаштування не знайдено');
 
-    // if (type === 'group') {
-    //   const group = await this.groupsRepository.findOne({ where: { id } });
-    //   if (!group) throw new NotFoundException('Групу не знайдено');
-
-    //   const currentSemester = getCurrentSemester(
-    //     settings.firstSemesterStart,
-    //     semester,
-    //     group.yearOfAdmission,
-    //   );
-
-    //   if (!currentSemester)
-    //     throw new BadRequestException('Семестр не знайдено');
-
-    //   return await this.findByTypeIdAndSemester(type, id, currentSemester);
-    // }
-
     if (type === 'group' || type === 'teacher' || type === 'auditory') {
       // semester = 1 | 2
       const {
@@ -175,10 +195,6 @@ export class ScheduleLessonsService {
       );
     }
   }
-
-  // findOne(id: number) {
-  //   return `This action returns a #${id} scheduleLesson`;
-  // }
 
   // Оновити аудиторію для виставленого елемента розкладу
   async update(id: number, dto: UpdateScheduleLessonDto) {
