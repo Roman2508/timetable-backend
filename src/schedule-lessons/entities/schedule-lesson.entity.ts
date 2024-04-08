@@ -39,7 +39,7 @@ export class ScheduleLessonsEntity {
 
   @Column()
   @IsNotEmpty()
-  totalHours: number;
+  hours: number;
 
   @Column()
   @IsNotEmpty()

@@ -187,12 +187,14 @@ export class ScheduleLessonsService {
         semester === 1 ? firstSemesterStart : secondSemesterStart;
       const semesterEnd = semester === 1 ? firstSemesterEnd : secondSemesterEnd;
 
-      return await this.findByTypeIdAndSemester(
+      const data = await this.findByTypeIdAndSemester(
         type,
         id,
         semesterStart,
         semesterEnd,
       );
+
+      return data;
     }
   }
 

@@ -23,7 +23,7 @@ export class CreateScheduleLessonDto {
   students: number;
 
   @ApiProperty()
-  totalHours: number;
+  hours: number;
 
   @ApiProperty()
   group: number;

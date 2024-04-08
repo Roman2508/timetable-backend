@@ -196,36 +196,75 @@ export class GroupLoadLessonsService {
   }
 
   // Навантаження, що йде на розклад (без консультацій до екзамену та метод. керівництва)
-  async findLessonsForSchedule(semester: number, groupId: number) {
-    const lessons = await this.groupLoadLessonsRepository.find({
-      where: {
-        group: { id: groupId },
-        semester,
-        teacher: Not(IsNull()),
-        typeEn: And(Not('examsConsulation'), Not('metodologicalGuidance')),
-      },
-      relations: {
-        group: true,
-        planSubjectId: true,
-        stream: true,
-        teacher: true,
-      },
-      select: {
-        group: { id: true, name: true },
-        planSubjectId: { id: true },
-        stream: { id: true, name: true, groups: { id: true, name: true } },
-        teacher: {
-          id: true,
-          firstName: true,
-          middleName: true,
-          lastName: true,
+  async findLessonsForSchedule(
+    semester: number,
+    scheduleType: 'group' | 'teacher',
+    itemId: number,
+  ) {
+    if (scheduleType === 'group') {
+      const lessons = await this.groupLoadLessonsRepository.find({
+        where: {
+          group: { id: itemId },
+          semester,
+          teacher: Not(IsNull()),
+          typeEn: And(Not('examsConsulation'), Not('metodologicalGuidance')),
         },
-      },
-    });
+        relations: {
+          group: true,
+          planSubjectId: true,
+          stream: true,
+          teacher: true,
+        },
+        select: {
+          group: { id: true, name: true },
+          planSubjectId: { id: true },
+          stream: { id: true, name: true, groups: { id: true, name: true } },
+          teacher: {
+            id: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+          },
+        },
+      });
 
-    if (!lessons.length) throw new NotFoundException('Дисципліни не знайдені');
+      if (!lessons.length)
+        throw new NotFoundException('Дисципліни не знайдені');
 
-    return lessons;
+      return lessons;
+    } else if (scheduleType === 'teacher') {
+      const lessons = await this.groupLoadLessonsRepository.find({
+        where: {
+          semester,
+          teacher: { id: itemId },
+          typeEn: And(Not('examsConsulation'), Not('metodologicalGuidance')),
+        },
+        relations: {
+          group: true,
+          planSubjectId: true,
+          stream: true,
+          teacher: true,
+        },
+        select: {
+          group: { id: true, name: true },
+          planSubjectId: { id: true },
+          stream: { id: true, name: true, groups: { id: true, name: true } },
+          teacher: {
+            id: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+          },
+        },
+      });
+
+      if (!lessons.length)
+        throw new NotFoundException('Дисципліни не знайдені');
+
+      return lessons;
+    } else {
+      return [];
+    }
   }
 
   // Коли оновлюється назва дисципліни в навчальному плані - змінюю назву цієї дисципліни для всіх group-load-lessons
@@ -423,35 +462,6 @@ export class GroupLoadLessonsService {
   /* specialization */
 
   async attachSpecialization(dto: AttachSpecializationDto) {
-    // const lessons = await this.groupLoadLessonsRepository.find({
-    //   where: {
-    //     group: { id: dto.groupId },
-    //     planSubjectId: { id: dto.planSubjectId },
-    //   },
-    //   relations: { group: true, plan: true, planSubjectId: true },
-    //   select: {
-    //     group: { id: true },
-    //     plan: { id: true },
-    //     planSubjectId: { id: true },
-    //   },
-    // });
-
-    // if (!lessons.length) throw new NotFoundException('Дисципліну не знайдено');
-
-    // const updatedLessons: GroupLoadLessonEntity[] = [];
-
-    // lessons.map(async (lesson) => {
-    //   updatedLessons.push({
-    //     ...lesson,
-    //     specialization: dto.name,
-    //   });
-
-    //   await this.groupLoadLessonsRepository.save({
-    //     ...lesson,
-    //     specialization: dto.name,
-    //   });
-    // });
-
     await this.groupLoadLessonsRepository.update(
       {
         group: { id: dto.groupId },
