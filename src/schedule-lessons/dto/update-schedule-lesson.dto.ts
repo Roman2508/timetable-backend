@@ -2,5 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateScheduleLessonDto {
   @ApiProperty()
-  auditory: number;
+  auditoryId: number;
+
+  @ApiProperty()
+  auditoryName: string;
+
+  @ApiProperty()
+  seatsNumber: number;
 }

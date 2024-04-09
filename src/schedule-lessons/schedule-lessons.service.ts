@@ -207,7 +207,7 @@ export class ScheduleLessonsService {
         stream: { groups: true },
       },
       select: {
-        auditory: { id: true },
+        auditory: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
       },
     });
@@ -244,11 +244,11 @@ export class ScheduleLessonsService {
         },
       });
 
-      Promise.all(
+      Promise.allSettled(
         streamLessonsInCurrentDate.map(async (el) => {
           return this.repository.save({
             ...el,
-            auditory: { id: dto.auditory },
+            auditory: { id: dto.auditoryId },
           });
         }),
       );
@@ -259,6 +259,8 @@ export class ScheduleLessonsService {
         id: updatedItem.id,
         auditory: {
           ...updatedItem.auditory,
+          name: dto.auditoryName,
+          seatsNumber: dto.seatsNumber,
         },
       };
     }
@@ -268,8 +270,31 @@ export class ScheduleLessonsService {
 
     return this.repository.save({
       ...rest,
-      auditory: { id: dto.auditory },
+      auditory: {
+        id: dto.auditoryId,
+        name: dto.auditoryName,
+        seatsNumber: dto.seatsNumber,
+      },
     });
+  }
+
+  async getAuditoryOverlay(_date: string, lessonNumber: number) {
+    if (!dayjs(_date).isValid()) {
+      throw new BadRequestException('Не вірний формат дати');
+    }
+
+    const date = dayjs(_date, 'YYYY.MM.DD').format('YYYY-MM-DD 00:00:00');
+
+    const lessons = await this.repository.find({
+      // @ts-ignore
+      where: { date, lessonNumber },
+      relations: { auditory: true },
+      select: { auditory: { id: true, name: true } },
+    });
+
+    const auditories = lessons.map((el) => el.auditory);
+
+    return auditories;
   }
 
   async remove(id: number) {

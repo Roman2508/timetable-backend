@@ -29,6 +29,14 @@ export class ScheduleLessonsController {
     return this.scheduleLessonsService.create(dto);
   }
 
+  @Get('overlay/:date/:lessonNumber')
+  getAuditoryOverlay(
+    @Param('lessonNumber') lessonNumber: string,
+    @Param('date') date: string,
+  ) {
+    return this.scheduleLessonsService.getAuditoryOverlay(date, +lessonNumber);
+  }
+
   @Get(':semester/:type/:id')
   findAll(
     @Param('semester') semester: string,
