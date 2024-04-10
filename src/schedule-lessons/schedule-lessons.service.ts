@@ -278,7 +278,11 @@ export class ScheduleLessonsService {
     });
   }
 
-  async getAuditoryOverlay(_date: string, lessonNumber: number) {
+  async getAuditoryOverlay(
+    _date: string,
+    lessonNumber: number,
+    auditoryId: number,
+  ) {
     if (!dayjs(_date).isValid()) {
       throw new BadRequestException('Не вірний формат дати');
     }
@@ -294,7 +298,7 @@ export class ScheduleLessonsService {
 
     const auditories = lessons.map((el) => el.auditory);
 
-    return auditories;
+    return auditories.filter((el) => el.id !== auditoryId);
   }
 
   async remove(id: number) {

@@ -29,12 +29,17 @@ export class ScheduleLessonsController {
     return this.scheduleLessonsService.create(dto);
   }
 
-  @Get('overlay/:date/:lessonNumber')
+  @Get('overlay/:date/:lessonNumber/:auditoryId')
   getAuditoryOverlay(
-    @Param('lessonNumber') lessonNumber: string,
     @Param('date') date: string,
+    @Param('lessonNumber') lessonNumber: string,
+    @Param('auditoryId') auditoryId: string,
   ) {
-    return this.scheduleLessonsService.getAuditoryOverlay(date, +lessonNumber);
+    return this.scheduleLessonsService.getAuditoryOverlay(
+      date,
+      +lessonNumber,
+      +auditoryId,
+    );
   }
 
   @Get(':semester/:type/:id')

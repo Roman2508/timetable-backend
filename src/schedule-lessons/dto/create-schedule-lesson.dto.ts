@@ -20,6 +20,9 @@ export class CreateScheduleLessonDto {
   subgroupNumber: number | null;
 
   @ApiProperty()
+  specialization: string | null;
+
+  @ApiProperty()
   students: number;
 
   @ApiProperty()

@@ -48,6 +48,9 @@ export class ScheduleLessonsEntity {
   @Column({ default: null })
   subgroupNumber: number;
 
+  @Column({ default: null })
+  specialization: string;
+
   @ManyToOne(() => TeacherEntity, (teacher) => teacher.id)
   @JoinColumn({ name: 'replacement' })
   replacement: TeacherEntity;
