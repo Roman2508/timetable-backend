@@ -32,9 +32,10 @@ export class ScheduleLessonsService {
     lessonNumber: number,
     semester: number,
     groupId: number,
+    typeRu: 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ',
   ) {
     return this.repository.findOne({
-      where: { date, lessonNumber, semester, group: { id: groupId } },
+      where: { date, lessonNumber, semester, typeRu, group: { id: groupId } },
       relations: {
         group: true,
         teacher: true,
@@ -62,8 +63,8 @@ export class ScheduleLessonsService {
         date: dto.date,
         lessonNumber: dto.lessonNumber,
         semester: dto.semester,
-        group: { id: dto.group },
-        // teacher: { id: dto.teacher },
+        // group: { id: dto.group },
+        teacher: { id: dto.teacher },
         // auditory: { id: dto.auditory },
       },
     });
@@ -107,6 +108,7 @@ export class ScheduleLessonsService {
         dto.lessonNumber,
         dto.semester,
         dto.group,
+        dto.typeRu,
       );
     }
 
@@ -127,6 +129,7 @@ export class ScheduleLessonsService {
       dto.lessonNumber,
       dto.semester,
       dto.group,
+      dto.typeRu,
     );
   }
 
