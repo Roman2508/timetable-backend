@@ -51,6 +51,9 @@ export class ScheduleLessonsEntity {
   @Column({ default: null })
   specialization: string;
 
+  @Column({ default: false })
+  isRemote: boolean;
+
   @ManyToOne(() => TeacherEntity, (teacher) => teacher.id)
   @JoinColumn({ name: 'replacement' })
   replacement: TeacherEntity;
@@ -66,7 +69,9 @@ export class ScheduleLessonsEntity {
   @JoinColumn({ name: 'teacher' })
   teacher: TeacherEntity;
 
-  @ManyToOne(() => AuditoryEntity, (auditory) => auditory.id)
+  @ManyToOne(() => AuditoryEntity, (auditory) => auditory.id, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'auditory' })
   auditory: AuditoryEntity;
 
