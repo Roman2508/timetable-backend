@@ -27,6 +27,9 @@ export class CreateScheduleLessonDto {
 
   @ApiProperty()
   hours: number;
+  
+  @ApiProperty()
+  isRemote?: boolean;
 
   @ApiProperty()
   group: number;
@@ -35,7 +38,7 @@ export class CreateScheduleLessonDto {
   teacher: number;
 
   @ApiProperty()
-  auditory: number;
+  auditory?: number;
 
   @ApiProperty()
   stream: number;

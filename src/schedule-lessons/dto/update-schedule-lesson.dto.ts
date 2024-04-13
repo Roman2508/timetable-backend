@@ -5,6 +5,9 @@ export class UpdateScheduleLessonDto {
   auditoryId: number;
 
   @ApiProperty()
+  isRemote?: boolean;
+
+  @ApiProperty()
   auditoryName: string;
 
   @ApiProperty()

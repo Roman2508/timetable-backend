@@ -7,7 +7,6 @@ import * as dayjs from 'dayjs';
 import { Between, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { GroupEntity } from 'src/groups/entities/group.entity';
 import { StreamEntity } from 'src/streams/entities/stream.entity';
 import { SettingsEntity } from 'src/settings/entities/setting.entity';
 import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
@@ -73,6 +72,17 @@ export class ScheduleLessonsService {
       throw new BadRequestException('Можливі накладки занять');
     }
 
+    // Перевіряю чи правильно передані дані
+    // Має бути id аудиторії і isRemote: false АБО isRemote: true без id аудиторії
+    if (!dto.auditory && !dto.isRemote) {
+      throw new BadRequestException('Аудиторію не вибрано');
+    }
+    if (dto.auditory && dto.isRemote) {
+      throw new BadRequestException(
+        'Урок який буде проводитись дистанційно не повинен займати аудиторію',
+      );
+    }
+
     // Перевірити чи є потоки, якщо є - виставити для всіх груп в потоці
     if (dto.stream) {
       const stream = await this.streamRepository.findOne({
@@ -91,15 +101,27 @@ export class ScheduleLessonsService {
         stream.groups.map(async (el) => {
           const { group, teacher, auditory, stream, ...rest } = dto;
 
-          const newLesson = this.repository.create({
+          const payload = {
             ...rest,
             group: { id: el.id },
             teacher: { id: teacher },
-            auditory: { id: auditory },
             stream: { id: stream },
-          });
+          };
 
-          return this.repository.save(newLesson);
+          if (auditory) {
+            // Якщо урок буде проводитись не дистанційно
+            const newLesson = this.repository.create({
+              ...payload,
+              auditory: { id: auditory },
+            });
+
+            return this.repository.save(newLesson);
+          } else {
+            // Якщо урок буде проводитись дистанційно
+            const newLesson = this.repository.create(payload);
+
+            return this.repository.save(newLesson);
+          }
         }),
       );
 
@@ -114,15 +136,27 @@ export class ScheduleLessonsService {
 
     const { group, teacher, auditory, stream, ...rest } = dto;
 
-    const newLesson = this.repository.create({
+    const payload = this.repository.create({
       ...rest,
       group: { id: group },
       teacher: { id: teacher },
-      auditory: { id: auditory },
       stream: { id: stream },
     });
 
-    await this.repository.save(newLesson);
+    if (auditory) {
+      // Якщо урок буде проводитись не дистанційно
+      const newLesson = this.repository.create({
+        ...payload,
+        auditory: { id: auditory },
+      });
+
+      await this.repository.save(newLesson);
+    } else {
+      // Якщо урок буде проводитись дистанційно
+      const newLesson = this.repository.create(payload);
+
+      await this.repository.save(newLesson);
+    }
 
     return this.findOneByDateAndGroup(
       dto.date,
@@ -219,6 +253,17 @@ export class ScheduleLessonsService {
 
     if (!lesson) throw new NotFoundException('Не знайдено');
 
+    // Перевіряю чи правильно передані дані
+    // Має бути id аудиторії і isRemote: false АБО isRemote: true без id аудиторії
+    if (!dto.auditoryId && !dto.isRemote) {
+      throw new BadRequestException('Аудиторію не вибрано');
+    }
+    if (dto.auditoryId && dto.isRemote) {
+      throw new BadRequestException(
+        'Урок який буде проводитись дистанційно не повинен займати аудиторію',
+      );
+    }
+
     // Якщо група об'єднана в потік і кількість груп в потоці більше 1
     if (lesson.stream && lesson.stream.groups.length > 1) {
       const currentsLessonDate = {
@@ -247,38 +292,71 @@ export class ScheduleLessonsService {
         },
       });
 
-      Promise.allSettled(
-        streamLessonsInCurrentDate.map(async (el) => {
-          return this.repository.save({
-            ...el,
-            auditory: { id: dto.auditoryId },
-          });
-        }),
-      );
+      // Якщо передано id аудиторії і isRemote = false - становлюю аудиторію для всіх груп в потоці
+      if (dto.auditoryId && !dto.isRemote) {
+        Promise.all(
+          streamLessonsInCurrentDate.map(async (el) => {
+            return this.repository.save({
+              ...el,
+              isRemote: false,
+              auditory: { id: dto.auditoryId },
+            });
+          }),
+        );
+        //
+      } else {
+        Promise.all(
+          streamLessonsInCurrentDate.map(async (el) => {
+            return this.repository.save({
+              ...el,
+              isRemote: true,
+              auditory: null,
+            });
+          }),
+        );
+      }
 
-      const updatedItem = streamLessonsInCurrentDate.find((el) => el.id === id);
-
-      return {
-        id: updatedItem.id,
-        auditory: {
-          ...updatedItem.auditory,
-          name: dto.auditoryName,
-          seatsNumber: dto.seatsNumber,
-        },
-      };
+      if (dto.auditoryId) {
+        return {
+          id,
+          isRemote: dto.isRemote,
+          auditory: {
+            id: dto.auditoryId,
+            name: dto.auditoryName,
+            seatsNumber: dto.seatsNumber,
+          },
+        };
+        //
+      } else {
+        return {
+          id,
+          auditory: null,
+          isRemote: dto.isRemote,
+        };
+      }
     }
 
     // Якщо група не об'єднана в потік
-    const { auditory, stream, ...rest } = lesson;
+    const { auditory, isRemote, stream, ...rest } = lesson;
 
-    return this.repository.save({
-      ...rest,
-      auditory: {
-        id: dto.auditoryId,
-        name: dto.auditoryName,
-        seatsNumber: dto.seatsNumber,
-      },
-    });
+    if (dto.auditoryId) {
+      return this.repository.save({
+        ...rest,
+        isRemote: dto.isRemote,
+        auditory: {
+          id: dto.auditoryId,
+          name: dto.auditoryName,
+          seatsNumber: dto.seatsNumber,
+        },
+      });
+      //
+    } else {
+      return this.repository.save({
+        ...rest,
+        isRemote: dto.isRemote,
+        auditory: null,
+      });
+    }
   }
 
   async getAuditoryOverlay(
@@ -301,7 +379,11 @@ export class ScheduleLessonsService {
 
     const auditories = lessons.map((el) => el.auditory);
 
-    return auditories.filter((el) => el.id !== auditoryId);
+    return auditories.filter((el) => {
+      // !el === дистанційно
+      if (!el) return true;
+      return el.id !== auditoryId;
+    });
   }
 
   async remove(id: number) {
