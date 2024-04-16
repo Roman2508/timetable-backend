@@ -29,6 +29,11 @@ export class ScheduleLessonsController {
     return this.scheduleLessonsService.create(dto);
   }
 
+  @Post('create-calendar-event')
+  createCalendarEvent() {
+    return this.scheduleLessonsService.createCalendarEvent();
+  }
+
   @Get('overlay/:date/:lessonNumber/:auditoryId')
   getAuditoryOverlay(
     @Param('date') date: string,

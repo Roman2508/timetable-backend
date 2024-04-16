@@ -18,10 +18,10 @@ import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
 
-const TOKEN_PATH = path.join(process.cwd(), 'src/reserved-lessons/token.json');
+const TOKEN_PATH = path.join(process.cwd(), 'src/schedule-lessons/token.json');
 const CREDENTIALS_PATH = path.join(
   process.cwd(),
-  'src/reserved-lessons/client_secret.json',
+  'src/schedule-lessons/client_secret.json',
 );
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar',
@@ -85,9 +85,10 @@ export class ScheduleLessonsService {
     return client;
   }
 
-  async createCalendarEvent(dto: any) {
+  async createCalendarEvent() {
     const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });
+
     const event = {
       summary: 'Google I/O 2024',
       location: '800 Howard St., San Francisco, CA 94103',
@@ -116,30 +117,23 @@ export class ScheduleLessonsService {
         ],
       },
     };
+
     const responce = await calendar.events.insert({
       auth: auth,
-      calendarId: 'primary',
+      calendarId: 'test.student@pharm.zt.ua',
+      // calendarId: 'primary', // указывает на основной календарь этого пользователя
       conferenceDataVersion: 1,
       requestBody: {
-        start: { dateTime: '2024-02-26T10:00:00', timeZone: 'Europe/Kyiv' },
-        end: { dateTime: '2024-02-26T11:00:00', timeZone: 'Europe/Kyiv' },
-        conferenceData: {
-          conferenceId: 'hangoutsMeet',
-          createRequest: {
-            conferenceSolutionKey: {
-              type: 'hangoutsMeet',
-            },
-          },
-        },
+        summary: 'Інформатика - Група 203 2 підгрупа',
+        description: 'Вівторок, 16 квітня⋅10:00 – 11:20',
+        location: '217',
+        start: { dateTime: '2024-04-16T09:00:00', timeZone: 'Europe/Kyiv' },
+        end: { dateTime: '2024-04-16T10:00:00', timeZone: 'Europe/Kyiv' },
+        conferenceData: {},
       },
     });
-    // Отримання ідентифікатора конференції Google Meet
-    const meetLink = responce.data.conferenceData.entryPoints[0].uri;
-    console.log('Conference URL:', meetLink);
-    console.log(responce.data.conferenceData);
-    // @ts-ignore
-    console.log(responce.config.data.conferenceData);
-    return true;
+
+    return responce.data;
   }
 
   async findOneByDateAndGroup(
