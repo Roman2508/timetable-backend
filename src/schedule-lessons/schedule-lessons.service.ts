@@ -89,51 +89,87 @@ export class ScheduleLessonsService {
     const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
-    const event = {
-      summary: 'Google I/O 2024',
-      location: '800 Howard St., San Francisco, CA 94103',
-      description: "A chance to hear more about Google's developer products.",
-      start: {
-        dateTime: '2024-02-25T09:00:00-07:00',
-        timeZone: 'America/Los_Angeles',
-      },
-      conferenceData: {
-        createWithGoogleMeet: true,
-      },
-      end: {
-        dateTime: '2024-02-25T17:00:00-08:00',
-        timeZone: 'America/Los_Angeles',
-      },
-      recurrence: ['RRULE:FREQ=DAILY;COUNT=2'],
-      attendees: [
-        { email: 'roma.250899@gmail.com' },
-        // { email: 'sbrin@example.com' },
-      ],
-      reminders: {
-        useDefault: false,
-        overrides: [
-          { method: 'email', minutes: 24 * 60 },
-          { method: 'popup', minutes: 10 },
-        ],
-      },
-    };
+    // const event = {
+    //   summary: 'Google I/O 2024',
+    //   location: '800 Howard St., San Francisco, CA 94103',
+    //   description: "A chance to hear more about Google's developer products.",
+    //   start: {
+    //     dateTime: '2024-02-25T09:00:00-07:00',
+    //     timeZone: 'America/Los_Angeles',
+    //   },
+    //   conferenceData: {
+    //     createWithGoogleMeet: true,
+    //   },
+    //   end: {
+    //     dateTime: '2024-02-25T17:00:00-08:00',
+    //     timeZone: 'America/Los_Angeles',
+    //   },
+    //   recurrence: ['RRULE:FREQ=DAILY;COUNT=2'],
+    //   attendees: [
+    //     { email: 'roma.250899@gmail.com' },
+    //     // { email: 'sbrin@example.com' },
+    //   ],
+    //   reminders: {
+    //     useDefault: false,
+    //     overrides: [
+    //       { method: 'email', minutes: 24 * 60 },
+    //       { method: 'popup', minutes: 10 },
+    //     ],
+    //   },
+    // };
 
-    const responce = await calendar.events.insert({
-      auth: auth,
+    // await calendar.calendarList.list();
+
+    const response = await calendar.events.get({
       calendarId: 'test.student@pharm.zt.ua',
-      // calendarId: 'primary', // указывает на основной календарь этого пользователя
-      conferenceDataVersion: 1,
+      eventId: '',
+    });
+
+    // @ts-ignore
+    const event = response.data.items[0];
+    // @ts-ignore
+    const eventId = response.data?.items[0]?.id;
+
+    console.log('event: ', event);
+
+    const a = await calendar.events.update({
+      calendarId: 'test.student@pharm.zt.ua', // Идентификатор календаря
+      eventId: eventId, // Идентификатор события, которое вы хотите обновить
       requestBody: {
         summary: 'Інформатика - Група 203 2 підгрупа',
-        description: 'Вівторок, 16 квітня⋅10:00 – 11:20',
-        location: '217',
-        start: { dateTime: '2024-04-16T09:00:00', timeZone: 'Europe/Kyiv' },
-        end: { dateTime: '2024-04-16T10:00:00', timeZone: 'Europe/Kyiv' },
-        conferenceData: {},
+        description: 'Середа, 17 квітня ⋅ 10:00 – 11:20дп', //event.description
+        location: '217', //event.location
+        start: {
+          dateTime: event.start.dateTime,
+          timeZone: 'Europe/Kiev',
+        },
+        end: {
+          dateTime: event.end.dateTime,
+          timeZone: 'Europe/Kiev',
+        },
       },
     });
 
-    return responce.data;
+    // console.log(a);
+
+    // CREATE
+
+    // const responce = await calendar.events.insert({
+    //   auth: auth,
+    //   calendarId: 'test.student@pharm.zt.ua',
+    //   // calendarId: 'primary', // указывает на основной календарь этого пользователя
+    //   conferenceDataVersion: 1,
+    //   requestBody: {
+    //     summary: 'Інформатика - Група 203 2 підгрупа',
+    //     description: 'Вівторок, 16 квітня⋅10:00 – 11:20',
+    //     location: '217',
+    //     start: { dateTime: '2024-04-17T10:00:00', timeZone: 'Europe/Kyiv' },
+    //     end: { dateTime: '2024-04-17T11:20:00', timeZone: 'Europe/Kyiv' },
+    //     conferenceData: {},
+    //   },
+    // });
+
+    return response.data;
   }
 
   async findOneByDateAndGroup(
