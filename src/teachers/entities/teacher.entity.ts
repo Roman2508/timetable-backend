@@ -30,4 +30,7 @@ export class TeacherEntity {
 
   @Column()
   lastName: string;
+
+  @Column({ default: null })
+  email: string;
 }

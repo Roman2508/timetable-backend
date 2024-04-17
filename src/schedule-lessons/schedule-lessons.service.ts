@@ -10,6 +10,7 @@ import * as dayjs from 'dayjs';
 import { google } from 'googleapis';
 import { Between, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { customDayjs } from 'src/utils/customDayjs';
 import { authenticate } from '@google-cloud/local-auth';
 
 import { StreamEntity } from 'src/streams/entities/stream.entity';
@@ -17,6 +18,9 @@ import { SettingsEntity } from 'src/settings/entities/setting.entity';
 import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
+import { UpdateGoogleCalendarEventDto } from './dto/update-google-calendar-event.dto';
+import { CreateGoogleCalendarEventDto } from './dto/create-google-calendar-event.dto';
+import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 
 const TOKEN_PATH = path.join(process.cwd(), 'src/schedule-lessons/token.json');
 const CREDENTIALS_PATH = path.join(
@@ -40,6 +44,9 @@ export class ScheduleLessonsService {
 
     @InjectRepository(SettingsEntity)
     private settingsRepository: Repository<SettingsEntity>,
+
+    @InjectRepository(TeacherEntity)
+    private teacherRepository: Repository<TeacherEntity>,
   ) {}
 
   async loadSavedCredentialsIfExist() {
@@ -85,91 +92,116 @@ export class ScheduleLessonsService {
     return client;
   }
 
-  async createCalendarEvent() {
+  async createCalendarEvent(dto: CreateGoogleCalendarEventDto) {
     const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
-    // const event = {
-    //   summary: 'Google I/O 2024',
-    //   location: '800 Howard St., San Francisco, CA 94103',
-    //   description: "A chance to hear more about Google's developer products.",
-    //   start: {
-    //     dateTime: '2024-02-25T09:00:00-07:00',
-    //     timeZone: 'America/Los_Angeles',
-    //   },
-    //   conferenceData: {
-    //     createWithGoogleMeet: true,
-    //   },
-    //   end: {
-    //     dateTime: '2024-02-25T17:00:00-08:00',
-    //     timeZone: 'America/Los_Angeles',
-    //   },
-    //   recurrence: ['RRULE:FREQ=DAILY;COUNT=2'],
-    //   attendees: [
-    //     { email: 'roma.250899@gmail.com' },
-    //     // { email: 'sbrin@example.com' },
-    //   ],
-    //   reminders: {
-    //     useDefault: false,
-    //     overrides: [
-    //       { method: 'email', minutes: 24 * 60 },
-    //       { method: 'popup', minutes: 10 },
-    //     ],
-    //   },
-    // };
-
     // await calendar.calendarList.list();
 
+    const response = await calendar.events.insert({
+      auth: auth,
+      calendarId: dto.calendarId,
+      // calendarId: 'primary', // указывает на основной календарь этого пользователя
+      conferenceDataVersion: 1,
+      requestBody: {
+        summary: dto.summary,
+        description: dto.description,
+        location: dto.location,
+        start: { dateTime: dto.startTime, timeZone: 'Europe/Kyiv' },
+        end: { dateTime: dto.endTime, timeZone: 'Europe/Kyiv' },
+      },
+    });
+
+    return response.data;
+  }
+
+  async updateCalendarEvent(dto: UpdateGoogleCalendarEventDto) {
+    const auth = await this.authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
     const response = await calendar.events.get({
-      calendarId: 'test.student@pharm.zt.ua',
+      calendarId: dto.calendarId,
       eventId: '',
     });
 
-    // @ts-ignore
-    const event = response.data.items[0];
-    // @ts-ignore
-    const eventId = response.data?.items[0]?.id;
+    if (!response.data) {
+      throw new BadRequestException('Event not found');
+    }
 
-    console.log('event: ', event);
+    // @ts-ignore
+    const existedEvent = response.data.items[0];
 
-    const a = await calendar.events.update({
-      calendarId: 'test.student@pharm.zt.ua', // Идентификатор календаря
-      eventId: eventId, // Идентификатор события, которое вы хотите обновить
+    if (!existedEvent) {
+      throw new BadRequestException('Event not found');
+    }
+
+    await calendar.events.update({
+      calendarId: dto.calendarId, // Идентификатор календаря
+      eventId: existedEvent.id, // Идентификатор события, которое нужно хотите обновить
       requestBody: {
-        summary: 'Інформатика - Група 203 2 підгрупа',
-        description: 'Середа, 17 квітня ⋅ 10:00 – 11:20дп', //event.description
-        location: '217', //event.location
+        summary: dto.summary,
+        description: dto.description, //event.description
+        location: dto.location, //event.location
         start: {
-          dateTime: event.start.dateTime,
+          dateTime: existedEvent.start.dateTime,
           timeZone: 'Europe/Kiev',
         },
         end: {
-          dateTime: event.end.dateTime,
+          dateTime: existedEvent.end.dateTime,
           timeZone: 'Europe/Kiev',
         },
       },
     });
+  }
 
-    // console.log(a);
+  async getCalendarEventDto(
+    lessonName: string,
+    lessonNumber: number,
+    date: Date,
+    groupName: string,
+    subgroupNumber: number | null,
+    auditoryName: string,
+    teacherId: number,
+  ) {
+    const settings = await this.settingsRepository.findOne({
+      where: { id: 1 },
+    });
 
-    // CREATE
+    if (!settings) {
+      throw new NotFoundException('Налаштування не знайдені');
+    }
 
-    // const responce = await calendar.events.insert({
-    //   auth: auth,
-    //   calendarId: 'test.student@pharm.zt.ua',
-    //   // calendarId: 'primary', // указывает на основной календарь этого пользователя
-    //   conferenceDataVersion: 1,
-    //   requestBody: {
-    //     summary: 'Інформатика - Група 203 2 підгрупа',
-    //     description: 'Вівторок, 16 квітня⋅10:00 – 11:20',
-    //     location: '217',
-    //     start: { dateTime: '2024-04-17T10:00:00', timeZone: 'Europe/Kyiv' },
-    //     end: { dateTime: '2024-04-17T11:20:00', timeZone: 'Europe/Kyiv' },
-    //     conferenceData: {},
-    //   },
-    // });
+    const teacher = await this.teacherRepository.findOne({
+      where: { id: teacherId },
+    });
 
-    return response.data;
+    if (!teacher) {
+      throw new NotFoundException('Викладача не знайдені');
+    }
+
+    if (!teacher.email) {
+      throw new NotFoundException('Ел. пошту викладача не знайдено');
+    }
+
+    const lessonDate = customDayjs(date);
+    const formattedDateTime = lessonDate.format('ddd, D MMMM');
+
+    const callSchedule = settings.callSchedule[lessonNumber];
+
+    const subgroup = subgroupNumber ? ` ${subgroupNumber} підгрупа` : '';
+
+    const summary = `${lessonName} - Група ${groupName}${subgroup}`;
+    const description = `${formattedDateTime} ⋅ ${callSchedule.start} - ${callSchedule.end}`;
+    const location = auditoryName;
+
+    return {
+      summary,
+      description,
+      location,
+      calendarId: teacher.email,
+      startTime: `${lessonDate.format('YYYY-MM-DD')}T${callSchedule.start}:00`,
+      endTime: `${lessonDate.format('YYYY-MM-DD')}T${callSchedule.end}:00`,
+    };
   }
 
   async findOneByDateAndGroup(
@@ -271,13 +303,27 @@ export class ScheduleLessonsService {
         }),
       );
 
-      return this.findOneByDateAndGroup(
+      const newLesson = await this.findOneByDateAndGroup(
         dto.date,
         dto.lessonNumber,
         dto.semester,
         dto.group,
         dto.typeRu,
       );
+
+      // if (dto.group === newLesson.id) {
+      //   this.getCalendarEventDto(
+      //     newLesson.name,
+      //     newLesson.lessonNumber,
+      //     newLesson.date,
+      //     newLesson.group.name,
+      //     newLesson.subgroupNumber,
+      //     newLesson.auditory.name,
+      //     newLesson.teacher.id,
+      //   );
+      // }
+
+      return newLesson;
     }
 
     const { group, teacher, auditory, stream, ...rest } = dto;
@@ -290,7 +336,7 @@ export class ScheduleLessonsService {
     });
 
     if (auditory) {
-      // Якщо урок буде проводитись не дистанційно
+      // Якщо урок буде проводитись НЕ дистанційно
       const newLesson = this.repository.create({
         ...payload,
         auditory: { id: auditory },
@@ -300,17 +346,30 @@ export class ScheduleLessonsService {
     } else {
       // Якщо урок буде проводитись дистанційно
       const newLesson = this.repository.create(payload);
-
       await this.repository.save(newLesson);
     }
 
-    return this.findOneByDateAndGroup(
+    const newLesson = await this.findOneByDateAndGroup(
       dto.date,
       dto.lessonNumber,
       dto.semester,
       dto.group,
       dto.typeRu,
     );
+
+    const googleCalendarEventDto = await this.getCalendarEventDto(
+      newLesson.name,
+      newLesson.lessonNumber,
+      newLesson.date,
+      newLesson.group.name,
+      newLesson.subgroupNumber,
+      newLesson.auditory.name,
+      newLesson.teacher.id,
+    );
+
+    this.createCalendarEvent(googleCalendarEventDto);
+
+    return newLesson;
   }
 
   async findByTypeIdAndSemester(
@@ -589,3 +648,51 @@ export class ScheduleLessonsService {
     return id;
   }
 }
+
+/*
+      SettingsEntity {
+        id: 1,
+        firstSemesterStart: '09.01.2023',
+        firstSemesterEnd: '12.24.2023',
+        secondSemesterStart: '02.01.2024',
+        secondSemesterEnd: '06.30.2024',
+        callSchedule: Lesson {
+          '1': LessonCall { start: '08:30', end: '09:50' },
+          '2': LessonCall { start: '10:00', end: '11:20' },
+          '3': LessonCall { start: '12:00', end: '13:20' },
+          '4': LessonCall { start: '13:30', end: '14:50' },
+          '5': LessonCall { start: '15:00', end: '16:20' },
+          '6': LessonCall { start: '16:30', end: '17:50' },
+          '7': LessonCall { start: '08:30', end: '09:50' }
+        }
+      }
+*/
+
+// const event = {
+//   summary: 'Google I/O 2024',
+//   location: '800 Howard St., San Francisco, CA 94103',
+//   description: "A chance to hear more about Google's developer products.",
+//   start: {
+//     dateTime: '2024-02-25T09:00:00-07:00',
+//     timeZone: 'America/Los_Angeles',
+//   },
+//   conferenceData: {
+//     createWithGoogleMeet: true,
+//   },
+//   end: {
+//     dateTime: '2024-02-25T17:00:00-08:00',
+//     timeZone: 'America/Los_Angeles',
+//   },
+//   recurrence: ['RRULE:FREQ=DAILY;COUNT=2'],
+//   attendees: [
+//     { email: 'roma.250899@gmail.com' },
+//     // { email: 'sbrin@example.com' },
+//   ],
+//   reminders: {
+//     useDefault: false,
+//     overrides: [
+//       { method: 'email', minutes: 24 * 60 },
+//       { method: 'popup', minutes: 10 },
+//     ],
+//   },
+// };

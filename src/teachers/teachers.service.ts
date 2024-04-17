@@ -20,6 +20,7 @@ export class TeachersService {
     });
   }
 
+
   create(dto: CreateTeacherDto) {
     const newTeacher = this.repository.create({
       firstName: dto.firstName,

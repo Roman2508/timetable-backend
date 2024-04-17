@@ -1,5 +1,4 @@
 import {
-  Controller,
   Get,
   Post,
   Body,
@@ -7,12 +6,13 @@ import {
   Param,
   Delete,
   UseGuards,
+  Controller,
 } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { ScheduleLessonsService } from './schedule-lessons.service';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 
 @Controller('schedule-lessons')
 @ApiTags('schedule-lessons')
@@ -27,11 +27,6 @@ export class ScheduleLessonsController {
   @Post()
   create(@Body() dto: CreateScheduleLessonDto) {
     return this.scheduleLessonsService.create(dto);
-  }
-
-  @Post('create-calendar-event')
-  createCalendarEvent() {
-    return this.scheduleLessonsService.createCalendarEvent();
   }
 
   @Get('overlay/:date/:lessonNumber/:auditoryId')

@@ -7,6 +7,7 @@ import { ScheduleLessonsService } from './schedule-lessons.service';
 import { SettingsEntity } from 'src/settings/entities/setting.entity';
 import { ScheduleLessonsController } from './schedule-lessons.controller';
 import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
+import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 
 @Module({
   controllers: [ScheduleLessonsController],
@@ -15,6 +16,7 @@ import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
     TypeOrmModule.forFeature([
       ScheduleLessonsEntity,
       SettingsEntity,
+      TeacherEntity,
       StreamEntity,
       GroupEntity,
     ]),
