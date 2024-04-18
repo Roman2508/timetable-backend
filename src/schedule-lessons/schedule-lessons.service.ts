@@ -233,6 +233,20 @@ export class ScheduleLessonsService {
     });
   }
 
+  async greateSecondaryGoogleCalendar() {
+    const auth = await this.authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    // const res = await calendar.calendars.insert({
+    //   requestBody: { summary: 'Розклад Test Teacher' },
+    // });
+    const res = await calendar.calendarList.list();
+
+    console.log(res.data);
+
+    return res.data;
+  }
+
   async create(dto: CreateScheduleLessonDto) {
     // Спочатку треба перевірити чи в цей час та дату для цієї групи немає виставлених занять
     const lessonsOverlay = await this.repository.findOne({
