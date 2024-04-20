@@ -25,7 +25,6 @@ import { UserEntity } from 'src/users/entities/user.entity';
     }),
     UsersModule,
     TypeOrmModule.forFeature([UserEntity]),
-    // UsersModule,
   ],
 })
 export class AuthModule {}

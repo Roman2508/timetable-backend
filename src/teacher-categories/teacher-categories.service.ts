@@ -30,6 +30,7 @@ export class TeacherCategoriesService {
           firstName: true,
           middleName: true,
           lastName: true,
+          calendarId: true,
           category: { id: true, name: true },
         },
       },

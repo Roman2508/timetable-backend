@@ -48,6 +48,9 @@ export class GroupEntity {
   @Column({ default: 'Денна' })
   formOfEducation: 'Денна' | 'Заочна';
 
+  @Column({ default: null })
+  calendarId: string;
+
   @OneToMany(() => GroupLoadLessonEntity, (lessons) => lessons.group)
   groupLoad: GroupLoadLessonEntity[];
 

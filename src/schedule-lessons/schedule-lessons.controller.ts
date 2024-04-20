@@ -29,11 +29,6 @@ export class ScheduleLessonsController {
     return this.scheduleLessonsService.create(dto);
   }
 
-  @Get('test')
-  test() {
-    return this.scheduleLessonsService.greateSecondaryGoogleCalendar();
-  }
-
   @Get('overlay/:date/:lessonNumber/:auditoryId')
   getAuditoryOverlay(
     @Param('date') date: string,

@@ -9,13 +9,16 @@ import {
 import { GroupEntity } from './entities/group.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
-import { GroupLoadLessonsService } from './../group-load-lessons/group-load-lessons.service';
+import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
 import { CreateGroupSpecializationDto } from './dto/create-group-specialization.dto';
 import { UpdateGroupSpecializationDto } from './dto/update-group-specialization.dto';
+import { GroupLoadLessonsService } from './../group-load-lessons/group-load-lessons.service';
 
 @Injectable()
 export class GroupsService {
   constructor(
+    private readonly googleCalendarService: GoogleCalendarService,
+
     @InjectRepository(GroupEntity)
     private groupsRepository: Repository<GroupEntity>,
 
@@ -42,6 +45,7 @@ export class GroupsService {
         category: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
         educationPlan: { id: true, name: true },
+        calendarId: true,
         groupLoad: {
           id: true,
           name: true,
@@ -79,11 +83,15 @@ export class GroupsService {
   async create(dto: CreateGroupDto) {
     const { category, educationPlan, ...rest } = dto;
 
+    const calendarId = await this.googleCalendarService.createCalendar({
+      owner: dto.name,
+    });
+
     const newGroup = this.groupsRepository.create({
       ...rest,
       educationPlan: { id: educationPlan },
       category: { id: category },
-      // groupLoad: [],
+      calendarId,
     });
 
     const group = await this.groupsRepository.save(newGroup);

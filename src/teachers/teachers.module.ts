@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
-import { TeachersService } from './teachers.service';
-import { TeachersController } from './teachers.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { TeachersService } from './teachers.service';
 import { TeacherEntity } from './entities/teacher.entity';
+import { TeachersController } from './teachers.controller';
+import { GoogleCalendarModule } from 'src/google-calendar/google-calendar.module';
 
 @Module({
   controllers: [TeachersController],
   providers: [TeachersService],
-  imports: [TypeOrmModule.forFeature([TeacherEntity])],
+  imports: [TypeOrmModule.forFeature([TeacherEntity]), GoogleCalendarModule],
 })
 export class TeachersModule {}

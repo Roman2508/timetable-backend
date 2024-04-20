@@ -32,5 +32,5 @@ export class TeacherEntity {
   lastName: string;
 
   @Column({ default: null })
-  email: string;
+  calendarId: string;
 }

@@ -33,6 +33,7 @@ import { AuditoryCategoriesModule } from './auditory-categories/auditory-categor
 import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-category.entity';
 import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-lesson.entity';
 import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
+import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
     StreamsModule,
     ScheduleLessonsModule,
     SettingsModule,
+    GoogleCalendarModule,
   ],
   controllers: [AppController],
   providers: [AppService],
