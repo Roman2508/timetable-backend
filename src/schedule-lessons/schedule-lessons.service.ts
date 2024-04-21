@@ -136,17 +136,31 @@ export class ScheduleLessonsService {
         dto.typeRu,
       );
 
-      // if (dto.group === newLesson.id) {
-      //   this.getCalendarEventDto(
-      //     newLesson.name,
-      //     newLesson.lessonNumber,
-      //     newLesson.date,
-      //     newLesson.group.name,
-      //     newLesson.subgroupNumber,
-      //     newLesson.auditory.name,
-      //     newLesson.teacher.id,
-      //   );
-      // }
+      const teacherEventDto =
+        await this.googleCalendarService.getCalendarEventDto(
+          newLesson.name,
+          newLesson.lessonNumber,
+          newLesson.date,
+          newLesson.group.name,
+          newLesson.subgroupNumber,
+          newLesson.auditory.name,
+          newLesson.teacher.id,
+          'teacher',
+        );
+      this.googleCalendarService.createCalendarEvent(teacherEventDto);
+
+      const groupEventDto =
+        await this.googleCalendarService.getCalendarEventDto(
+          newLesson.name,
+          newLesson.lessonNumber,
+          newLesson.date,
+          newLesson.group.name,
+          newLesson.subgroupNumber,
+          newLesson.auditory.name,
+          newLesson.group.id,
+          'group',
+        );
+      this.googleCalendarService.createCalendarEvent(groupEventDto);
 
       return newLesson;
     }
@@ -193,7 +207,6 @@ export class ScheduleLessonsService {
         newLesson.teacher.id,
         'teacher',
       );
-
     this.googleCalendarService.createCalendarEvent(teacherEventDto);
 
     const groupEventDto = await this.googleCalendarService.getCalendarEventDto(
@@ -206,7 +219,6 @@ export class ScheduleLessonsService {
       newLesson.group.id,
       'group',
     );
-
     this.googleCalendarService.createCalendarEvent(groupEventDto);
 
     return newLesson;
