@@ -43,9 +43,7 @@ export class GroupsService {
       },
       select: {
         category: { id: true, name: true },
-        stream: { id: true, name: true, groups: { id: true, name: true } },
         educationPlan: { id: true, name: true },
-        calendarId: true,
         groupLoad: {
           id: true,
           name: true,

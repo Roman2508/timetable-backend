@@ -21,6 +21,7 @@ import { UpdateGoogleCalendarDto } from './dto/update-google-calendar.dto';
 import { DeleteGoogleCalendarDto } from './dto/delete-google-calendar.dto';
 import { UpdateGoogleCalendarEventDto } from './dto/update-google-calendar-event.dto';
 import { CreateGoogleCalendarEventDto } from './dto/create-google-calendar-event.dto';
+import { FindCalendarEventDto } from './find-calendar-event.dto';
 
 const TOKEN_PATH = path.join(process.cwd(), 'src/google-calendar/token.json');
 const CREDENTIALS_PATH = path.join(
@@ -93,6 +94,14 @@ export class GoogleCalendarService {
 
   // calendar
 
+  async getCalendar() {
+    const auth = await this.authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const res = await calendar.calendarList.list();
+    return res.data;
+  }
+
   // return new calendar id
   async createCalendar(dto: CreateGoogleCalendarDto): Promise<string> {
     const auth = await this.authorize();
@@ -137,8 +146,6 @@ export class GoogleCalendarService {
     const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
-    // await calendar.calendarList.list();
-
     const response = await calendar.events.insert({
       auth: auth,
       calendarId: dto.calendarId,
@@ -156,6 +163,7 @@ export class GoogleCalendarService {
     return response.data;
   }
 
+  // Оновити аудиторію
   async updateCalendarEvent(dto: UpdateGoogleCalendarEventDto) {
     const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });
@@ -165,46 +173,73 @@ export class GoogleCalendarService {
       eventId: '',
     });
 
-    if (!response.data) {
-      throw new BadRequestException('Event not found');
-    }
-
     // @ts-ignore
-    const existedEvent = response.data.items[0];
+    const existedEvent = response.data.items.filter((el) => {
+      return el.summary === dto.summary && el.description === dto.description;
+    });
 
-    if (!existedEvent) {
-      throw new BadRequestException('Event not found');
-    }
+    if (!existedEvent.length) return;
 
     await calendar.events.update({
       calendarId: dto.calendarId, // Идентификатор календаря
-      eventId: existedEvent.id, // Идентификатор события, которое нужно хотите обновить
+      eventId: existedEvent[0].id, // Идентификатор события, которое нужно хотите обновить
       requestBody: {
-        summary: dto.summary,
-        description: dto.description, //event.description
-        location: dto.location, //event.location
+        summary: existedEvent[0].summary,
+        description: existedEvent[0].description,
+        location: dto.location,
         start: {
-          dateTime: existedEvent.start.dateTime,
+          dateTime: existedEvent[0].start.dateTime,
           timeZone: 'Europe/Kiev',
         },
         end: {
-          dateTime: existedEvent.end.dateTime,
+          dateTime: existedEvent[0].end.dateTime,
           timeZone: 'Europe/Kiev',
         },
       },
     });
   }
 
-  async getCalendarEventDto(
-    lessonName: string,
-    lessonNumber: number,
-    date: Date,
-    groupName: string,
-    subgroupNumber: number | null,
-    auditoryName: string,
-    itemId: number,
-    type: 'teacher' | 'group',
-  ) {
+  async findCalendarEvent(
+    calendarId: string,
+    summary: string,
+    description: string,
+  ): Promise<string> {
+    const auth = await this.authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const res = await calendar.events.list({ calendarId });
+
+    if (!res.data.items) return;
+
+    const eventsList = res.data.items;
+
+    const event = eventsList.find(
+      (e) => e.summary === summary && e.description === description,
+    );
+    if (!event) return;
+
+    return event.id;
+  }
+
+  async deleteCalendarEvent(calendarId: string, dto: FindCalendarEventDto) {
+    const auth = await this.authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const eventDto = await this.getCalendarEventDto(dto);
+
+    const eventId = await this.findCalendarEvent(
+      calendarId,
+      eventDto.summary,
+      eventDto.description,
+    );
+
+    if (!calendarId || !eventId) return;
+
+    const res = await calendar.events.delete({ calendarId, eventId });
+    return res.data;
+  }
+
+  async getCalendarEventDto(dto: FindCalendarEventDto) {
     const settings = await this.settingsRepository.findOne({
       where: { id: 1 },
     });
@@ -215,9 +250,9 @@ export class GoogleCalendarService {
 
     let calendarId: string;
 
-    if (type === 'teacher') {
+    if (dto.type === 'teacher') {
       const teacher = await this.teacherRepository.findOne({
-        where: { id: itemId },
+        where: { id: dto.itemId },
       });
 
       if (!teacher) {
@@ -227,13 +262,13 @@ export class GoogleCalendarService {
       calendarId = teacher.calendarId;
     }
 
-    if (type === 'group') {
+    if (dto.type === 'group') {
       const group = await this.groupRepository.findOne({
-        where: { id: itemId },
+        where: { id: dto.itemId },
       });
 
       if (!group) {
-        throw new NotFoundException('Групу не знайдені');
+        throw new NotFoundException('Групу не знайдено');
       }
 
       calendarId = group.calendarId;
@@ -243,16 +278,18 @@ export class GoogleCalendarService {
       throw new NotFoundException('ID календаря не знайдено');
     }
 
-    const lessonDate = customDayjs(date);
+    const lessonDate = customDayjs(dto.date);
     const formattedDateTime = lessonDate.format('ddd, D MMMM');
 
-    const callSchedule = settings.callSchedule[lessonNumber];
+    const callSchedule = settings.callSchedule[dto.lessonNumber];
 
-    const subgroup = subgroupNumber ? ` ${subgroupNumber} підгрупа` : '';
+    const subgroup = dto.subgroupNumber
+      ? ` ${dto.subgroupNumber} підгрупа`
+      : '';
 
-    const summary = `${lessonName} - Група ${groupName}${subgroup}`;
+    const summary = `${dto.lessonName} - Група ${dto.groupName}${subgroup}`;
     const description = `${formattedDateTime} ⋅ ${callSchedule.start} - ${callSchedule.end}`;
-    const location = auditoryName;
+    const location = dto.auditoryName;
 
     return {
       summary,
@@ -262,14 +299,6 @@ export class GoogleCalendarService {
       startTime: `${lessonDate.format('YYYY-MM-DD')}T${callSchedule.start}:00`,
       endTime: `${lessonDate.format('YYYY-MM-DD')}T${callSchedule.end}:00`,
     };
-  }
-
-  async getCalendar() {
-    const auth = await this.authorize();
-    const calendar = google.calendar({ version: 'v3', auth });
-
-    const res = await calendar.calendarList.list();
-    return res.data;
   }
 }
 
