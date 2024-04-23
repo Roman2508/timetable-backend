@@ -9,12 +9,12 @@ import {
   Param,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { FindCalendarEventDto } from './find-calendar-event.dto';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { GoogleCalendarService } from './google-calendar.service';
 import { CreateGoogleCalendarDto } from './dto/create-google-calendar.dto';
 import { DeleteGoogleCalendarDto } from './dto/delete-google-calendar.dto';
 import { UpdateGoogleCalendarDto } from './dto/update-google-calendar.dto';
-import { FindCalendarEventDto } from './find-calendar-event.dto';
 import { UpdateGoogleCalendarEventDto } from './dto/update-google-calendar-event.dto';
 
 @Controller('google-calendar')
