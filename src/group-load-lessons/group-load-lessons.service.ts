@@ -212,7 +212,7 @@ export class GroupLoadLessonsService {
         relations: {
           group: true,
           planSubjectId: true,
-          stream: true,
+          stream: { groups: true },
           teacher: true,
         },
         select: {
@@ -242,7 +242,7 @@ export class GroupLoadLessonsService {
         relations: {
           group: true,
           planSubjectId: true,
-          stream: true,
+          stream: { groups: true },
           teacher: true,
         },
         select: {

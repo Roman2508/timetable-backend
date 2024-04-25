@@ -14,6 +14,7 @@ import { customDayjs } from 'src/utils/customDayjs';
 import { authenticate } from '@google-cloud/local-auth';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
+import { FindCalendarEventDto } from './find-calendar-event.dto';
 import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import { SettingsEntity } from 'src/settings/entities/setting.entity';
 import { CreateGoogleCalendarDto } from './dto/create-google-calendar.dto';
@@ -21,7 +22,6 @@ import { UpdateGoogleCalendarDto } from './dto/update-google-calendar.dto';
 import { DeleteGoogleCalendarDto } from './dto/delete-google-calendar.dto';
 import { UpdateGoogleCalendarEventDto } from './dto/update-google-calendar-event.dto';
 import { CreateGoogleCalendarEventDto } from './dto/create-google-calendar-event.dto';
-import { FindCalendarEventDto } from './find-calendar-event.dto';
 
 const TOKEN_PATH = path.join(process.cwd(), 'src/google-calendar/token.json');
 const CREDENTIALS_PATH = path.join(
