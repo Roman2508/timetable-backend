@@ -154,6 +154,19 @@ export class GroupsService {
     return id;
   }
 
+  async handleGroupVisible(id: number) {
+    const group = await this.groupsRepository.findOne({
+      where: { id },
+      relations: { educationPlan: true },
+    });
+
+    if (!group) throw new NotFoundException('Групу не знайдено');
+
+    await this.groupsRepository.save({ ...group, isHide: !group.isHide });
+
+    return { id, isHide: !group.isHide };
+  }
+
   // Specialization
   async createSpecialization(dto: CreateGroupSpecializationDto) {
     const group = await this.groupsRepository.findOne({
@@ -218,43 +231,3 @@ export class GroupsService {
     return specializationList;
   }
 }
-
-// const selectedPlanSubjects = await this.planSubjectsRepository.find({
-//   where: { plan: { id: dto.educationPlan } },
-// });
-
-// const groupLoadLessons = [];
-
-// selectedPlanSubjects.forEach((el) => {
-//   const subjectTypes = [
-//     { name: 'lectures', alias: { ru: 'ЛК', en: 'lectures' } },
-//     { name: 'practical', alias: { ru: 'ПЗ', en: 'practical' } },
-//     { name: 'laboratory', alias: { ru: 'ЛАБ', en: 'laboratory' } },
-//     { name: 'seminars', alias: { ru: 'СЕМ', en: 'seminars' } },
-//     { name: 'exams', alias: { ru: 'ЕКЗ', en: 'exams' } },
-//     { name: 'lectures', alias: { ru: '', en: '' } },
-//   ];
-
-//   for (let key in el) {
-//     const findedSubjectType = subjectTypes.find((el) => el.name === key);
-
-//     if (findedSubjectType) {
-//       //
-//       const newLesson = {
-//         name: el.name,
-//         group: newGroup.id,
-//         semester: el.semesterNumber,
-//         specialization: null,
-//         typeRu: findedSubjectType.alias.ru,
-//         typeEn: findedSubjectType.alias.en,
-//         hours: el[key],
-//         teacher: null,
-//         stream: null,
-//         subgroupNumber: null,
-//         students: null,
-//       };
-//       //
-//       groupLoadLessons.push(newLesson);
-//     }
-//   }
-// });

@@ -75,6 +75,18 @@ export class TeachersService {
     });
   }
 
+  async handleVisible(id: number) {
+    const teacher = await this.repository.findOne({
+      where: { id },
+    });
+
+    if (!teacher) throw new NotFoundException('Групу не знайдено');
+
+    await this.repository.save({ ...teacher, isHide: !teacher.isHide });
+
+    return { id };
+  }
+
   async remove(id: number) {
     const res = await this.repository.delete(id);
 

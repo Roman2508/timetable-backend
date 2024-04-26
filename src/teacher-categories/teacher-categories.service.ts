@@ -1,9 +1,9 @@
-import { Repository } from 'typeorm';
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { TeacherCategoryEntity } from './entities/teacher-category.entity';
@@ -17,8 +17,13 @@ export class TeacherCategoriesService {
     private repository: Repository<TeacherCategoryEntity>,
   ) {}
 
-  findAll() {
+  findAll(isHide: 'false' | 'true') {
+    const visible = isHide === 'true' ? true : false;
+
     return this.repository.find({
+      where: {
+        teachers: { isHide: visible },
+      },
       relations: {
         teachers: { category: true },
       },
@@ -31,6 +36,7 @@ export class TeacherCategoriesService {
           middleName: true,
           lastName: true,
           calendarId: true,
+          isHide: true,
           category: { id: true, name: true },
         },
       },

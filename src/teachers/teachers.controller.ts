@@ -32,6 +32,11 @@ export class TeachersController {
     return this.teachersService.create(dto);
   }
 
+  @Patch('/handle-visible/:id')
+  handleVisible(@Param('id') id: string) {
+    return this.teachersService.handleVisible(+id);
+  }
+
   @ApiBody({ type: UpdateTeacherDto })
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateTeacherDto) {

@@ -51,6 +51,9 @@ export class GroupEntity {
   @Column({ default: null })
   calendarId: string;
 
+  @Column({ default: false })
+  isHide: boolean;
+
   @OneToMany(() => GroupLoadLessonEntity, (lessons) => lessons.group)
   groupLoad: GroupLoadLessonEntity[];
 

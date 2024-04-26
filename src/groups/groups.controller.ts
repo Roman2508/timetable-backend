@@ -35,6 +35,11 @@ export class GroupsController {
     return this.groupsService.create(dto);
   }
 
+  @Patch('/handle-visible/:id')
+  handleGroupVisible(@Param('id') id: string) {
+    return this.groupsService.handleGroupVisible(+id);
+  }
+
   @ApiBody({ type: CreateGroupSpecializationDto })
   @Post('/specialization')
   createSpecialization(@Body() dto: CreateGroupSpecializationDto) {

@@ -12,15 +12,19 @@ export class GroupCategoriesService {
     private repository: Repository<GroupCategoryEntity>,
   ) {}
 
-  findAll() {
+  findAll(isHide: 'false' | 'true') {
+    const visible = isHide === 'false' ? false : true;
+
     return this.repository.find({
+      where: { groups: { isHide: visible } },
       relations: {
-        groups: true,
+        groups: { category: true },
       },
       select: {
         groups: {
           id: true,
           name: true,
+          isHide: true,
           students: true,
           courseNumber: true,
           category: { id: true, name: true },

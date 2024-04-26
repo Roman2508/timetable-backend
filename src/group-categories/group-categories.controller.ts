@@ -28,9 +28,9 @@ export class GroupCategoriesController {
     return this.groupCategoriesService.create(dto);
   }
 
-  @Get()
-  findAll() {
-    return this.groupCategoriesService.findAll();
+  @Get(':isHide')
+  findAll(@Param('isHide') isHide: 'false' | 'true') {
+    return this.groupCategoriesService.findAll(isHide);
   }
 
   @Patch(':id')

@@ -33,4 +33,7 @@ export class TeacherEntity {
 
   @Column({ default: null })
   calendarId: string;
+
+  @Column({ default: false })
+  isHide: boolean;
 }

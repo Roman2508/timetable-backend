@@ -24,9 +24,9 @@ export class TeacherCategoriesController {
     private readonly teacherCategoriesService: TeacherCategoriesService,
   ) {}
 
-  @Get()
-  findAll() {
-    return this.teacherCategoriesService.findAll();
+  @Get(':isHide')
+  findAll(@Param('isHide') isHide: 'false' | 'true') {
+    return this.teacherCategoriesService.findAll(isHide);
   }
 
   @ApiBody({ type: CreateTeacherCategoryDto })
