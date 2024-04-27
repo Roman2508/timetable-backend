@@ -17,12 +17,12 @@ import { GroupLoadLessonsService } from './../group-load-lessons/group-load-less
 @Injectable()
 export class GroupsService {
   constructor(
-    private readonly googleCalendarService: GoogleCalendarService,
-
     @InjectRepository(GroupEntity)
     private groupsRepository: Repository<GroupEntity>,
 
     private groupLoadLessonsService: GroupLoadLessonsService,
+
+    private readonly googleCalendarService: GoogleCalendarService,
   ) {}
 
   async findOne(id: number) {
@@ -129,6 +129,14 @@ export class GroupsService {
           students: dto.students,
         });
       }
+    }
+
+    // Якщо при оновленні було змінено кількість студентів
+    if (Number(group.students) !== Number(dto.students)) {
+      await this.groupLoadLessonsService.changeAllStudentsCount({
+        id,
+        students: dto.students,
+      });
     }
 
     const { category, educationPlan, ...rest } = dto;

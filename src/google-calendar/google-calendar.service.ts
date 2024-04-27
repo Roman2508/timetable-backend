@@ -309,14 +309,14 @@ export class GoogleCalendarService {
         firstSemesterEnd: '12.24.2023',
         secondSemesterStart: '02.01.2024',
         secondSemesterEnd: '06.30.2024',
-        callSchedule: Lesson {
-          '1': LessonCall { start: '08:30', end: '09:50' },
-          '2': LessonCall { start: '10:00', end: '11:20' },
-          '3': LessonCall { start: '12:00', end: '13:20' },
-          '4': LessonCall { start: '13:30', end: '14:50' },
-          '5': LessonCall { start: '15:00', end: '16:20' },
-          '6': LessonCall { start: '16:30', end: '17:50' },
-          '7': LessonCall { start: '08:30', end: '09:50' }
+        callSchedule: {
+          '1': { start: '08:30', end: '09:50' },
+          '2': { start: '10:00', end: '11:20' },
+          '3': { start: '12:00', end: '13:20' },
+          '4': { start: '13:30', end: '14:50' },
+          '5': { start: '15:00', end: '16:20' },
+          '6': { start: '16:30', end: '17:50' },
+          '7': { start: '08:30', end: '09:50' }
         }
       }
 */

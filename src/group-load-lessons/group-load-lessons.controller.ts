@@ -16,6 +16,7 @@ import { AttachSpecializationDto } from './dto/attach-specialization.dto';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
+import { ChangeStudentsCountByNameAndTypeDto } from './dto/change-students-count-by-name-and-type.dto';
 
 @Controller('group-load-lessons')
 @ApiTags('group-load-lessons')
@@ -51,14 +52,22 @@ export class GroupLoadLessonsController {
     );
   }
 
+  @ApiBody({ type: UpdateGroupLoadLessonNameDto })
   @Patch('/name')
   updateName(@Body() dto: UpdateGroupLoadLessonNameDto) {
     return this.groupLoadLessonsService.updateName(dto);
   }
 
+  @ApiBody({ type: UpdateGroupLoadLessonHoursDto })
   @Patch('/hours')
   updateHours(@Body() dto: UpdateGroupLoadLessonHoursDto) {
     return this.groupLoadLessonsService.updateHours(dto);
+  }
+
+  @ApiBody({ type: ChangeStudentsCountByNameAndTypeDto })
+  @Patch('/students')
+  updateStudents(@Body() dto: ChangeStudentsCountByNameAndTypeDto) {
+    return this.groupLoadLessonsService.changeStudentsCountByNameAndType(dto);
   }
 
   @ApiBody({ type: AttachSpecializationDto })

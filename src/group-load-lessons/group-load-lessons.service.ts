@@ -17,6 +17,8 @@ import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entit
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
 import { RemoveLessonsFromStreamDto } from 'src/streams/dto/remove-lessons-from-stream.dto';
+import { ChangeStudentsCountDto } from './dto/change-students-count.dto';
+import { ChangeStudentsCountByNameAndTypeDto } from './dto/change-students-count-by-name-and-type.dto';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -457,6 +459,38 @@ export class GroupLoadLessonsService {
     });
 
     return true;
+  }
+
+  async changeAllStudentsCount(dto: ChangeStudentsCountDto) {
+    await this.groupLoadLessonsRepository.update(
+      {
+        group: { id: dto.id },
+        subgroupNumber: IsNull(),
+        specialization: IsNull(),
+      },
+      { students: Number(dto.students) },
+    );
+  }
+
+  async changeStudentsCountByNameAndType(
+    dto: ChangeStudentsCountByNameAndTypeDto,
+  ) {
+    const specialization = dto.specialization ? dto.specialization : IsNull();
+    const subgroupNumber = dto.subgroupNumber ? dto.subgroupNumber : IsNull();
+
+    await this.groupLoadLessonsRepository.update(
+      {
+        group: { id: dto.id },
+        typeRu: dto.typeRu,
+        name: dto.name,
+        semester: Number(dto.semester),
+        subgroupNumber,
+        specialization,
+      },
+      { students: Number(dto.students) },
+    );
+
+    return dto;
   }
 
   /* specialization */
