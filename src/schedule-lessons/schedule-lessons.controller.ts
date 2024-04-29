@@ -1,27 +1,19 @@
-import {
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Controller,
-} from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { Get, Post, Body, Patch, Param, Delete, UseGuards, Controller } from '@nestjs/common';
+
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { CopyWeekOfScheduleDto } from './dto/copy-week-of-schedule.dto';
 import { ScheduleLessonsService } from './schedule-lessons.service';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
+import { CopyDayOfScheduleDto } from './dto/copy-day-of-schedule.dto';
 
 @Controller('schedule-lessons')
 @ApiTags('schedule-lessons')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ScheduleLessonsController {
-  constructor(
-    private readonly scheduleLessonsService: ScheduleLessonsService,
-  ) {}
+  constructor(private readonly scheduleLessonsService: ScheduleLessonsService) {}
 
   @ApiBody({ type: CreateScheduleLessonDto })
   @Post()
@@ -35,25 +27,24 @@ export class ScheduleLessonsController {
     @Param('lessonNumber') lessonNumber: string,
     @Param('auditoryId') auditoryId: string,
   ) {
-    return this.scheduleLessonsService.getAuditoryOverlay(
-      date,
-      +lessonNumber,
-      +auditoryId,
-    );
+    return this.scheduleLessonsService.getAuditoryOverlay(date, +lessonNumber, +auditoryId);
   }
 
   @Get(':semester/:type/:id')
-  findAll(
-    @Param('semester') semester: string,
-    @Param('type') type: string,
-    @Param('id') id: string,
-  ) {
+  findAll(@Param('semester') semester: string, @Param('type') type: string, @Param('id') id: string) {
     return this.scheduleLessonsService.findAll(+semester, type, +id);
   }
 
-  @Post('/copy-the-schedule')
-  copyTheSchedule() {
-    return this.scheduleLessonsService.copyTheSchedule();
+  @ApiBody({ type: CopyWeekOfScheduleDto })
+  @Post('/copy-week')
+  copyWeekOfSchedule(@Body() dto: CopyWeekOfScheduleDto) {
+    return this.scheduleLessonsService.copyWeekOfSchedule(dto);
+  }
+
+  @ApiBody({ type: CopyDayOfScheduleDto })
+  @Post('/copy-day')
+  copyDayOfSchedule(@Body() dto: CopyDayOfScheduleDto) {
+    return this.scheduleLessonsService.copyDayOfSchedule(dto);
   }
 
   @ApiBody({ type: UpdateScheduleLessonDto })
