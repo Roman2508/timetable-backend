@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import * as dayjs from 'dayjs';
 import { Between, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -82,9 +78,7 @@ export class ScheduleLessonsService {
     }
 
     if (dto.auditory && dto.isRemote) {
-      throw new BadRequestException(
-        'Урок який буде проводитись дистанційно не повинен займати аудиторію',
-      );
+      throw new BadRequestException('Урок який буде проводитись дистанційно не повинен займати аудиторію');
     }
 
     // Перевірити чи є потоки, якщо є - виставити для всіх груп в потоці
@@ -96,9 +90,7 @@ export class ScheduleLessonsService {
       });
 
       if (!stream) {
-        throw new NotFoundException(
-          'Помилка при створенні елемента розкладу для потоку',
-        );
+        throw new NotFoundException('Помилка при створенні елемента розкладу для потоку');
       }
 
       await Promise.all(
@@ -124,23 +116,21 @@ export class ScheduleLessonsService {
             // Якщо урок буде проводитись дистанційно
             const newLesson = this.repository.create(payload);
 
-            const groupEventDto =
-              await this.googleCalendarService.getCalendarEventDto({
-                ...googleCalendarEventDto,
-                auditoryName: 'Дистанційно',
-                itemId: el.id,
-                type: 'group',
-              });
+            const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
+              ...googleCalendarEventDto,
+              auditoryName: 'Дистанційно',
+              itemId: el.id,
+              type: 'group',
+            });
 
             this.googleCalendarService.createCalendarEvent(groupEventDto);
 
-            const teacherEventDto =
-              await this.googleCalendarService.getCalendarEventDto({
-                ...googleCalendarEventDto,
-                auditoryName: 'Дистанційно',
-                itemId: newLesson.teacher.id,
-                type: 'teacher',
-              });
+            const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
+              ...googleCalendarEventDto,
+              auditoryName: 'Дистанційно',
+              itemId: newLesson.teacher.id,
+              type: 'teacher',
+            });
 
             this.googleCalendarService.createCalendarEvent(teacherEventDto);
 
@@ -155,31 +145,23 @@ export class ScheduleLessonsService {
 
           await this.repository.save(newLesson);
 
-          const createdLesson = await this.findOneByDateAndGroup(
-            dto.date,
-            dto.lessonNumber,
-            dto.semester,
-            el.id,
-            dto.typeRu,
-          );
+          const createdLesson = await this.findOneByDateAndGroup(dto.date, dto.lessonNumber, dto.semester, el.id, dto.typeRu);
 
-          const groupEventDto =
-            await this.googleCalendarService.getCalendarEventDto({
-              ...googleCalendarEventDto,
-              auditoryName: createdLesson.auditory.name,
-              itemId: el.id,
-              type: 'group',
-            });
+          const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
+            ...googleCalendarEventDto,
+            auditoryName: createdLesson.auditory.name,
+            itemId: el.id,
+            type: 'group',
+          });
 
           this.googleCalendarService.createCalendarEvent(groupEventDto);
 
-          const teacherEventDto =
-            await this.googleCalendarService.getCalendarEventDto({
-              ...googleCalendarEventDto,
-              auditoryName: createdLesson.auditory.name,
-              itemId: newLesson.teacher.id,
-              type: 'teacher',
-            });
+          const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
+            ...googleCalendarEventDto,
+            auditoryName: createdLesson.auditory.name,
+            itemId: newLesson.teacher.id,
+            type: 'teacher',
+          });
 
           this.googleCalendarService.createCalendarEvent(teacherEventDto);
 
@@ -187,13 +169,7 @@ export class ScheduleLessonsService {
         }),
       );
 
-      const newLesson = await this.findOneByDateAndGroup(
-        dto.date,
-        dto.lessonNumber,
-        dto.semester,
-        dto.group,
-        dto.typeRu,
-      );
+      const newLesson = await this.findOneByDateAndGroup(dto.date, dto.lessonNumber, dto.semester, dto.group, dto.typeRu);
 
       return newLesson;
     }
@@ -221,13 +197,7 @@ export class ScheduleLessonsService {
       await this.repository.save(newLesson);
     }
 
-    const newLesson = await this.findOneByDateAndGroup(
-      dto.date,
-      dto.lessonNumber,
-      dto.semester,
-      dto.group,
-      dto.typeRu,
-    );
+    const newLesson = await this.findOneByDateAndGroup(dto.date, dto.lessonNumber, dto.semester, dto.group, dto.typeRu);
 
     const createDtoPayload = {
       lessonName: newLesson.name,
@@ -238,12 +208,11 @@ export class ScheduleLessonsService {
       auditoryName: newLesson.auditory.name,
     };
 
-    const teacherEventDto =
-      await this.googleCalendarService.getCalendarEventDto({
-        ...createDtoPayload,
-        itemId: newLesson.teacher.id,
-        type: 'teacher',
-      });
+    const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
+      ...createDtoPayload,
+      itemId: newLesson.teacher.id,
+      type: 'teacher',
+    });
     this.googleCalendarService.createCalendarEvent(teacherEventDto);
 
     const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
@@ -256,12 +225,39 @@ export class ScheduleLessonsService {
     return newLesson;
   }
 
-  async findByTypeIdAndSemester(
-    type: string,
-    id: number,
-    semesterStart?: string,
-    semesterEnd?: string,
-  ) {
+  async copyTheSchedule() {
+    const groupId = 7;
+
+    const copyFromStart = dayjs('09.01.2023', { format: 'MM.DD.YYYY' }).add(1, 'day').toDate();
+    const copyFromEnd = dayjs(copyFromStart).add(6, 'day').toDate();
+    // const copyFromStart = dayjs('2023.09.01', { format: 'YYYY.MM.DD' }).add(1, 'day').toString();
+    // const copyFromEnd = dayjs(copyFromStart).add(6, 'day').toString();
+
+    const copyToStart = dayjs('05.13.2024', { format: 'MM.DD.YYYY' }).add(1, 'day').toDate();
+    const copyToEnd = dayjs(copyToStart).add(6, 'day').toDate();
+
+    const lessons = await this.repository.find({
+      where: {
+        group: { id: groupId },
+        date: Between(copyFromStart, copyFromEnd),
+      },
+    });
+
+    // const lessons = await this.findByTypeIdAndSemester('group', 7, copyFromStart, copyFromEnd);
+
+    const a = {
+      copyFromStart,
+      copyFromEnd,
+      copyToStart,
+      copyToEnd,
+    };
+
+    return lessons;
+
+    // return new lessons array
+  }
+
+  async findByTypeIdAndSemester(type: string, id: number, semesterStart?: string, semesterEnd?: string) {
     const start = semesterStart && dayjs(semesterStart, 'MM.DD.YYYY').toDate();
     const end = semesterEnd && dayjs(semesterEnd, 'MM.DD.YYYY').toDate();
     const date = start && end ? Between(start, end) : undefined;
@@ -302,23 +298,12 @@ export class ScheduleLessonsService {
 
     if (type === 'group' || type === 'teacher' || type === 'auditory') {
       // semester = 1 | 2
-      const {
-        firstSemesterStart,
-        secondSemesterStart,
-        firstSemesterEnd,
-        secondSemesterEnd,
-      } = settings;
+      const { firstSemesterStart, secondSemesterStart, firstSemesterEnd, secondSemesterEnd } = settings;
 
-      const semesterStart =
-        semester === 1 ? firstSemesterStart : secondSemesterStart;
+      const semesterStart = semester === 1 ? firstSemesterStart : secondSemesterStart;
       const semesterEnd = semester === 1 ? firstSemesterEnd : secondSemesterEnd;
 
-      const data = await this.findByTypeIdAndSemester(
-        type,
-        id,
-        semesterStart,
-        semesterEnd,
-      );
+      const data = await this.findByTypeIdAndSemester(type, id, semesterStart, semesterEnd);
 
       return data;
     }
@@ -358,9 +343,7 @@ export class ScheduleLessonsService {
       throw new BadRequestException('Аудиторію не вибрано');
     }
     if (dto.auditoryId && dto.isRemote) {
-      throw new BadRequestException(
-        'Урок який буде проводитись дистанційно не повинен займати аудиторію',
-      );
+      throw new BadRequestException('Урок який буде проводитись дистанційно не повинен займати аудиторію');
     }
 
     const updateGoogleCalendarEventDto = {
@@ -406,13 +389,12 @@ export class ScheduleLessonsService {
 
       Promise.all(
         streamLessonsInCurrentDate.map(async (el) => {
-          const updateGroupEventDto =
-            await this.googleCalendarService.getCalendarEventDto({
-              ...updateGoogleCalendarEventDto,
-              groupName: el.group.name,
-              itemId: el.group.id,
-              type: 'group',
-            });
+          const updateGroupEventDto = await this.googleCalendarService.getCalendarEventDto({
+            ...updateGoogleCalendarEventDto,
+            groupName: el.group.name,
+            itemId: el.group.id,
+            type: 'group',
+          });
 
           // update group event
           this.googleCalendarService.updateCalendarEvent({
@@ -422,13 +404,12 @@ export class ScheduleLessonsService {
             location: dto.auditoryName ? dto.auditoryName : 'Дистанційно',
           });
 
-          const updateTeacherEventDto =
-            await this.googleCalendarService.getCalendarEventDto({
-              ...updateGoogleCalendarEventDto,
-              groupName: el.group.name,
-              itemId: el.teacher.id,
-              type: 'teacher',
-            });
+          const updateTeacherEventDto = await this.googleCalendarService.getCalendarEventDto({
+            ...updateGoogleCalendarEventDto,
+            groupName: el.group.name,
+            itemId: el.teacher.id,
+            type: 'teacher',
+          });
 
           // update teacher event
           this.googleCalendarService.updateCalendarEvent({
@@ -487,12 +468,11 @@ export class ScheduleLessonsService {
     // Якщо група не об'єднана в потік
     const { auditory, isRemote, stream, ...rest } = lesson;
 
-    const updateGroupEventDto =
-      await this.googleCalendarService.getCalendarEventDto({
-        ...updateGoogleCalendarEventDto,
-        itemId: lesson.group.id,
-        type: 'group',
-      });
+    const updateGroupEventDto = await this.googleCalendarService.getCalendarEventDto({
+      ...updateGoogleCalendarEventDto,
+      itemId: lesson.group.id,
+      type: 'group',
+    });
 
     // update group event
     this.googleCalendarService.updateCalendarEvent({
@@ -502,12 +482,11 @@ export class ScheduleLessonsService {
       location: dto.auditoryName ? dto.auditoryName : 'Дистанційно',
     });
 
-    const updateTeacherEventDto =
-      await this.googleCalendarService.getCalendarEventDto({
-        ...updateGoogleCalendarEventDto,
-        itemId: lesson.teacher.id,
-        type: 'teacher',
-      });
+    const updateTeacherEventDto = await this.googleCalendarService.getCalendarEventDto({
+      ...updateGoogleCalendarEventDto,
+      itemId: lesson.teacher.id,
+      type: 'teacher',
+    });
 
     // update teacher event
     this.googleCalendarService.updateCalendarEvent({
@@ -538,11 +517,7 @@ export class ScheduleLessonsService {
     }
   }
 
-  async getAuditoryOverlay(
-    _date: string,
-    lessonNumber: number,
-    auditoryId: number,
-  ) {
+  async getAuditoryOverlay(_date: string, lessonNumber: number, auditoryId: number) {
     if (!dayjs(_date).isValid()) {
       throw new BadRequestException('Не вірний формат дати');
     }
@@ -628,15 +603,12 @@ export class ScheduleLessonsService {
             type: 'group',
           });
 
-          this.googleCalendarService.deleteCalendarEvent(
-            el.teacher.calendarId,
-            {
-              ...deleteGoogleCalendarEventDto,
-              groupName: el.group.name,
-              itemId: el.teacher.id,
-              type: 'teacher',
-            },
-          );
+          this.googleCalendarService.deleteCalendarEvent(el.teacher.calendarId, {
+            ...deleteGoogleCalendarEventDto,
+            groupName: el.group.name,
+            itemId: el.teacher.id,
+            type: 'teacher',
+          });
 
           const res = await this.repository.delete({ id: el.id });
 

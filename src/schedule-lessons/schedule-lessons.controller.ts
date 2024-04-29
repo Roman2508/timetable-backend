@@ -51,10 +51,10 @@ export class ScheduleLessonsController {
     return this.scheduleLessonsService.findAll(+semester, type, +id);
   }
 
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.scheduleLessonsService.findOne(+id);
-  // }
+  @Post('/copy-the-schedule')
+  copyTheSchedule() {
+    return this.scheduleLessonsService.copyTheSchedule();
+  }
 
   @ApiBody({ type: UpdateScheduleLessonDto })
   @Patch(':id')
