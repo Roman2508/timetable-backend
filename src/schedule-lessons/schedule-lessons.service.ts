@@ -88,8 +88,6 @@ export class ScheduleLessonsService {
   }
 
   async create(dto: CreateScheduleLessonDto) {
-    console.log(111);
-
     // Спочатку треба перевірити чи в цей час та дату для цієї групи немає виставлених занять
     const lessonsOverlay = await this.repository.findOne({
       where: {
@@ -273,7 +271,7 @@ export class ScheduleLessonsService {
   }
 
   async copyWeekOfSchedule(dto: CopyWeekOfScheduleDto) {
-    const copyFromStart = customDayjs(dto.copyFromStartDay, { format: 'YYYY.MM.DD' });
+    const copyFromStart = customDayjs(dto.copyFromStartDay, { format: 'MM.DD.YYYY' });
     const copyFromEnd = customDayjs(copyFromStart).add(7, 'day');
 
     const copyToStart = customDayjs(dto.copyToStartDay, { format: 'MM.DD.YYYY' });
