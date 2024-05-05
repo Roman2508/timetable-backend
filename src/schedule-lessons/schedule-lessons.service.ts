@@ -11,6 +11,7 @@ import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
 import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
+import { CreateReplacementDto } from './dto/create-replacement.dto';
 
 @Injectable()
 export class ScheduleLessonsService {
@@ -361,6 +362,27 @@ export class ScheduleLessonsService {
     );
 
     return createdLessons;
+  }
+
+  async createReplacement(dto: CreateReplacementDto) {
+    const lesson = await this.repository.findOne({ where: { id: dto.lessonId } });
+    if (!lesson) throw new NotFoundException('Не знайдено');
+    await this.repository.save({ ...lesson, replacement: { id: dto.teacherId } });
+
+    const updatedLesson = await this.repository.findOne({
+      where: { id: dto.lessonId },
+      relations: { replacement: true },
+      select: { replacement: { id: true, firstName: true, lastName: true, middleName: true } },
+    });
+
+    return updatedLesson;
+  }
+
+  async deleteReplacement(id: number) {
+    const lesson = await this.repository.findOne({ where: { id } });
+    if (!lesson) throw new NotFoundException('Не знайдено');
+    await this.repository.save({ ...lesson, replacement: null });
+    return id;
   }
 
   async findAll(semester: number, type: string, id: number) {

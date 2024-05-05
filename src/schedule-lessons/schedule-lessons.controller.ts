@@ -7,6 +7,7 @@ import { ScheduleLessonsService } from './schedule-lessons.service';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
 import { CopyDayOfScheduleDto } from './dto/copy-day-of-schedule.dto';
+import { CreateReplacementDto } from './dto/create-replacement.dto';
 
 @Controller('schedule-lessons')
 @ApiTags('schedule-lessons')
@@ -45,6 +46,18 @@ export class ScheduleLessonsController {
   @Post('/copy-day')
   copyDayOfSchedule(@Body() dto: CopyDayOfScheduleDto) {
     return this.scheduleLessonsService.copyDayOfSchedule(dto);
+  }
+
+  @ApiBody({ type: CreateReplacementDto })
+  @Patch('/replacement')
+  createReplacement(@Body() dto: CreateReplacementDto) {
+    return this.scheduleLessonsService.createReplacement(dto);
+  }
+
+  @ApiBody({ type: CreateReplacementDto })
+  @Patch('/replacement/:id')
+  deleteReplacement(@Param('id') id: string) {
+    return this.scheduleLessonsService.deleteReplacement(+id);
   }
 
   @ApiBody({ type: UpdateScheduleLessonDto })
