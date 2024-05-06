@@ -22,6 +22,11 @@ export class ScheduleLessonsController {
     return this.scheduleLessonsService.create(dto);
   }
 
+  @Get('overlay/teacher/:date/:lessonNumber')
+  getTeacherOverlay(@Param('date') date: string, @Param('lessonNumber') lessonNumber: string) {
+    return this.scheduleLessonsService.getTeacherOverlay(date, +lessonNumber);
+  }
+  
   @Get('overlay/:date/:lessonNumber/:auditoryId')
   getAuditoryOverlay(
     @Param('date') date: string,
@@ -30,6 +35,7 @@ export class ScheduleLessonsController {
   ) {
     return this.scheduleLessonsService.getAuditoryOverlay(date, +lessonNumber, +auditoryId);
   }
+
 
   @Get(':semester/:type/:id')
   findAll(@Param('semester') semester: string, @Param('type') type: string, @Param('id') id: string) {
@@ -55,7 +61,7 @@ export class ScheduleLessonsController {
   }
 
   @ApiBody({ type: CreateReplacementDto })
-  @Patch('/replacement/:id')
+  @Delete('/replacement/:id')
   deleteReplacement(@Param('id') id: string) {
     return this.scheduleLessonsService.deleteReplacement(+id);
   }

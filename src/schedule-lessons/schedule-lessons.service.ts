@@ -42,10 +42,17 @@ export class ScheduleLessonsService {
         teacher: true,
         stream: { groups: true },
         auditory: true,
+        replacement: true,
       },
       select: {
         group: { id: true, name: true },
         teacher: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+        replacement: {
           id: true,
           firstName: true,
           middleName: true,
@@ -73,10 +80,17 @@ export class ScheduleLessonsService {
         teacher: true,
         stream: { groups: true },
         auditory: true,
+        replacement: true,
       },
       select: {
         group: { id: true, name: true },
         teacher: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+        replacement: {
           id: true,
           firstName: true,
           middleName: true,
@@ -375,7 +389,9 @@ export class ScheduleLessonsService {
       select: { replacement: { id: true, firstName: true, lastName: true, middleName: true } },
     });
 
-    return updatedLesson;
+    const replacementTeacher = updatedLesson.replacement;
+
+    return replacementTeacher;
   }
 
   async deleteReplacement(id: number) {
@@ -635,6 +651,25 @@ export class ScheduleLessonsService {
       if (!el) return true;
       return el.id !== auditoryId;
     });
+  }
+
+  async getTeacherOverlay(_date: string, lessonNumber: number) {
+    if (!customDayjs(_date).isValid()) {
+      throw new BadRequestException('Не вірний формат дати');
+    }
+
+    const date = customDayjs(_date, 'YYYY.MM.DD').format('YYYY-MM-DD 00:00:00');
+
+    const lessons = await this.repository.find({
+      // @ts-ignore
+      where: { date, lessonNumber },
+      relations: { teacher: true },
+      select: { teacher: { id: true, firstName: true, lastName: true, middleName: true } },
+    });
+
+    const auditories = lessons.map((el) => el.teacher);
+
+    return auditories;
   }
 
   async remove(id: number) {
