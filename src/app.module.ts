@@ -34,6 +34,8 @@ import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-cat
 import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-lesson.entity';
 import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
 import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
+import { StudentsModule } from './students/students.module';
+import { StudentEntity } from './students/entities/student.entity';
 
 @Module({
   imports: [
@@ -60,6 +62,7 @@ import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
         StreamEntity,
         ScheduleLessonsEntity,
         SettingsEntity,
+        StudentEntity,
       ],
       extra: {
         max: 1, // set pool max size
@@ -82,6 +85,7 @@ import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
     ScheduleLessonsModule,
     SettingsModule,
     GoogleCalendarModule,
+    StudentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
