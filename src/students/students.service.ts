@@ -37,7 +37,11 @@ export class StudentsService {
   }
 
   findAllByGroupId(id: number) {
-    return this.repository.find({ where: { id } });
+    return this.repository.find({
+      where: { id },
+      relations: { group: true },
+      select: { group: { id: true, name: true } },
+    });
   }
 
   async update(id: number, dto: UpdateStudentDto) {

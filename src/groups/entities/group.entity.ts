@@ -3,6 +3,7 @@ import { GroupCategoryEntity } from 'src/group-categories/entities/group-categor
 import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 import { PlanEntity } from 'src/plans/entities/plan.entity';
 import { StreamEntity } from 'src/streams/entities/stream.entity';
+import { StudentEntity } from 'src/students/entities/student.entity';
 import {
   Column,
   Entity,
@@ -36,14 +37,16 @@ export class GroupEntity {
   @Column({ default: Number(Date().split(' ')[3]) }) // Поточний рік
   yearOfAdmission: number;
 
-  @Column({ default: 1 })
-  @Min(1, {
-    message: "Кількість студентів не може бути 0 або від'ємним значенням",
-  })
-  @Max(200, {
-    message: 'Кількість студентів не може бути більше 200',
-  })
-  students: number;
+  // @Column({ default: 1 })
+  // @Min(1, {
+  //   message: "Кількість студентів не може бути 0 або від'ємним значенням",
+  // })
+  // @Max(200, {
+  //   message: 'Кількість студентів не може бути більше 200',
+  // })
+  @OneToMany(() => StudentEntity, (student) => student.group)
+  @JoinColumn({ name: 'students' })
+  students: StudentEntity[];
 
   @Column({ default: 'Денна' })
   formOfEducation: 'Денна' | 'Заочна';

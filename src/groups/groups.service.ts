@@ -1,10 +1,6 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
 
 import { GroupEntity } from './entities/group.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
@@ -32,6 +28,7 @@ export class GroupsService {
         category: true,
         stream: true,
         educationPlan: true,
+        students: true,
         groupLoad: {
           group: true,
           planSubjectId: true,
@@ -44,6 +41,7 @@ export class GroupsService {
       select: {
         category: { id: true, name: true },
         educationPlan: { id: true, name: true },
+        students: { id: true },
         groupLoad: {
           id: true,
           name: true,
@@ -53,7 +51,6 @@ export class GroupsService {
           typeEn: true,
           hours: true,
           subgroupNumber: true,
-          students: true,
           group: { id: true, name: true },
           planSubjectId: { id: true },
           plan: { id: true },
@@ -98,7 +95,7 @@ export class GroupsService {
     await this.groupLoadLessonsService.createAll({
       groupId: newGroup.id,
       educationPlanId: educationPlan,
-      students: newGroup.students,
+      students: 0,
     });
 
     return group;
@@ -107,7 +104,7 @@ export class GroupsService {
   async update(id: number, dto: UpdateGroupDto) {
     const group = await this.groupsRepository.findOne({
       where: { id },
-      relations: { educationPlan: true },
+      relations: { educationPlan: true, students: true },
     });
 
     if (!group) throw new NotFoundException('Групу не знайдено');
@@ -118,26 +115,24 @@ export class GroupsService {
     // Якщо при оновленні було змінено навчальний план
     // потрібно видалити всі старі group-load-lessons які були в цієї групи та створити нові
     if (oldEducationPlanId !== newEducationPlanId) {
-      const removeRes = await this.groupLoadLessonsService.removeByGroupId(
-        group.id,
-      );
+      const removeRes = await this.groupLoadLessonsService.removeByGroupId(group.id);
 
       if (removeRes) {
         await this.groupLoadLessonsService.createAll({
           groupId: group.id,
           educationPlanId: newEducationPlanId,
-          students: dto.students,
+          students: group.students?.length || 0,
         });
       }
     }
 
     // Якщо при оновленні було змінено кількість студентів
-    if (Number(group.students) !== Number(dto.students)) {
-      await this.groupLoadLessonsService.changeAllStudentsCount({
-        id,
-        students: dto.students,
-      });
-    }
+    // if (Number(group.students) !== Number(dto.students)) {
+    //   await this.groupLoadLessonsService.changeAllStudentsCount({
+    //     id,
+    //     students: dto.students,
+    //   });
+    // }
 
     const { category, educationPlan, ...rest } = dto;
 
@@ -183,14 +178,9 @@ export class GroupsService {
 
     if (!group) throw new NotFoundException('Групу не знайдено');
 
-    const isSpecializationExist = group.specializationList.find(
-      (el) => el === dto.name,
-    );
+    const isSpecializationExist = group.specializationList.find((el) => el === dto.name);
 
-    if (isSpecializationExist)
-      throw new BadRequestException(
-        'Назви спец. підгруп повинні бути унікальними',
-      );
+    if (isSpecializationExist) throw new BadRequestException('Назви спец. підгруп повинні бути унікальними');
 
     await this.groupsRepository.save({
       ...group,
@@ -227,9 +217,7 @@ export class GroupsService {
 
     if (!group) throw new NotFoundException('Групу не знайдено');
 
-    const specializationList = group.specializationList.filter(
-      (el) => el !== name,
-    );
+    const specializationList = group.specializationList.filter((el) => el !== name);
 
     await this.groupsRepository.save({
       ...group,

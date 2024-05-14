@@ -12,10 +12,10 @@ export class CreateGroupDto {
   @IsNumber()
   category: number;
 
-  @ApiProperty()
-  @IsNotEmpty({ message: 'Це поле обов`язкове' })
-  @IsNumber()
-  students: number;
+  // @ApiProperty()
+  // @IsNotEmpty({ message: 'Це поле обов`язкове' })
+  // @IsNumber()
+  // students: number;
 
   @ApiProperty()
   @IsNotEmpty({ message: 'Це поле обов`язкове' })
