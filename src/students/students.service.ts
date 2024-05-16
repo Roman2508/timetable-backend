@@ -36,9 +36,9 @@ export class StudentsService {
     return this.repository.save(student);
   }
 
-  findAllByGroupId(id: number) {
+  async findAllByGroupId(id: number) {
     return this.repository.find({
-      where: { id },
+      where: { group: { id } },
       relations: { group: true },
       select: { group: { id: true, name: true } },
     });
