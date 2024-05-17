@@ -36,6 +36,7 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
 import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 import { StudentsModule } from './students/students.module';
 import { StudentEntity } from './students/entities/student.entity';
+import { StudentDivisionModule } from './student-division/students-division.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { StudentEntity } from './students/entities/student.entity';
     SettingsModule,
     GoogleCalendarModule,
     StudentsModule,
+    StudentDivisionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
