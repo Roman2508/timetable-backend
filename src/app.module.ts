@@ -13,13 +13,16 @@ import { UserEntity } from './users/entities/user.entity';
 import { PlanEntity } from './plans/entities/plan.entity';
 import { TeachersModule } from './teachers/teachers.module';
 import { SettingsModule } from './settings/settings.module';
+import { StudentsModule } from './students/students.module';
 import { GroupEntity } from './groups/entities/group.entity';
 import { StreamEntity } from './streams/entities/stream.entity';
 import { AuditoriesModule } from './auditories/auditories.module';
 import { TeacherEntity } from './teachers/entities/teacher.entity';
+import { StudentEntity } from './students/entities/student.entity';
 import { SettingsEntity } from './settings/entities/setting.entity';
 import { AuditoryEntity } from './auditories/entities/auditory.entity';
 import { PlanSubjectsModule } from './plan-subjects/plan-subjects.module';
+import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 import { PlanCategoriesModule } from './plan-categories/plan-categories.module';
 import { PlanSubjectEntity } from './plan-subjects/entities/plan-subject.entity';
 import { GroupCategoriesModule } from './group-categories/group-categories.module';
@@ -33,10 +36,6 @@ import { AuditoryCategoriesModule } from './auditory-categories/auditory-categor
 import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-category.entity';
 import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-lesson.entity';
 import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
-import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
-import { StudentsModule } from './students/students.module';
-import { StudentEntity } from './students/entities/student.entity';
-import { StudentDivisionModule } from './student-division/students-division.module';
 
 @Module({
   imports: [
@@ -87,7 +86,6 @@ import { StudentDivisionModule } from './student-division/students-division.modu
     SettingsModule,
     GoogleCalendarModule,
     StudentsModule,
-    StudentDivisionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
