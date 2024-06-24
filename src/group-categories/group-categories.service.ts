@@ -18,14 +18,14 @@ export class GroupCategoriesService {
     return this.repository.find({
       where: { groups: { isHide: visible } },
       relations: {
-        groups: { category: true },
+        groups: { category: true, students: true },
       },
       select: {
         groups: {
           id: true,
           name: true,
           isHide: true,
-          students: true,
+          students: { id: true },
           courseNumber: true,
           category: { id: true, name: true },
         },
