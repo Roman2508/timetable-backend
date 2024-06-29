@@ -1,12 +1,7 @@
+import { Column, Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
+
 import { PlanEntity } from 'src/plans/entities/plan.entity';
 import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
 
 @Entity('plan-subjects')
 export class PlanSubjectEntity {

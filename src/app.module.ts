@@ -16,11 +16,13 @@ import { SettingsModule } from './settings/settings.module';
 import { StudentsModule } from './students/students.module';
 import { GroupEntity } from './groups/entities/group.entity';
 import { StreamEntity } from './streams/entities/stream.entity';
+import { GradeBookModule } from './grade-book/grade-book.module';
 import { AuditoriesModule } from './auditories/auditories.module';
 import { TeacherEntity } from './teachers/entities/teacher.entity';
 import { StudentEntity } from './students/entities/student.entity';
 import { SettingsEntity } from './settings/entities/setting.entity';
 import { AuditoryEntity } from './auditories/entities/auditory.entity';
+import { GradeBookEntity } from './grade-book/entities/grade-book.entity';
 import { PlanSubjectsModule } from './plan-subjects/plan-subjects.module';
 import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 import { PlanCategoriesModule } from './plan-categories/plan-categories.module';
@@ -63,6 +65,7 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
         ScheduleLessonsEntity,
         SettingsEntity,
         StudentEntity,
+        GradeBookEntity,
       ],
       extra: {
         max: 1, // set pool max size
@@ -86,6 +89,7 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
     SettingsModule,
     GoogleCalendarModule,
     StudentsModule,
+    GradeBookModule,
   ],
   controllers: [AppController],
   providers: [AppService],
