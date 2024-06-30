@@ -10,11 +10,6 @@ export class CreateGradeBookDto {
   lessonId: number;
 
   @ApiProperty()
-  @IsNotEmpty({ message: 'student ID is required' })
-  @IsNumber()
-  studentId: number;
-
-  @ApiProperty()
   @IsNotEmpty({ message: 'group ID is required' })
   @IsNumber()
   groupId: number;

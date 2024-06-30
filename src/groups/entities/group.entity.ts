@@ -37,13 +37,6 @@ export class GroupEntity {
   @Column({ default: Number(Date().split(' ')[3]) }) // Поточний рік
   yearOfAdmission: number;
 
-  // @Column({ default: 1 })
-  // @Min(1, {
-  //   message: "Кількість студентів не може бути 0 або від'ємним значенням",
-  // })
-  // @Max(200, {
-  //   message: 'Кількість студентів не може бути більше 200',
-  // })
   @OneToMany(() => StudentEntity, (student) => student.group)
   @JoinColumn({ name: 'students' })
   students: StudentEntity[];

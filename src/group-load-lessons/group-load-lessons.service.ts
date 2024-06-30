@@ -1,13 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import * as dayjs from 'dayjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, IsNull, Not, Repository, And } from 'typeorm';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
 import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
-import { ChangeStudentsCountDto } from './dto/change-students-count.dto';
 import { AttachSpecializationDto } from './dto/attach-specialization.dto';
+import { LessonsTypeRu } from 'src/grade-book/entities/grade-book.entity';
 import { GroupLoadLessonEntity } from './entities/group-load-lesson.entity';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
 import { AddLessonsToStreamDto } from '../streams/dto/add-lessons-to-stream.dto';
@@ -15,7 +14,7 @@ import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entit
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
 import { RemoveLessonsFromStreamDto } from 'src/streams/dto/remove-lessons-from-stream.dto';
-import { ChangeStudentsCountByNameAndTypeDto } from './dto/change-students-count-by-name-and-type.dto';
+import { AddStudentToLessonDto } from './dto/add-student-to-lesson.dto';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -33,12 +32,18 @@ export class GroupLoadLessonsService {
     private teacherRepository: Repository<TeacherEntity>,
   ) {}
 
+  // !important
+  // check students changes in:
+  // - convertPlanSubjectsToGroupLoadLessons
+  // - createAll
+  // - updateHours
+
   // Конвертує дисципліну навчального плану в масив group-load-lessons
   convertPlanSubjectsToGroupLoadLessons(
     planSubjects: PlanSubjectEntity[],
     groupId: number,
     planId: number,
-    students: number,
+    // students: number,
   ) {
     const groupLoadLessons: DeepPartial<GroupLoadLessonEntity>[] = [];
 
@@ -78,17 +83,11 @@ export class GroupLoadLessonsService {
             teacher: null,
             stream: null,
             subgroupNumber: null,
-            students: students,
+            students: [],
           };
 
           // ???
           groupLoadLessons.push(payload);
-
-          // const newLesson = this.groupLoadLessonsRepository.create(payload);
-
-          // groupLoadLessons.push(
-          //   await this.groupLoadLessonsRepository.save(newLesson),
-          // );
         }
       }
     });
@@ -144,10 +143,10 @@ export class GroupLoadLessonsService {
         selectedPlanSubjects,
         dto.groupId,
         dto.educationPlanId,
-        dto.students,
+        // dto.students,
       );
 
-      const groupLoadLessons = await newLessons.map(async (el: DeepPartial<GroupLoadLessonEntity>) => {
+      const groupLoadLessons = newLessons.map(async (el: DeepPartial<GroupLoadLessonEntity>) => {
         const payload = this.groupLoadLessonsRepository.create(el);
         const newLesson = await this.groupLoadLessonsRepository.save(payload);
         return newLesson;
@@ -317,7 +316,7 @@ export class GroupLoadLessonsService {
         [dto.planSubject],
         group.id,
         group.educationPlan.id,
-        group.students.length,
+        // group.students.length,
       );
 
       newLessonsHours.push(...lessons);
@@ -402,38 +401,98 @@ export class GroupLoadLessonsService {
     return true;
   }
 
-  async changeAllStudentsCount(dto: ChangeStudentsCountDto) {
-    await this.groupLoadLessonsRepository.update(
-      {
-        group: { id: dto.id },
-        subgroupNumber: IsNull(),
-        specialization: IsNull(),
-      },
-      { students: Number(dto.students) },
-    );
+  // Студенти, які ходять на дисципліну
+  async getLessonStudents(
+    semester: number,
+    lessonId: number,
+    typeRu: LessonsTypeRu,
+    specialization: string | null,
+    stream?: number,
+  ) {
+    let where: any = { id: lessonId, semester, typeRu };
+
+    if (specialization) {
+      where = { ...where, specialization };
+    }
+
+    if (stream) {
+      where = { ...where, stream: { id: stream } };
+    }
+
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where,
+      relations: { students: true },
+      select: { students: { id: true, name: true } },
+    });
+
+    return lessons;
   }
 
-  async changeStudentsCountByNameAndType(dto: ChangeStudentsCountByNameAndTypeDto) {
-    const specialization = dto.specialization ? dto.specialization : IsNull();
-    const subgroupNumber = dto.subgroupNumber ? dto.subgroupNumber : IsNull();
+  async addStudentToLesson(dto: AddStudentToLessonDto) {
+    const lesson = await this.groupLoadLessonsRepository.findOne({
+      where: { id: dto.lessonId },
+      // relations: { students: true },
+      // select: { students: { id: true } },
+    });
 
-    await this.groupLoadLessonsRepository.update(
-      {
-        group: { id: dto.id },
-        typeRu: dto.typeRu,
-        name: dto.name,
-        semester: Number(dto.semester),
-        subgroupNumber,
-        specialization,
-      },
-      { students: Number(dto.students) },
-    );
+    if (!lesson) throw new NotFoundException('Дисипліну не знайдено');
+    
+    const students = lesson.students ? lesson.students : [];
+    const isStudentExist = students.find((el) => el.id === dto.studentId);
 
-    return dto;
+    if (isStudentExist) throw new BadRequestException('Обраний студент вже зарахований на цю дисипліну');
+
+    const lessonStudents = [...students, { id: dto.studentId }];
+    return this.groupLoadLessonsRepository.save({ id: dto.lessonId, students: lessonStudents });
   }
+
+  async deleteStudentFromLesson(lessonId: number, studentId: number) {
+    const lesson = await this.groupLoadLessonsRepository.findOne({
+      where: { id: lessonId },
+      relations: { students: true },
+      select: { students: { id: true } },
+    });
+
+    const isStudentExist = lesson.students.find((el) => el.id === studentId);
+
+    if (!isStudentExist) throw new BadRequestException('Обраний студент НЕ зарахований на цю дисипліну');
+
+    const lessonStudents = lesson.students.filter((el) => el.id !== studentId);
+
+    return this.groupLoadLessonsRepository.save({ id: lessonId, students: lessonStudents });
+  }
+
+  // async changeAllStudentsCount(dto: ChangeStudentsCountDto) {
+  //   await this.groupLoadLessonsRepository.update(
+  //     {
+  //       group: { id: dto.id },
+  //       subgroupNumber: IsNull(),
+  //       specialization: IsNull(),
+  //     },
+  //     { students: Number(dto.students) },
+  //   );
+  // }
+
+  // async changeStudentsCountByNameAndType(dto: ChangeStudentsCountByNameAndTypeDto) {
+  //   const specialization = dto.specialization ? dto.specialization : IsNull();
+  //   const subgroupNumber = dto.subgroupNumber ? dto.subgroupNumber : IsNull();
+
+  //   await this.groupLoadLessonsRepository.update(
+  //     {
+  //       group: { id: dto.id },
+  //       typeRu: dto.typeRu,
+  //       name: dto.name,
+  //       semester: Number(dto.semester),
+  //       subgroupNumber,
+  //       specialization,
+  //     },
+  //     { students: Number(dto.students) },
+  //   );
+
+  //   return dto;
+  // }
 
   /* specialization */
-
   async attachSpecialization(dto: AttachSpecializationDto) {
     await this.groupLoadLessonsRepository.update(
       {
@@ -449,7 +508,6 @@ export class GroupLoadLessonsService {
   }
 
   /* subgroups */
-
   // Якщо кількість підгруп змінилась - повертається новий масив підгруп, якщо ні - повертається null
   async setSubgroupsCount(dto: SetSubgroupsCountDto) {
     // dto = { planSubjectId, groupId, typeEn, subgroupsCount }
@@ -707,28 +765,6 @@ export class GroupLoadLessonsService {
     );
 
     return updatedLessons;
-
-    // const lessons = await this.groupLoadLessonsRepository.find({
-    //   where: {
-    //     name: dto.name,
-    //     hours: dto.hours,
-    //     typeEn: dto.typeEn,
-    //     semester: dto.semester,
-    //     stream: { id: streamId },
-    //     subgroupNumber: dto.subgroupNumber,
-    //   },
-    // });
-
-    // if (!lessons.length) throw new NotFoundException('Дисципліни не знайдено');
-
-    // return Promise.all(
-    //   lessons.map(async (lesson) => {
-    //     return await this.groupLoadLessonsRepository.save({
-    //       ...lesson,
-    //       stream: null,
-    //     });
-    //   }),
-    // );
   }
 
   /* teacher */

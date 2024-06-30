@@ -1,10 +1,11 @@
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { GradeBookEntity } from './entities/grade-book.entity';
 import { CreateGradeBookDto } from './dto/create-grade-book.dto';
-import { UpdateGradeBookGradesDto } from './dto/update-grade-book-grades.dto';
+import { AddSummaryDto } from './dto/add-summary.dto';
+import { DeleteSummaryDto } from './dto/delete-summary.dto';
 
 @Injectable()
 export class GradeBookService {
@@ -13,17 +14,34 @@ export class GradeBookService {
     private repository: Repository<GradeBookEntity>,
   ) {}
 
+  // 1 дисципліна та 1 вид навантаження (ЛК, ПЗ, ЛАБ і т.д.) === 1 журнал
+  // Тобто якщо 1 дисципліна навчального плану має лекції і пз то для неї створюється 2 журнала
   create(dto: CreateGradeBookDto) {
     const gradeBook = this.repository.create({
       group: { id: dto.groupId },
       lesson: { id: dto.lessonId },
-      student: { id: dto.studentId },
       semester: dto.semester,
       year: dto.year,
       typeRu: dto.typeRu,
     });
 
     return this.repository.save(gradeBook);
+  }
+
+  async addSummary(id: number, dto: AddSummaryDto) {
+    const gradeBook = await this.repository.findOne({ where: { id } });
+    const isPossibleToAdd = gradeBook.summary.some((el) => el.afterLesson === dto.afterLesson);
+
+    if (isPossibleToAdd) throw new BadRequestException('Неможливо додати підсумок');
+
+    const summary = [...gradeBook.summary, dto];
+    return this.repository.save({ id, summary });
+  }
+
+  async deleteSummary(id: number, dto: DeleteSummaryDto) {
+    const gradeBook = await this.repository.findOne({ where: { id } });
+    const summary = gradeBook.summary.filter((el) => el.afterLesson !== dto.afterLesson || el.type !== dto.type);
+    return this.repository.save({ id, summary });
   }
 
   findOne(year: number, semester: number, group: number, lesson: number, type: string) {
@@ -38,34 +56,9 @@ export class GradeBookService {
       relations: {
         group: true,
         lesson: true,
-        student: true,
       },
-      select: { group: { id: true, name: true }, student: { id: true, name: true }, lesson: { id: true, name: true } },
+      select: { group: { id: true, name: true }, lesson: { id: true, name: true } },
     });
-  }
-
-  async updateGrades(id: number, dto: UpdateGradeBookGradesDto) {
-    const gradeBook = await this.repository.findOne({ where: { id } });
-
-    if (!gradeBook) throw new NotFoundException('Не вдалось оновити оцінку студенту');
-
-    const isGradeExist = gradeBook.grades.some((el) => el.lessonNumber === dto.lessonNumber);
-
-    let updatedGrades = gradeBook.grades;
-
-    if (isGradeExist) {
-      updatedGrades = updatedGrades.map((el) => {
-        if (el.lessonNumber === dto.lessonNumber) {
-          return { ...el, ...dto };
-        } else {
-          return el;
-        }
-      });
-    } else {
-      updatedGrades.push(dto);
-    }
-
-    return this.repository.save({ id, grades: updatedGrades });
   }
 
   async remove(id: number) {

@@ -1,6 +1,16 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
 export enum StudentStatus {
   STUDYING = 'Навчається',
@@ -34,4 +44,7 @@ export class StudentEntity {
 
   @ManyToOne(() => GroupEntity, (group) => group.students)
   group: GroupEntity;
+
+  @ManyToMany(() => GroupLoadLessonEntity, (lesson) => lesson.students)
+  lessons: GroupLoadLessonEntity[];
 }

@@ -1,10 +1,4 @@
-import {
-  Column,
-  Entity,
-  ManyToOne,
-  JoinColumn,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { Max, Min } from 'class-validator';
 
 import { PlanEntity } from 'src/plans/entities/plan.entity';
@@ -13,6 +7,7 @@ import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
 import { StreamEntity } from 'src/streams/entities/stream.entity';
 import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
+import { StudentEntity } from 'src/students/entities/student.entity';
 
 // type TypeRu = 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ' | 'КОНС' | 'МЕТОД';
 // type TypeEn =
@@ -82,6 +77,10 @@ export class GroupLoadLessonEntity {
   @Min(1, { message: 'Мінімальна кількість підгруп - 1' })
   subgroupNumber: number;
 
-  @Column({ default: 1 })
-  students: number;
+  @ManyToMany(() => StudentEntity, (student) => student.lessons)
+  // @JoinTable({ name: 'students' })
+  students: StudentEntity[];
+
+  // @Column({ default: 1 })
+  // students: number;
 }

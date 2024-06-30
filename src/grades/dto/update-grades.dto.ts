@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
-export class UpdateGradeBookGradesDto {
+export class UpdateGradesDto {
   @ApiProperty()
   @IsNotEmpty({ message: 'lesson number is required' })
   @IsNumber()
@@ -16,9 +16,4 @@ export class UpdateGradeBookGradesDto {
   @IsNotEmpty({ message: 'rating is required' })
   @IsNumber()
   rating: number;
-
-  @ApiProperty()
-  @IsNotEmpty({ message: 'lesson date is required' })
-  @IsString()
-  lessonDate: string;
 }

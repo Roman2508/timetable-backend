@@ -8,6 +8,7 @@ import { AppController } from './app.controller';
 import { UsersModule } from './users/users.module';
 import { PlansModule } from './plans/plans.module';
 import { GroupsModule } from './groups/groups.module';
+import { GradesModule } from './grades/grades.module';
 import { StreamsModule } from './streams/streams.module';
 import { UserEntity } from './users/entities/user.entity';
 import { PlanEntity } from './plans/entities/plan.entity';
@@ -15,6 +16,7 @@ import { TeachersModule } from './teachers/teachers.module';
 import { SettingsModule } from './settings/settings.module';
 import { StudentsModule } from './students/students.module';
 import { GroupEntity } from './groups/entities/group.entity';
+import { GradesEntity } from './grades/entities/grade.entity';
 import { StreamEntity } from './streams/entities/stream.entity';
 import { GradeBookModule } from './grade-book/grade-book.module';
 import { AuditoriesModule } from './auditories/auditories.module';
@@ -66,6 +68,7 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
         SettingsEntity,
         StudentEntity,
         GradeBookEntity,
+        GradesEntity,
       ],
       extra: {
         max: 1, // set pool max size
@@ -90,6 +93,7 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
     GoogleCalendarModule,
     StudentsModule,
     GradeBookModule,
+    GradesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
