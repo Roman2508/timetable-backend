@@ -12,6 +12,15 @@ export enum LessonsTypeRu {
   EXAMS = 'ЕКЗ',
 }
 
+export enum GradeBookSummaryTypes {
+  MODULE_AVERAGE = 'MODULE_AVERAGE',
+  MODULE_SUM = 'MODULE_SUM',
+  LESSON_AVERAGE = 'LESSON_AVERAGE',
+  LESSON_SUM = 'LESSON_SUM',
+  MODULE_TEST = 'MODULE_TEST',
+  ADDITIONAL_RATE = 'ADDITIONAL_RATE',
+}
+
 @Entity('grade-book')
 export class GradeBookEntity {
   @PrimaryGeneratedColumn()
@@ -45,7 +54,12 @@ export class GradeBookEntity {
 }
 
 export class SummaryItem {
-  @Column()
+  @Column({
+    type: 'enum',
+    enum: GradeBookSummaryTypes,
+    default: GradeBookSummaryTypes.MODULE_AVERAGE,
+    nullable: false,
+  })
   type: string;
 
   @Column()
