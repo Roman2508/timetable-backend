@@ -31,6 +31,11 @@ export class GroupLoadLessonsController {
     return this.groupLoadLessonsService.findAllByGroupId(+id);
   }
 
+  @Get('/students/:semester/:groupId')
+  findLessonStudents(@Param('semester') semester: string, @Param('groupId') groupId: string) {
+    return this.groupLoadLessonsService.findLessonStudents(+semester, +groupId);
+  }
+
   @Get('/:semester/:scheduleType/:itemId')
   findLessonsForSchedule(
     @Param('semester') semester: string,

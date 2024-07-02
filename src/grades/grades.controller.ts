@@ -24,9 +24,9 @@ export class GradesController {
     return this.gradesService.update(+id, dto);
   }
 
-  @Get(':year/:semester/:studentId')
-  findAll(@Param('year') year: string, @Param('semester') semester: string, @Param('studentId') studentId: string) {
-    return this.gradesService.findAll(+year, +semester, +studentId);
+  @Get('/:semester/:studentId')
+  findAll(@Param('semester') semester: string, @Param('studentId') studentId: string) {
+    return this.gradesService.findAll(+semester, +studentId);
   }
 
   @Delete('/:studentId/:lessonId')

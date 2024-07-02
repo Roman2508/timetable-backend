@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
@@ -6,6 +6,7 @@ import { GradeBookEntity } from './entities/grade-book.entity';
 import { CreateGradeBookDto } from './dto/create-grade-book.dto';
 import { AddSummaryDto } from './dto/add-summary.dto';
 import { DeleteSummaryDto } from './dto/delete-summary.dto';
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
 @Injectable()
 export class GradeBookService {
@@ -14,18 +15,36 @@ export class GradeBookService {
     private repository: Repository<GradeBookEntity>,
   ) {}
 
+  // Коли при створенні групи для неї вперше прикріплюється навчальний план - створюю для всіх дисциплін плану електронний журнал
+  // Або коли для групи прикріплюється інший (відмінний від попереднього) план
+  // Треба споатку видалити всі grade-book старого плану (за це відповідає removeAll())
+  // Потім створити всі нові grade-book для нового плану (за це відповідає createAll())
+
   // 1 дисципліна та 1 вид навантаження (ЛК, ПЗ, ЛАБ і т.д.) === 1 журнал
   // Тобто якщо 1 дисципліна навчального плану має лекції і пз то для неї створюється 2 журнала
-  create(dto: CreateGradeBookDto) {
-    const gradeBook = this.repository.create({
-      group: { id: dto.groupId },
-      lesson: { id: dto.lessonId },
-      semester: dto.semester,
-      year: dto.year,
-      typeRu: dto.typeRu,
-    });
+  async createAll(dto: CreateGradeBookDto) {
+    const allLessons = dto.groupLoadLessons ? dto.groupLoadLessons : [];
 
-    return this.repository.save(gradeBook);
+    const lessons = allLessons.filter(
+      (el) => el.typeRu === 'ЛК' || el.typeRu === 'ПЗ' || el.typeRu === 'ЛАБ' || el.typeRu === 'СЕМ',
+    );
+
+    const gradeBooks = Promise.all(
+      lessons.map(async (el: DeepPartial<GroupLoadLessonEntity>) => {
+        const gradeBookPayload = {
+          group: { id: dto.groupId },
+          lesson: { id: el.id },
+          semester: el.semester,
+          typeRu: el.typeRu,
+        };
+
+        const newObj = this.repository.create(gradeBookPayload);
+        const newGradeBook = await this.repository.save(newObj);
+        return newGradeBook;
+      }),
+    );
+
+    return gradeBooks;
   }
 
   async addSummary(id: number, dto: AddSummaryDto) {
@@ -44,10 +63,9 @@ export class GradeBookService {
     return this.repository.save({ id, summary });
   }
 
-  findOne(year: number, semester: number, group: number, lesson: number, type: string) {
+  findOne(semester: number, group: number, lesson: number, type: string) {
     return this.repository.find({
       where: {
-        year,
         semester,
         typeRu: type,
         group: { id: group },
@@ -59,6 +77,13 @@ export class GradeBookService {
       },
       select: { group: { id: true, name: true }, lesson: { id: true, name: true } },
     });
+  }
+
+  async deleteAll(groupId: number) {
+    await this.repository.delete({
+      group: { id: groupId },
+    });
+    return true;
   }
 
   async remove(id: number) {

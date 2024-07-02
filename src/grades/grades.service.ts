@@ -46,14 +46,14 @@ export class GradesService {
     return { id, grades: dto };
   }
 
-  async findAll(year: number, semester: number, studentId: number) {
+  async findAll(semester: number, studentId: number) {
     const allGrades = await this.repository.find({
       where: { student: { id: studentId } },
       relations: { gradeBook: true, student: true },
     });
 
     const currentGrades = allGrades.map((el) => {
-      if (el.gradeBook.year !== year || el.gradeBook.semester !== semester) return;
+      if (el.gradeBook.semester !== semester) return;
       else return el;
     });
 

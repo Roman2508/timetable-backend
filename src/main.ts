@@ -20,3 +20,6 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+// TODO:
+// 1. Перевірити звідки беруться зайві plan subjects з 0 годин

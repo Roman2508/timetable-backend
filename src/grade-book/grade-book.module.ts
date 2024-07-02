@@ -9,5 +9,6 @@ import { GradeBookEntity } from './entities/grade-book.entity';
   controllers: [GradeBookController],
   providers: [GradeBookService],
   imports: [TypeOrmModule.forFeature([GradeBookEntity])],
+  exports: [GradeBookService],
 })
 export class GradeBookModule {}

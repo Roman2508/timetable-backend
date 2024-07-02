@@ -16,8 +16,8 @@ export class GradeBookController {
 
   @Post()
   @ApiBody({ type: CreateGradeBookDto })
-  create(@Body() dto: CreateGradeBookDto) {
-    return this.gradeBookService.create(dto);
+  createAll(@Body() dto: CreateGradeBookDto) {
+    return this.gradeBookService.createAll(dto);
   }
 
   @Patch('/summary/add/:id')
@@ -32,7 +32,7 @@ export class GradeBookController {
     return this.gradeBookService.deleteSummary(+id, dto);
   }
 
-  @Get(':year/:semester/:group/:lesson/:type')
+  @Get(':semester/:group/:lesson/:type')
   findOne(
     @Param('year') year: string,
     @Param('semester') semester: string,
@@ -40,7 +40,7 @@ export class GradeBookController {
     @Param('lesson') lesson: string,
     @Param('type') type: string,
   ) {
-    return this.gradeBookService.findOne(+year, +semester, +group, +lesson, type);
+    return this.gradeBookService.findOne(+semester, +group, +lesson, type);
   }
 
   @Delete(':id')

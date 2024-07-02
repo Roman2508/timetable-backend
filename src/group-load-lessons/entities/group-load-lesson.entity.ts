@@ -1,4 +1,13 @@
-import { Column, Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, OneToMany, ManyToMany, JoinTable } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  JoinColumn,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
 import { Max, Min } from 'class-validator';
 
 import { PlanEntity } from 'src/plans/entities/plan.entity';
@@ -78,7 +87,11 @@ export class GroupLoadLessonEntity {
   subgroupNumber: number;
 
   @ManyToMany(() => StudentEntity, (student) => student.lessons)
-  // @JoinTable({ name: 'students' })
+  @JoinTable({
+    name: 'student_lessons',
+    joinColumn: { name: 'lesson_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'student_id', referencedColumnName: 'id' },
+  })
   students: StudentEntity[];
 
   // @Column({ default: 1 })

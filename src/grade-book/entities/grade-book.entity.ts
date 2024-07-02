@@ -2,7 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 't
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { GradesEntity } from 'src/grades/entities/grade.entity';
-import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
 export enum LessonsTypeRu {
   LECTURES = 'ЛК',
@@ -26,8 +26,8 @@ export class GradeBookEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => PlanSubjectEntity, (lesson) => lesson.id, { onDelete: 'CASCADE' })
-  lesson: PlanSubjectEntity;
+  @ManyToOne(() => GroupLoadLessonEntity, (lesson) => lesson.id, { onDelete: 'CASCADE' })
+  lesson: GroupLoadLessonEntity;
 
   @ManyToOne(() => GroupEntity, (group) => group.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'group' })
@@ -39,9 +39,6 @@ export class GradeBookEntity {
     nullable: false,
   })
   typeRu: string;
-
-  @Column({ nullable: false })
-  year: number;
 
   @Column({ nullable: false })
   semester: number;

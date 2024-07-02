@@ -15,6 +15,7 @@ import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-nam
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
 import { RemoveLessonsFromStreamDto } from 'src/streams/dto/remove-lessons-from-stream.dto';
 import { AddStudentToLessonDto } from './dto/add-student-to-lesson.dto';
+import { StudentStatus } from 'src/students/entities/student.entity';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -123,7 +124,7 @@ export class GroupLoadLessonsService {
 
   // Коли при створенні групи для неї вперше прикріплюється навчальний план - створюю для всіх дисциплін плану group-load-lessons
   // Або коли для групи прикріплюється інший (відмінний від попереднього) план
-  // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeAll())
+  // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeByGroupId())
   // Потім створити всі нові group-load-lessons для нового плану (за це відповідає this.createAll())
   async createAll(dto: CreateGroupLoadLessonDto) {
     try {
@@ -146,13 +147,13 @@ export class GroupLoadLessonsService {
         // dto.students,
       );
 
-      const groupLoadLessons = newLessons.map(async (el: DeepPartial<GroupLoadLessonEntity>) => {
-        const payload = this.groupLoadLessonsRepository.create(el);
-        const newLesson = await this.groupLoadLessonsRepository.save(payload);
-        return newLesson;
-      });
-
-      return groupLoadLessons;
+      return Promise.all(
+        newLessons.map(async (el: GroupLoadLessonEntity) => {
+          const payload = this.groupLoadLessonsRepository.create(el);
+          const newLesson = await this.groupLoadLessonsRepository.save(payload);
+          return newLesson;
+        }),
+      );
     } catch (err) {
       console.log(err.message);
       throw new BadRequestException('Помилка при створенні навантаження групи');
@@ -250,6 +251,30 @@ export class GroupLoadLessonsService {
     } else {
       return [];
     }
+  }
+
+  async findLessonStudents(semester: number, groupId: number) {
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where: {
+        group: { id: groupId },
+        semester,
+        teacher: Not(IsNull()),
+        typeEn: And(Not('examsConsulation'), Not('metodologicalGuidance'), Not('exams')),
+        // students: { status: And(Not(StudentStatus.ACADEMIC_LEAVE), Not(StudentStatus.EXPELLED)) },
+      },
+      relations: {
+        group: true,
+        students: true,
+      },
+      select: {
+        group: { id: true, name: true },
+        students: { id: true, name: true, status: true },
+      },
+    });
+
+    if (!lessons.length) throw new NotFoundException('Дисципліни не знайдені');
+
+    return lessons;
   }
 
   // Коли оновлюється назва дисципліни в навчальному плані - змінюю назву цієї дисципліни для всіх group-load-lessons
@@ -383,7 +408,7 @@ export class GroupLoadLessonsService {
   }
 
   // Коли для групи прикріплюється інший (відмінний від попереднього) план
-  // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeAll())
+  // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeByGroupId())
   // Потім створити всі нові group-load-lessons для нового плану (за це відповідає this.createAll())
   async removeByGroupId(groupId: number) {
     await this.groupLoadLessonsRepository.delete({
@@ -436,7 +461,7 @@ export class GroupLoadLessonsService {
     });
 
     if (!lesson) throw new NotFoundException('Дисипліну не знайдено');
-    
+
     const students = lesson.students ? lesson.students : [];
     const isStudentExist = students.find((el) => el.id === dto.studentId);
 

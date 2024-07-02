@@ -9,12 +9,15 @@ import { GoogleCalendarService } from 'src/google-calendar/google-calendar.servi
 import { CreateGroupSpecializationDto } from './dto/create-group-specialization.dto';
 import { UpdateGroupSpecializationDto } from './dto/update-group-specialization.dto';
 import { GroupLoadLessonsService } from './../group-load-lessons/group-load-lessons.service';
+import { GradeBookService } from 'src/grade-book/grade-book.service';
 
 @Injectable()
 export class GroupsService {
   constructor(
     @InjectRepository(GroupEntity)
     private groupsRepository: Repository<GroupEntity>,
+
+    private gradeBookRepository: GradeBookService,
 
     private groupLoadLessonsService: GroupLoadLessonsService,
 
@@ -41,7 +44,7 @@ export class GroupsService {
       select: {
         category: { id: true, name: true },
         educationPlan: { id: true, name: true },
-        students: { id: true },
+        students: { id: true, name: true, status: true },
         groupLoad: {
           id: true,
           name: true,
@@ -92,10 +95,17 @@ export class GroupsService {
     const group = await this.groupsRepository.save(newGroup);
 
     // Коли створюється нова група і до неї вперше прикріплюється навч.план - створюю для всіх дисциплін плану group-load-lessons
-    await this.groupLoadLessonsService.createAll({
+    const groupLoadLessons = await this.groupLoadLessonsService.createAll({
       groupId: newGroup.id,
       educationPlanId: educationPlan,
       students: 0,
+    });
+
+    // Create grade book for all lessons (without exams, consultation and methodological guidance)
+    await this.gradeBookRepository.createAll({
+      groupId: newGroup.id,
+      // @ts-ignore
+      groupLoadLessons,
     });
 
     return group;
@@ -115,15 +125,22 @@ export class GroupsService {
     // Якщо при оновленні було змінено навчальний план
     // потрібно видалити всі старі group-load-lessons які були в цієї групи та створити нові
     if (oldEducationPlanId !== newEducationPlanId) {
-      const removeRes = await this.groupLoadLessonsService.removeByGroupId(group.id);
+      const removeGroupLoadRes = await this.groupLoadLessonsService.removeByGroupId(group.id);
+      const removeGradeBooksRes = await this.gradeBookRepository.deleteAll(group.id);
 
-      if (removeRes) {
-        await this.groupLoadLessonsService.createAll({
-          groupId: group.id,
-          educationPlanId: newEducationPlanId,
-          students: group.students?.length || 0,
-        });
-      }
+      if (!removeGroupLoadRes) return;
+      const groupLoadLessons = await this.groupLoadLessonsService.createAll({
+        groupId: group.id,
+        educationPlanId: newEducationPlanId,
+        students: group.students?.length || 0,
+      });
+
+      if (!removeGradeBooksRes) return;
+      await this.gradeBookRepository.createAll({
+        groupId: group.id,
+        // @ts-ignore
+        groupLoadLessons,
+      });
     }
 
     // Якщо при оновленні було змінено кількість студентів
