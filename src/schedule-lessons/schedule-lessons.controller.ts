@@ -26,7 +26,7 @@ export class ScheduleLessonsController {
   getTeacherOverlay(@Param('date') date: string, @Param('lessonNumber') lessonNumber: string) {
     return this.scheduleLessonsService.getTeacherOverlay(date, +lessonNumber);
   }
-  
+
   @Get('overlay/:date/:lessonNumber/:auditoryId')
   getAuditoryOverlay(
     @Param('date') date: string,
@@ -35,7 +35,6 @@ export class ScheduleLessonsController {
   ) {
     return this.scheduleLessonsService.getAuditoryOverlay(date, +lessonNumber, +auditoryId);
   }
-
 
   @Get(':semester/:type/:id')
   findAll(@Param('semester') semester: string, @Param('type') type: string, @Param('id') id: string) {
@@ -76,4 +75,14 @@ export class ScheduleLessonsController {
   remove(@Param('id') id: string) {
     return this.scheduleLessonsService.remove(+id);
   }
+
+  // @Patch('/students/add')
+  // addStudentToLesson(@Body() dto: AddStudentToLessonDto) {
+  //   return this.scheduleLessonsService.addStudentToLesson(dto);
+  // }
+
+  // @Patch('/students/delete')
+  // deleteStudentFromLesson(@Body() dto: DeleteStudentToLessonDto) {
+  //   return this.scheduleLessonsService.deleteStudentFromLesson(dto);
+  // }
 }

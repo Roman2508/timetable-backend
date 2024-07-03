@@ -1,22 +1,42 @@
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { GradesEntity } from './entities/grade.entity';
+import { DeleteGradesDto } from './dto/delete-grades.dto';
 import { UpdateGradesDto } from './dto/update-grades.dto';
 import { CreateGradesDto } from './dto/create-grades.dto';
+import { GradeBookEntity } from 'src/grade-book/entities/grade-book.entity';
 
 @Injectable()
 export class GradesService {
   constructor(
     @InjectRepository(GradesEntity)
     private repository: Repository<GradesEntity>,
+
+    @InjectRepository(GradeBookEntity)
+    private gradeBookRepository: Repository<GradeBookEntity>,
   ) {}
 
   // Коли студент додається до дисципліни - йому створюється grades entity
-  create(dto: CreateGradesDto) {
-    const grade = this.repository.create({ student: { id: dto.studentId }, gradeBook: { id: dto.gradeBookId } });
-    return this.repository.save(grade);
+  async create(dto: CreateGradesDto) {
+    const gradeBook = await this.gradeBookRepository.findOne({ where: { lesson: { id: dto.lessonId } } });
+
+    if (!gradeBook) throw new NotFoundException('Дисципліну не знайдено');
+
+    const grades = await Promise.allSettled(
+      dto.studentIds.map(async (id) => {
+        const existedStudent = await this.repository.findOne({ where: { id } });
+
+        if (existedStudent) throw new BadRequestException('Студент вже вивчає цю дисципліну');
+
+        const grade = this.repository.create({ student: { id }, gradeBook: { id: gradeBook.id } });
+        const res = await this.repository.save(grade);
+        return res;
+      }),
+    );
+
+    return grades;
   }
 
   // Коли викладач виставляє оцінку студенту
@@ -74,24 +94,17 @@ export class GradesService {
   }
 
   // Коли студент відкріплюється від дисипліни - видаляється його журнал з цієї дисципліни
-  async delete(studentId: number, lessonId: number) {
-    const gradesToDelete = await this.repository.findOne({
-      where: {
-        student: { id: studentId },
-        gradeBook: {
-          lesson: {
-            id: lessonId,
-          },
-        },
-      },
-    });
+  async delete(dto: DeleteGradesDto) {
+    await Promise.allSettled(
+      dto.studentIds.map(async (id) => {
+        const grade = await this.repository.findOne({
+          where: { student: { id }, gradeBook: { lesson: { id: dto.lessonId } } },
+        });
 
-    if (!gradesToDelete) {
-      throw new NotFoundException('Не знайдено');
-    }
-
-    await this.repository.remove(gradesToDelete);
-
-    return lessonId;
+        if (!grade) return;
+        await this.repository.delete({ id: grade.id });
+      }),
+    );
+    return dto;
   }
 }

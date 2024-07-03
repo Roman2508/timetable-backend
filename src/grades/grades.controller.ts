@@ -5,6 +5,7 @@ import { GradesService } from './grades.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { UpdateGradesDto } from './dto/update-grades.dto';
 import { CreateGradesDto } from './dto/create-grades.dto';
+import { DeleteGradesDto } from './dto/delete-grades.dto';
 
 @Controller('grades')
 @ApiTags('grades')
@@ -18,6 +19,11 @@ export class GradesController {
     return this.gradesService.create(dto);
   }
 
+  @Patch('/delete')
+  delete(@Body() dto: DeleteGradesDto) {
+    return this.gradesService.delete(dto);
+  }
+
   @Patch(':id')
   @ApiBody({ type: UpdateGradesDto })
   update(@Param('id') id: string, @Body() dto: UpdateGradesDto) {
@@ -27,10 +33,5 @@ export class GradesController {
   @Get('/:semester/:studentId')
   findAll(@Param('semester') semester: string, @Param('studentId') studentId: string) {
     return this.gradesService.findAll(+semester, +studentId);
-  }
-
-  @Delete('/:studentId/:lessonId')
-  delete(@Param('studentId') studentId: string, @Param('lessonId') lessonId: string) {
-    return this.gradesService.delete(+studentId, +lessonId);
   }
 }

@@ -11,6 +11,9 @@ import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-ho
 import { ChangeStudentsCountByNameAndTypeDto } from './dto/change-students-count-by-name-and-type.dto';
 import { AddStudentToLessonDto } from './dto/add-student-to-lesson.dto';
 import { LessonsTypeRu } from 'src/grade-book/entities/grade-book.entity';
+import { DeleteStudentFromLessonDto } from './dto/delete-student-from-lesson.dto';
+import { AddStudentsToAllGroupLessonsDto } from './dto/add-students-to-all-group-lessons.dto';
+import { DeleteStudentsFromAllGroupLessonsDto } from './dto/delete-students-to-all-group-lessons.dto';
 
 @Controller('group-load-lessons')
 @ApiTags('group-load-lessons')
@@ -31,9 +34,9 @@ export class GroupLoadLessonsController {
     return this.groupLoadLessonsService.findAllByGroupId(+id);
   }
 
-  @Get('/students/:semester/:groupId')
-  findLessonStudents(@Param('semester') semester: string, @Param('groupId') groupId: string) {
-    return this.groupLoadLessonsService.findLessonStudents(+semester, +groupId);
+  @Get('/students/get/:id')
+  findLessonStudents(@Param('id') id: string) {
+    return this.groupLoadLessonsService.findLessonStudents(+id);
   }
 
   @Get('/:semester/:scheduleType/:itemId')
@@ -58,7 +61,7 @@ export class GroupLoadLessonsController {
   }
 
   @Get('/students/:semester/:lessonId/:typeRu/:specialization?/:stream?')
-  updateStudents(
+  getLessonStudents(
     @Param('semester') semester: number,
     @Param('lessonId') lessonId: number,
     @Param('typeRu') typeRu: LessonsTypeRu,
@@ -68,22 +71,31 @@ export class GroupLoadLessonsController {
     return this.groupLoadLessonsService.getLessonStudents(+semester, +lessonId, typeRu, specialization, stream);
   }
 
+  /* students */
+
+  @Patch('/students/add')
   @ApiBody({ type: AddStudentToLessonDto })
-  @Patch('/students')
   addStudentToLesson(@Body() dto: AddStudentToLessonDto) {
     return this.groupLoadLessonsService.addStudentToLesson(dto);
   }
 
-  @Delete('/students/:lessonId/:studentId')
-  deleteStudentFromLesson(@Param('lessonId') lessonId: string, @Param('studentId') studentId: string) {
-    return this.groupLoadLessonsService.deleteStudentFromLesson(+lessonId, +studentId);
+  @Patch('/students/delete')
+  @ApiBody({ type: DeleteStudentFromLessonDto })
+  deleteStudentFromLesson(@Body() dto: DeleteStudentFromLessonDto) {
+    return this.groupLoadLessonsService.deleteStudentFromLesson(dto);
   }
 
-  // @ApiBody({ type: ChangeStudentsCountByNameAndTypeDto })
-  // @Patch('/students')
-  // updateStudents(@Body() dto: ChangeStudentsCountByNameAndTypeDto) {
-  //   return this.groupLoadLessonsService.changeStudentsCountByNameAndType(dto);
-  // }
+  @Patch('/students/all/add')
+  @ApiBody({ type: AddStudentsToAllGroupLessonsDto })
+  addStudentsToAllGroupLessons(@Body() dto: AddStudentsToAllGroupLessonsDto) {
+    return this.groupLoadLessonsService.addStudentsToAllGroupLessons(dto);
+  }
+
+  @Patch('/students/all/delete')
+  @ApiBody({ type: DeleteStudentsFromAllGroupLessonsDto })
+  deleteStudentsFromAllGroupLessons(@Body() dto: DeleteStudentsFromAllGroupLessonsDto) {
+    return this.groupLoadLessonsService.deleteStudentsFromAllGroupLessons(dto);
+  }
 
   @ApiBody({ type: AttachSpecializationDto })
   @Patch('/specialization')

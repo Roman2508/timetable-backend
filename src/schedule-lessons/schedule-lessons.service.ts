@@ -4,6 +4,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 
 import { customDayjs } from 'src/utils/customDayjs';
 import { StreamEntity } from 'src/streams/entities/stream.entity';
+import { CreateReplacementDto } from './dto/create-replacement.dto';
 import { SettingsEntity } from 'src/settings/entities/setting.entity';
 import { CopyDayOfScheduleDto } from './dto/copy-day-of-schedule.dto';
 import { CopyWeekOfScheduleDto } from './dto/copy-week-of-schedule.dto';
@@ -11,7 +12,6 @@ import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
 import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
-import { CreateReplacementDto } from './dto/create-replacement.dto';
 
 @Injectable()
 export class ScheduleLessonsService {
