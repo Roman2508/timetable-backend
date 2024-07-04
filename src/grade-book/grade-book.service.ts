@@ -74,8 +74,13 @@ export class GradeBookService {
       relations: {
         group: true,
         lesson: true,
+        grades: { student: true, gradeBook: true },
       },
-      select: { group: { id: true, name: true }, lesson: { id: true, name: true } },
+      select: {
+        group: { id: true, name: true },
+        lesson: { id: true, name: true },
+        grades: { id: true, grades: true, student: { id: true, name: true }, gradeBook: { id: true } },
+      },
     });
   }
 

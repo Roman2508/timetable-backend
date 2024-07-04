@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { GradesEntity } from 'src/grades/entities/grade.entity';
@@ -43,7 +43,7 @@ export class GradeBookEntity {
   @Column({ nullable: false })
   semester: number;
 
-  @Column('simple-json', { default: [] })
+  @OneToMany(() => GradesEntity, (grades) => grades.gradeBook)
   grades: GradesEntity[];
 
   @Column('simple-json', { default: [] })

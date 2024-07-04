@@ -34,7 +34,6 @@ export class GradeBookController {
 
   @Get(':semester/:group/:lesson/:type')
   findOne(
-    @Param('year') year: string,
     @Param('semester') semester: string,
     @Param('group') group: string,
     @Param('lesson') lesson: string,

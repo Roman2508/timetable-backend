@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { GradesModule } from 'src/grades/grades.module';
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import { GroupLoadLessonsService } from './group-load-lessons.service';
@@ -20,6 +21,7 @@ import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-c
       TeacherEntity,
       GroupEntity,
     ]),
+    GradesModule,
   ],
   exports: [GroupLoadLessonsService],
 })

@@ -18,6 +18,7 @@ import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-ho
 import { RemoveLessonsFromStreamDto } from 'src/streams/dto/remove-lessons-from-stream.dto';
 import { AddStudentsToAllGroupLessonsDto } from './dto/add-students-to-all-group-lessons.dto';
 import { DeleteStudentsFromAllGroupLessonsDto } from './dto/delete-students-to-all-group-lessons.dto';
+import { GradesService } from 'src/grades/grades.service';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -33,6 +34,8 @@ export class GroupLoadLessonsService {
 
     @InjectRepository(TeacherEntity)
     private teacherRepository: Repository<TeacherEntity>,
+
+    private readonly gradesService: GradesService,
   ) {}
 
   // !important
@@ -181,6 +184,28 @@ export class GroupLoadLessonsService {
           middleName: true,
           lastName: true,
         },
+      },
+    });
+
+    if (!lessons.length) throw new NotFoundException('Дисципліни не знайдені');
+
+    return lessons;
+  }
+
+  async findAllByGroupIdAndSemester(semester: number, groupId: number) {
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where: { group: { id: groupId }, semester },
+      relations: {
+        group: true,
+        planSubjectId: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        typeRu: true,
+        subgroupNumber: true,
+        planSubjectId: { id: true },
+        group: { id: true, name: true },
       },
     });
 
@@ -461,8 +486,12 @@ export class GroupLoadLessonsService {
 
     if (!lesson) throw new NotFoundException('Дисипліну не знайдено');
 
+    /* add student to group-load-lessons */
     const students = dto.studentIds.map((id) => ({ id }));
     await this.groupLoadLessonsRepository.save({ id: lesson.id, students: [...lesson.students, ...students] });
+
+    /* CREATE grades */
+    await this.gradesService.create(dto);
 
     const updatedLesson = await this.groupLoadLessonsRepository.findOne({
       where: { id: lesson.id },
@@ -490,6 +519,10 @@ export class GroupLoadLessonsService {
     });
 
     await this.groupLoadLessonsRepository.save({ id: lesson.id, students });
+
+    /* DELETE grades */
+    await this.gradesService.delete(dto);
+
     return students;
   }
 
@@ -506,6 +539,9 @@ export class GroupLoadLessonsService {
       lessons.map(async (lesson) => {
         const students = dto.studentIds.map((id) => ({ id }));
         await this.groupLoadLessonsRepository.save({ id: lesson.id, students: [...lesson.students, ...students] });
+
+        /* CREATE grades */
+        await this.gradesService.create({ lessonId: lesson.id, studentIds: dto.studentIds });
       }),
     );
 
@@ -531,8 +567,13 @@ export class GroupLoadLessonsService {
         });
 
         await this.groupLoadLessonsRepository.save({ id: lesson.id, students });
+
+        /* DELETE grades */
+        await this.gradesService.delete({ lessonId: lesson.id, studentIds: dto.studentIds });
       }),
     );
+
+    return true;
   }
   /* // students */
   /* // students */

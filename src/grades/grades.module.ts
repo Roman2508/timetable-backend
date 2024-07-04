@@ -10,5 +10,6 @@ import { GradeBookEntity } from 'src/grade-book/entities/grade-book.entity';
   controllers: [GradesController],
   providers: [GradesService],
   imports: [TypeOrmModule.forFeature([GradesEntity, GradeBookEntity])],
+  exports: [GradesService],
 })
 export class GradesModule {}
