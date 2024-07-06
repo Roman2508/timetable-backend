@@ -64,7 +64,7 @@ export class GradeBookService {
   }
 
   findOne(semester: number, group: number, lesson: number, type: string) {
-    return this.repository.find({
+    return this.repository.findOne({
       where: {
         semester,
         typeRu: type,
@@ -73,12 +73,18 @@ export class GradeBookService {
       },
       relations: {
         group: true,
-        lesson: true,
+        lesson: { teacher: true },
         grades: { student: true, gradeBook: true },
       },
       select: {
         group: { id: true, name: true },
-        lesson: { id: true, name: true },
+        lesson: {
+          id: true,
+          name: true,
+          hours: true,
+          semester: true,
+          teacher: { id: true, firstName: true, middleName: true, lastName: true },
+        },
         grades: { id: true, grades: true, student: { id: true, name: true }, gradeBook: { id: true } },
       },
     });

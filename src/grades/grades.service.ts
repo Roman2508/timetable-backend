@@ -41,6 +41,8 @@ export class GradesService {
 
   // Коли викладач виставляє оцінку студенту
   async update(id: number, dto: UpdateGradesDto) {
+    if (dto.rating < 0) throw new BadRequestException("Оцінка не може бути від'ємним значенням");
+
     const grade = await this.repository.findOne({ where: { id } });
 
     if (!grade) throw new NotFoundException('Не вдалось оновити оцінку студенту');
@@ -52,13 +54,12 @@ export class GradesService {
     if (isGradeExist) {
       updatedGrades = updatedGrades.map((el) => {
         if (el.lessonNumber === dto.lessonNumber) {
-          console.log(1, { ...el, ...dto });
           return { ...el, ...dto };
         } else {
-          console.log(2, { ...el });
           return el;
         }
       });
+      updatedGrades = updatedGrades.filter((el) => el.isAbsence !== false || el.rating !== 0);
     } else {
       updatedGrades.push(dto);
     }
