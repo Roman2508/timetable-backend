@@ -2,7 +2,7 @@ import { DeepPartial, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { GradeBookEntity } from './entities/grade-book.entity';
+import { GradeBookEntity, GradeBookSummaryTypes } from './entities/grade-book.entity';
 import { CreateGradeBookDto } from './dto/create-grade-book.dto';
 import { AddSummaryDto } from './dto/add-summary.dto';
 import { DeleteSummaryDto } from './dto/delete-summary.dto';
@@ -49,9 +49,16 @@ export class GradeBookService {
 
   async addSummary(id: number, dto: AddSummaryDto) {
     const gradeBook = await this.repository.findOne({ where: { id } });
-    const isPossibleToAdd = gradeBook.summary.some((el) => el.afterLesson === dto.afterLesson);
 
-    if (isPossibleToAdd) throw new BadRequestException('Неможливо додати підсумок');
+    if (dto.type === GradeBookSummaryTypes.LESSON_AVERAGE || dto.type === GradeBookSummaryTypes.LESSON_SUM) {
+      const isPossibleToAdd = gradeBook.summary.some(
+        (el) => el.type === GradeBookSummaryTypes.LESSON_AVERAGE || el.type === GradeBookSummaryTypes.LESSON_SUM,
+      );
+      if (isPossibleToAdd) throw new BadRequestException('Неможливо повторно додати підсумок з дисципліни');
+
+      const summary = [...gradeBook.summary, dto];
+      return this.repository.save({ id, summary });
+    }
 
     const summary = [...gradeBook.summary, dto];
     return this.repository.save({ id, summary });
@@ -60,7 +67,8 @@ export class GradeBookService {
   async deleteSummary(id: number, dto: DeleteSummaryDto) {
     const gradeBook = await this.repository.findOne({ where: { id } });
     const summary = gradeBook.summary.filter((el) => el.afterLesson !== dto.afterLesson || el.type !== dto.type);
-    return this.repository.save({ id, summary });
+    await this.repository.save({ id, summary });
+    return { id, summary: [dto] };
   }
 
   findOne(semester: number, group: number, lesson: number, type: string) {
