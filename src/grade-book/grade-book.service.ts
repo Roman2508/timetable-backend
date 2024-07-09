@@ -65,9 +65,17 @@ export class GradeBookService {
   }
 
   async deleteSummary(id: number, dto: DeleteSummaryDto) {
-    const gradeBook = await this.repository.findOne({ where: { id } });
+    const gradeBook = await this.repository.findOne({ where: { id }, relations: { grades: true } });
     const summary = gradeBook.summary.filter((el) => el.afterLesson !== dto.afterLesson || el.type !== dto.type);
     await this.repository.save({ id, summary });
+
+    // const allStudentsGrades = gradeBook.grades.map((grade) => {
+    //   const grades = grade.grades.filter((el) => el.lessonNumber !== dto.afterLesson || el.summaryType !== dto.type);
+    //   return { ...grade, grades };
+    // });
+
+    // console.log(allStudentsGrades.map((el) => console.log(el.grades)));
+
     return { id, summary: [dto] };
   }
 

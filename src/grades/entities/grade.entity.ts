@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { StudentEntity } from 'src/students/entities/student.entity';
-import { GradeBookEntity } from 'src/grade-book/entities/grade-book.entity';
+import { GradeBookEntity, GradeBookSummaryTypes } from 'src/grade-book/entities/grade-book.entity';
 
 @Entity('grades')
 export class GradesEntity {
@@ -28,17 +28,13 @@ export class GradesItem {
 
   @Column({ default: 0 })
   rating: number;
+
+  @Column({
+    type: 'enum',
+    enum: GradeBookSummaryTypes,
+    default: null,
+    nullable: true,
+  })
+  summaryType: GradeBookSummaryTypes;
 }
-/* export class GradesItem {
-  @Column({ default: 1 })
-  lessonNumber: number;
 
-  @Column({ default: false })
-  isAbsence: boolean;
-
-  @Column({ default: 0 })
-  rating: number;
-
-  @Column({ default: '' })
-  lessonDate: string;
-} */

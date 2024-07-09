@@ -47,13 +47,15 @@ export class GradesService {
 
     if (!grade) throw new NotFoundException('Не вдалось оновити оцінку студенту');
 
-    const isGradeExist = grade.grades.some((el) => el.lessonNumber === dto.lessonNumber);
+    const isGradeExist = grade.grades.some(
+      (el) => el.lessonNumber === dto.lessonNumber && el.summaryType === dto.summaryType,
+    );
 
     let updatedGrades = grade.grades;
 
     if (isGradeExist) {
       updatedGrades = updatedGrades.map((el) => {
-        if (el.lessonNumber === dto.lessonNumber) {
+        if (el.lessonNumber === dto.lessonNumber && el.summaryType === dto.summaryType) {
           return { ...el, ...dto };
         } else {
           return el;
@@ -63,6 +65,7 @@ export class GradesService {
     } else {
       updatedGrades.push(dto);
     }
+
     await this.repository.save({ id, grades: updatedGrades });
     return { id, grades: dto };
   }
