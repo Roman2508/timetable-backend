@@ -7,12 +7,16 @@ import { CreateGradeBookDto } from './dto/create-grade-book.dto';
 import { AddSummaryDto } from './dto/add-summary.dto';
 import { DeleteSummaryDto } from './dto/delete-summary.dto';
 import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
+import { GradesEntity } from 'src/grades/entities/grade.entity';
 
 @Injectable()
 export class GradeBookService {
   constructor(
     @InjectRepository(GradeBookEntity)
     private repository: Repository<GradeBookEntity>,
+
+    @InjectRepository(GradesEntity)
+    private gradesRepository: Repository<GradesEntity>,
   ) {}
 
   // Коли при створенні групи для неї вперше прикріплюється навчальний план - створюю для всіх дисциплін плану електронний журнал
@@ -69,12 +73,15 @@ export class GradeBookService {
     const summary = gradeBook.summary.filter((el) => el.afterLesson !== dto.afterLesson || el.type !== dto.type);
     await this.repository.save({ id, summary });
 
-    // const allStudentsGrades = gradeBook.grades.map((grade) => {
-    //   const grades = grade.grades.filter((el) => el.lessonNumber !== dto.afterLesson || el.summaryType !== dto.type);
-    //   return { ...grade, grades };
-    // });
+    await Promise.allSettled(
+      gradeBook.grades.map(async (grade) => {
+        const grades = grade.grades.filter(
+          (el) => el.lessonNumber !== dto.afterLesson + 1 || el.summaryType !== dto.type,
+        );
 
-    // console.log(allStudentsGrades.map((el) => console.log(el.grades)));
+        await this.gradesRepository.save({ id: grade.id, grades });
+      }),
+    );
 
     return { id, summary: [dto] };
   }
