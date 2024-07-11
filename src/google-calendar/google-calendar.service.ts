@@ -141,7 +141,6 @@ export class GoogleCalendarService {
   }
 
   // calendar events
-
   async createCalendarEvent(dto: CreateGoogleCalendarEventDto) {
     const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });

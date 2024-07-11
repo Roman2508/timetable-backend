@@ -2,6 +2,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, IsNull, Not, Repository, And } from 'typeorm';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 
+import { GradesService } from 'src/grades/grades.service';
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
 import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
@@ -18,7 +19,6 @@ import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-ho
 import { RemoveLessonsFromStreamDto } from 'src/streams/dto/remove-lessons-from-stream.dto';
 import { AddStudentsToAllGroupLessonsDto } from './dto/add-students-to-all-group-lessons.dto';
 import { DeleteStudentsFromAllGroupLessonsDto } from './dto/delete-students-to-all-group-lessons.dto';
-import { GradesService } from 'src/grades/grades.service';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -228,11 +228,13 @@ export class GroupLoadLessonsService {
           group: true,
           planSubjectId: true,
           stream: { groups: true },
+          students: true,
           teacher: true,
         },
         select: {
           group: { id: true, name: true },
           planSubjectId: { id: true },
+          students: { id: true },
           stream: { id: true, name: true, groups: { id: true, name: true } },
           teacher: {
             id: true,

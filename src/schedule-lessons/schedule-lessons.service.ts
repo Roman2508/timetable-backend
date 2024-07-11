@@ -12,6 +12,7 @@ import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
 import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
+import { FindAllLessonDatesForTheSemesterDto } from './dto/find-lesson-dates-for-the-semester.dto';
 
 @Injectable()
 export class ScheduleLessonsService {
@@ -61,6 +62,17 @@ export class ScheduleLessonsService {
         auditory: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
       },
+    });
+  }
+
+  async findAllLessonDatesForTheSemester(dto: FindAllLessonDatesForTheSemesterDto) {
+    console.log(111);
+    return this.repository.find({
+      where: {
+        group: { id: dto.groupId },
+        semester: dto.semester,
+      },
+      select: { date: true },
     });
   }
 
@@ -171,7 +183,7 @@ export class ScheduleLessonsService {
               type: 'group',
             });
 
-            this.googleCalendarService.createCalendarEvent(groupEventDto);
+            await this.googleCalendarService.createCalendarEvent(groupEventDto);
 
             const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
               ...googleCalendarEventDto,
@@ -180,7 +192,7 @@ export class ScheduleLessonsService {
               type: 'teacher',
             });
 
-            this.googleCalendarService.createCalendarEvent(teacherEventDto);
+            await this.googleCalendarService.createCalendarEvent(teacherEventDto);
 
             return this.repository.save(newLesson);
           }

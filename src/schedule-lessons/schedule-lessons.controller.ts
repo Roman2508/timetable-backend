@@ -1,5 +1,5 @@
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
-import { Get, Post, Body, Patch, Param, Delete, UseGuards, Controller } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Get, Post, Body, Patch, Param, Delete, UseGuards, Controller, Query } from '@nestjs/common';
 
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { CopyWeekOfScheduleDto } from './dto/copy-week-of-schedule.dto';
@@ -8,6 +8,7 @@ import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
 import { CopyDayOfScheduleDto } from './dto/copy-day-of-schedule.dto';
 import { CreateReplacementDto } from './dto/create-replacement.dto';
+import { FindAllLessonDatesForTheSemesterDto } from './dto/find-lesson-dates-for-the-semester.dto';
 
 @Controller('schedule-lessons')
 @ApiTags('schedule-lessons')
@@ -34,6 +35,24 @@ export class ScheduleLessonsController {
     @Param('auditoryId') auditoryId: string,
   ) {
     return this.scheduleLessonsService.getAuditoryOverlay(date, +lessonNumber, +auditoryId);
+  }
+
+  @ApiQuery({ name: 'stream', type: String, required: false })
+  @ApiQuery({ name: 'subgroupNumber', type: String, required: false })
+  @ApiQuery({ name: 'specialization', type: String, required: false })
+  @Get('dates')
+  // findAllLessonDatesForTheSemester(@Query('query') query: FindAllLessonDatesForTheSemesterDto) {
+  findAllLessonDatesForTheSemester(
+    @Query('groupId') groupId: string,
+    @Query('semester') semester: string,
+    @Query('lessonName') lessonName: string,
+    @Query('type') type: string,
+    @Query('stream') stream?: string,
+    @Query('subgroupNumber') subgroupNumber?: string,
+    @Query('specialization') specialization?: string,
+  ) {
+    console.log({ groupId, semester, lessonName, type, stream, subgroupNumber, specialization });
+    // return this.scheduleLessonsService.findAllLessonDatesForTheSemester({ groupId: +groupId, semester: +semester });
   }
 
   @Get(':semester/:type/:id')

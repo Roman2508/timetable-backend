@@ -20,6 +20,7 @@ export enum GradeBookSummaryTypes {
   MODULE_TEST = 'MODULE_TEST',
   ADDITIONAL_RATE = 'ADDITIONAL_RATE',
   CURRENT_RATE = 'CURRENT_RATE',
+  EXAM = 'EXAM',
 }
 
 @Entity('grade-book')

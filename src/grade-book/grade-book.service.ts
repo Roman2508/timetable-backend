@@ -56,7 +56,10 @@ export class GradeBookService {
 
     if (dto.type === GradeBookSummaryTypes.LESSON_AVERAGE || dto.type === GradeBookSummaryTypes.LESSON_SUM) {
       const isPossibleToAdd = gradeBook.summary.some(
-        (el) => el.type === GradeBookSummaryTypes.LESSON_AVERAGE || el.type === GradeBookSummaryTypes.LESSON_SUM,
+        (el) =>
+          el.type === GradeBookSummaryTypes.LESSON_AVERAGE ||
+          el.type === GradeBookSummaryTypes.LESSON_SUM ||
+          el.type === GradeBookSummaryTypes.EXAM,
       );
       if (isPossibleToAdd) throw new BadRequestException('Неможливо повторно додати підсумок з дисципліни');
 
@@ -76,9 +79,8 @@ export class GradeBookService {
     await Promise.allSettled(
       gradeBook.grades.map(async (grade) => {
         const grades = grade.grades.filter(
-          (el) => el.lessonNumber !== dto.afterLesson + 1 || el.summaryType !== dto.type,
+          (el) => el.lessonNumber !== dto.afterLesson - 1 || el.summaryType !== dto.type,
         );
-
         await this.gradesRepository.save({ id: grade.id, grades });
       }),
     );
