@@ -66,11 +66,17 @@ export class ScheduleLessonsService {
   }
 
   async findAllLessonDatesForTheSemester(dto: FindAllLessonDatesForTheSemesterDto) {
-    console.log(111);
+    const typeRu = dto.type as 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ';
+
     return this.repository.find({
       where: {
+        typeRu,
+        name: dto.lessonName,
         group: { id: dto.groupId },
         semester: dto.semester,
+        stream: dto.stream ? { id: dto.stream } : null,
+        subgroupNumber: dto.subgroupNumber ? dto.subgroupNumber : null,
+        specialization: dto.specialization ? dto.specialization : null,
       },
       select: { date: true },
     });

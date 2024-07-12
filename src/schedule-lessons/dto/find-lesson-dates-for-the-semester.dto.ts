@@ -24,13 +24,13 @@ export class FindAllLessonDatesForTheSemesterDto {
 
   @ApiProperty()
   @IsNumber()
-  stream?: number;
+  stream?: number | undefined;
 
   @ApiProperty()
   @IsNumber()
-  subgroupNumber?: number;
+  subgroupNumber?: number | undefined;
 
   @ApiProperty()
   @IsString()
-  specialization?: string;
+  specialization?: string | undefined;
 }

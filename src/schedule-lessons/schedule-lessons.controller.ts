@@ -41,18 +41,35 @@ export class ScheduleLessonsController {
   @ApiQuery({ name: 'subgroupNumber', type: String, required: false })
   @ApiQuery({ name: 'specialization', type: String, required: false })
   @Get('dates')
-  // findAllLessonDatesForTheSemester(@Query('query') query: FindAllLessonDatesForTheSemesterDto) {
   findAllLessonDatesForTheSemester(
+    @Query('type') type: string,
     @Query('groupId') groupId: string,
     @Query('semester') semester: string,
     @Query('lessonName') lessonName: string,
-    @Query('type') type: string,
-    @Query('stream') stream?: string,
-    @Query('subgroupNumber') subgroupNumber?: string,
-    @Query('specialization') specialization?: string,
+    // @Query('stream') stream?: string | undefined,
+    // @Query('subgroupNumber') subgroupNumber?: string | undefined,
+    // @Query('specialization') specialization?: string | undefined,
   ) {
-    console.log({ groupId, semester, lessonName, type, stream, subgroupNumber, specialization });
-    // return this.scheduleLessonsService.findAllLessonDatesForTheSemester({ groupId: +groupId, semester: +semester });
+    // const streamId = typeof stream === 'string' ? +stream : undefined;
+    // const subgroup = typeof subgroupNumber === 'string' ? +subgroupNumber : undefined;
+    // console.log({
+    //   type,
+    //   lessonName,
+    //   specialization,
+    //   groupId: +groupId,
+    //   semester: +semester,
+    //   stream: streamId,
+    //   subgroupNumber: subgroup,
+    // });
+    return this.scheduleLessonsService.findAllLessonDatesForTheSemester({
+      type,
+      lessonName,
+      // specialization,
+      groupId: +groupId,
+      semester: +semester,
+      // stream: streamId,
+      // subgroupNumber: subgroup,
+    });
   }
 
   @Get(':semester/:type/:id')

@@ -98,7 +98,7 @@ export class GradeBookService {
       },
       relations: {
         group: true,
-        lesson: { teacher: true },
+        lesson: { teacher: true, stream: true },
         grades: { student: true, gradeBook: true },
       },
       select: {
@@ -107,7 +107,11 @@ export class GradeBookService {
           id: true,
           name: true,
           hours: true,
+          typeRu: true,
           semester: true,
+          stream: { id: true },
+          specialization: true,
+          subgroupNumber: true,
           teacher: { id: true, firstName: true, middleName: true, lastName: true },
         },
         grades: { id: true, grades: true, student: { id: true, name: true }, gradeBook: { id: true } },
