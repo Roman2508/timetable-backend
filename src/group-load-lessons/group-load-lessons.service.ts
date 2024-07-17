@@ -802,10 +802,9 @@ export class GroupLoadLessonsService {
       );
 
       // Перевірка чи можна об'єднати дисципліни, які передано
-      // тобто чи однакові в дисциплін поля: name, semesterNumber (semester), typeEn, hours, subgroupNumber
+      // тобто чи однакові в дисциплін поля: semesterNumber (semester), typeEn, hours, subgroupNumber
       const isAllLessonsSame = lessons.every(
         (value) =>
-          value.name === lessons[0].name &&
           value.semester === lessons[0].semester &&
           value.typeEn === lessons[0].typeEn &&
           value.subgroupNumber === lessons[0].subgroupNumber &&
@@ -813,9 +812,7 @@ export class GroupLoadLessonsService {
       );
 
       // Якщо хоча б 1 поле в 1 дисципліні не однакове
-      if (!isAllLessonsSame) {
-        throw new BadRequestException("Вибрані дисципліни не можна об'єднати в потік");
-      }
+      if (!isAllLessonsSame) throw new BadRequestException("Вибрані дисципліни не можна об'єднати в потік");
 
       // Якщо всі потрібні поля у всіх дисциплін однакові - можна об'єднувати в потік
       return Promise.all(

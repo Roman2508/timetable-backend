@@ -2,21 +2,21 @@ import {
   Column,
   Entity,
   ManyToOne,
-  JoinColumn,
-  PrimaryGeneratedColumn,
   OneToMany,
-  ManyToMany,
   JoinTable,
+  JoinColumn,
+  ManyToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Max, Min } from 'class-validator';
 
 import { PlanEntity } from 'src/plans/entities/plan.entity';
 import { GroupEntity } from 'src/groups/entities/group.entity';
-import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
-import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
 import { StreamEntity } from 'src/streams/entities/stream.entity';
-import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
+import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import { StudentEntity } from 'src/students/entities/student.entity';
+import { PlanSubjectEntity } from 'src/plan-subjects/entities/plan-subject.entity';
+import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
 
 // type TypeRu = 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ' | 'КОНС' | 'МЕТОД';
 // type TypeEn =

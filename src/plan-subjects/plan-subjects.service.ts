@@ -1,10 +1,6 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 
 import { PlanSubjectEntity } from './entities/plan-subject.entity';
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
@@ -45,8 +41,17 @@ export class PlanSubjectsService {
     return this.repository.save(newSubject);
   }
 
-  async findOne(id: number) {
-    return this.repository.findOneBy({ id });
+  async findAll(id: number, semestersString?: string) {
+    let semesterNumbersArray;
+
+    if (!semestersString) {
+      semesterNumbersArray = [1, 2, 3, 4, 5, 6];
+    } else {
+      const semesters = semestersString.split(',');
+      semesterNumbersArray = semesters.map((el) => +el);
+    }
+
+    return this.repository.find({ where: { plan: { id }, semesterNumber: In(semesterNumbersArray) } });
   }
 
   async updateName(dto: UpdatePlanSubjectNameDto) {

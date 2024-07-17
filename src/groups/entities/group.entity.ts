@@ -1,19 +1,19 @@
-import { Max, Min } from 'class-validator';
-import { GroupCategoryEntity } from 'src/group-categories/entities/group-category.entity';
-import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
-import { PlanEntity } from 'src/plans/entities/plan.entity';
-import { StreamEntity } from 'src/streams/entities/stream.entity';
-import { StudentEntity } from 'src/students/entities/student.entity';
 import {
   Column,
   Entity,
-  JoinColumn,
   JoinTable,
-  ManyToMany,
   ManyToOne,
   OneToMany,
+  ManyToMany,
+  JoinColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Max, Min } from 'class-validator';
+import { PlanEntity } from 'src/plans/entities/plan.entity';
+import { StreamEntity } from 'src/streams/entities/stream.entity';
+import { StudentEntity } from 'src/students/entities/student.entity';
+import { GroupCategoryEntity } from 'src/group-categories/entities/group-category.entity';
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
 @Entity('groups')
 export class GroupEntity {
