@@ -51,7 +51,10 @@ export class PlanSubjectsService {
       semesterNumbersArray = semesters.map((el) => +el);
     }
 
-    return this.repository.find({ where: { plan: { id }, semesterNumber: In(semesterNumbersArray) } });
+    return this.repository.find({
+      where: { plan: { id }, semesterNumber: In(semesterNumbersArray) },
+      relations: { cmk: true, plan: true },
+    });
   }
 
   async updateName(dto: UpdatePlanSubjectNameDto) {
@@ -136,35 +139,6 @@ export class PlanSubjectsService {
       return this.repository.save(updatedSubjects);
     }
   }
-
-  // Створення або оновлення семестру для дисципліни
-  // async updateHours(id: number, dto: UpdatePlanSubjectHoursDto) {
-  //   const subject = await this.repository.findOne({ where: { id } });
-
-  //   if (!subject) {
-  //     throw new NotFoundException('Дисципліну не знайдено');
-  //   }
-
-  //   const updatedSubjects = { ...subject, ...dto };
-
-  //   // let totalHours = 0;
-  //   // const allLessonsNames = ['lectures', 'practical', 'laboratory', 'seminars'];,
-
-  //   // for (const propName in updatedSubjects) {
-  //   //   if (allLessonsNames.some((el) => propName === el)) {
-  //   //     totalHours += updatedSubjects[propName];
-  //   //   }
-  //   // }
-
-  //   await this.groupLoadLessonsService.updateHours({
-  //     /* @ts-ignore */
-  //     planSubject: updatedSubjects,
-  //     planId: dto.planId,
-  //   });
-
-  //   /* @ts-ignore */
-  //   return this.repository.save({ ...updatedSubjects /* , totalHours  */ });
-  // }
 
   async remove(id: number) {
     const res = await this.repository.delete(id);

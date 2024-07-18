@@ -38,6 +38,23 @@ export class Lesson {
   ['7']: LessonCall;
 }
 
+export class Colors {
+  @Column({ default: '#ffffff' })
+  lectures: string;
+
+  @Column({ default: '#ffffff' })
+  practical: string;
+
+  @Column({ default: '#ffffff' })
+  laboratory: string;
+
+  @Column({ default: '#ffffff' })
+  seminars: string;
+
+  @Column({ default: '#ffffff' })
+  exams: string;
+}
+
 @Entity('settings')
 export class SettingsEntity {
   @PrimaryGeneratedColumn()
@@ -58,4 +75,8 @@ export class SettingsEntity {
   @Column((type) => Lesson, { array: true })
   @JoinColumn({ name: 'callSchedule' })
   callSchedule: Lesson;
+
+  @Column((type) => Colors, { array: true })
+  @JoinColumn({ name: 'colors' })
+  colors: Colors;
 }
