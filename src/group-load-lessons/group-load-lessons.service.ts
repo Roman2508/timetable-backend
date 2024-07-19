@@ -109,16 +109,13 @@ export class GroupLoadLessonsService {
         teacher: true,
         group: true,
         planSubjectId: true,
+        unitedWith: true,
       },
       select: {
-        stream: { id: true, name: true },
-        teacher: {
-          id: true,
-          firstName: true,
-          middleName: true,
-          lastName: true,
-        },
         group: { id: true, name: true },
+        stream: { id: true, name: true },
+        unitedWith: { id: true, name: true },
+        teacher: { id: true, firstName: true, middleName: true, lastName: true },
       },
     });
 
@@ -789,11 +786,12 @@ export class GroupLoadLessonsService {
         dto.lessonsIds.map(async (id) => {
           const findedLesson = await this.groupLoadLessonsRepository.findOne({
             where: { id },
-            relations: { group: true, planSubjectId: true, stream: true },
+            relations: { group: true, planSubjectId: true, stream: true, unitedWith: true },
             select: {
               group: { id: true, name: true },
               planSubjectId: { id: true },
               stream: { id: true, name: true },
+              unitedWith: { id: true, name: true },
             },
           });
 
@@ -814,11 +812,14 @@ export class GroupLoadLessonsService {
       // Якщо хоча б 1 поле в 1 дисципліні не однакове
       if (!isAllLessonsSame) throw new BadRequestException("Вибрані дисципліни не можна об'єднати в потік");
 
+      const unitedWithIds = dto.lessonsIds.map((el) => ({ id: el }));
+
       // Якщо всі потрібні поля у всіх дисциплін однакові - можна об'єднувати в потік
       return Promise.all(
         lessons.map(async (lesson) => {
           return await this.groupLoadLessonsRepository.save({
             ...lesson,
+            unitedWith: unitedWithIds,
             stream: { id: streamId, name: dto.streamName },
             // При об'єднанні дисциплін в потік видаляю прикріпленого викладача в кожній дисципліні
             teacher: null,
@@ -843,6 +844,7 @@ export class GroupLoadLessonsService {
 
         const updatedLesson = await this.groupLoadLessonsRepository.save({
           ...lesson,
+          unitedWith: [],
           stream: null,
         });
 
@@ -874,27 +876,38 @@ export class GroupLoadLessonsService {
     }
 
     // Якщо дисципліна об'єднана в потік
-    const streamLesson = await this.groupLoadLessonsRepository.find({
-      where: {
-        stream: { id: lesson.stream.id },
-        name: lesson.name,
-        typeEn: lesson.typeEn,
-        hours: lesson.hours,
-        semester: lesson.semester,
-        subgroupNumber: lesson.subgroupNumber,
-      },
-    });
-
     await Promise.all(
-      streamLesson.map(async (el) => {
+      lesson.unitedWith.map(async (el) => {
         return await this.groupLoadLessonsRepository.save({
-          ...el,
+          id: el.id,
           teacher: { id: teacherId },
         });
       }),
     );
 
     return { lessonId, teacher };
+
+    // const streamLesson = await this.groupLoadLessonsRepository.find({
+    //   where: {
+    //     stream: { id: lesson.stream.id },
+    //     name: lesson.name,
+    //     typeEn: lesson.typeEn,
+    //     hours: lesson.hours,
+    //     semester: lesson.semester,
+    //     subgroupNumber: lesson.subgroupNumber,
+    //   },
+    // });
+
+    // await Promise.all(
+    //   streamLesson.map(async (el) => {
+    //     return await this.groupLoadLessonsRepository.save({
+    //       ...el,
+    //       teacher: { id: teacherId },
+    //     });
+    //   }),
+    // );
+
+    // return { lessonId, teacher };
   }
 
   async unpinTeacher(lessonId: number) {
@@ -907,26 +920,35 @@ export class GroupLoadLessonsService {
     }
 
     // Якщо дисципліна об`єднана в потік
-    const streamLesson = await this.groupLoadLessonsRepository.find({
-      where: {
-        stream: { id: lesson.stream.id },
-        name: lesson.name,
-        typeEn: lesson.typeEn,
-        hours: lesson.hours,
-        semester: lesson.semester,
-        subgroupNumber: lesson.subgroupNumber,
-      },
-    });
-
     await Promise.all(
-      streamLesson.map(async (el) => {
+      lesson.unitedWith.map(async (el) => {
         return await this.groupLoadLessonsRepository.save({
-          ...el,
+          id: el.id,
           teacher: null,
         });
       }),
     );
 
     return { lessonId };
+
+    // const streamLesson = await this.groupLoadLessonsRepository.find({
+    //   where: {
+    //     stream: { id: lesson.stream.id },
+    //     name: lesson.name,
+    //     typeEn: lesson.typeEn,
+    //     hours: lesson.hours,
+    //     semester: lesson.semester,
+    //     subgroupNumber: lesson.subgroupNumber,
+    //   },
+    // });
+
+    // await Promise.all(
+    //   streamLesson.map(async (el) => {
+    //     return await this.groupLoadLessonsRepository.save({
+    //       ...el,
+    //       teacher: null,
+    //     });
+    //   }),
+    // );
   }
 }

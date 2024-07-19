@@ -2,7 +2,6 @@ import {
   Column,
   Entity,
   ManyToOne,
-  OneToMany,
   JoinTable,
   JoinColumn,
   ManyToMany,
@@ -80,6 +79,14 @@ export class GroupLoadLessonEntity {
   })
   @JoinColumn({ name: 'stream' })
   stream: StreamEntity;
+
+  @ManyToMany(() => GroupLoadLessonEntity, (lesson) => lesson.id)
+  @JoinTable({
+    name: 'lessons_united',
+    joinColumn: { name: 'lesson_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'united_lesson_id', referencedColumnName: 'id' },
+  })
+  unitedWith: GroupLoadLessonEntity[];
 
   @Column({ default: null })
   @Max(4, { message: 'Максимальна кількість підгруп - 4' })
