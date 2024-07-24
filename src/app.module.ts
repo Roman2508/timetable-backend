@@ -40,6 +40,8 @@ import { AuditoryCategoriesModule } from './auditory-categories/auditory-categor
 import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-category.entity';
 import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-lesson.entity';
 import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
+import { InstructionalMaterialsModule } from './instructional-materials/instructional-materials.module';
+import { InstructionalMaterialEnity } from './instructional-materials/entities/instructional-material.entity';
 
 @Module({
   imports: [
@@ -69,6 +71,7 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
         StudentEntity,
         GradeBookEntity,
         GradesEntity,
+        InstructionalMaterialEnity,
       ],
       extra: {
         max: 1, // set pool max size
@@ -94,6 +97,7 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
     StudentsModule,
     GradeBookModule,
     GradesModule,
+    InstructionalMaterialsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
