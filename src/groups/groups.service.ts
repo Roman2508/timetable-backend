@@ -1,15 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 
 import { GroupEntity } from './entities/group.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
+import { GradeBookService } from 'src/grade-book/grade-book.service';
 import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
 import { CreateGroupSpecializationDto } from './dto/create-group-specialization.dto';
 import { UpdateGroupSpecializationDto } from './dto/update-group-specialization.dto';
 import { GroupLoadLessonsService } from './../group-load-lessons/group-load-lessons.service';
-import { GradeBookService } from 'src/grade-book/grade-book.service';
 
 @Injectable()
 export class GroupsService {
@@ -61,7 +61,7 @@ export class GroupsService {
             id: true,
             name: true,
             groups: { id: true, name: true },
-            lessons: { id: true, name: true },
+            // lessons: { id: true, name: true },
           },
           teacher: {
             id: true,

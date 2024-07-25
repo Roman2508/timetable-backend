@@ -1,4 +1,4 @@
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 
@@ -51,10 +51,17 @@ export class PlanSubjectsService {
       semesterNumbersArray = semesters.map((el) => +el);
     }
 
-    return this.repository.find({
+    const withoutSemester = await this.repository.find({
+      where: { plan: { id }, semesterNumber: IsNull() },
+      relations: { cmk: true, plan: true },
+    });
+
+    const withSemester = await this.repository.find({
       where: { plan: { id }, semesterNumber: In(semesterNumbersArray) },
       relations: { cmk: true, plan: true },
     });
+
+    return [...withSemester, ...withoutSemester];
   }
 
   async updateName(dto: UpdatePlanSubjectNameDto) {
@@ -98,6 +105,22 @@ export class PlanSubjectsService {
 
   // Створення або оновлення семестру для дисципліни
   async updateHours(id: number, dto: UpdatePlanSubjectHoursDto) {
+    const existedLessonWithoutSemester = await this.repository.findOne({
+      where: { plan: { id: dto.planId }, name: dto.name, semesterNumber: IsNull() },
+    });
+
+    // Якщо створена дисципліни в плані має лише ім'я та ЦК (без семестру) - оновлюю цю дисципліну
+    // (при додаванні нової дисципліни до плану семестр одразу не вказується, лише ім'я та ЦК)
+    if (existedLessonWithoutSemester) {
+      const updatedSubjects = { ...existedLessonWithoutSemester, ...dto, cmk: { id: dto.cmk } };
+      await this.groupLoadLessonsService.updateHours({
+        /* @ts-ignore */
+        planSubject: updatedSubjects,
+        planId: dto.planId,
+      });
+      return await this.repository.save(updatedSubjects);
+    }
+
     const subject = await this.repository.findOne({
       where: {
         plan: {
@@ -135,7 +158,6 @@ export class PlanSubjectsService {
         planId: dto.planId,
       });
 
-      /* @ts-ignore */
       return this.repository.save(updatedSubjects);
     }
   }

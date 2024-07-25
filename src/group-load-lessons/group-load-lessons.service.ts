@@ -1,5 +1,5 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, IsNull, Not, Repository, And } from 'typeorm';
+import { DeepPartial, IsNull, Not, Repository, And, In } from 'typeorm';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 
 import { GradesService } from 'src/grades/grades.service';
@@ -99,6 +99,22 @@ export class GroupLoadLessonsService {
     });
 
     return groupLoadLessons;
+  }
+
+  getCurrentCourseSemesters(courseNumber: number) {
+    let semesters = [];
+
+    if (courseNumber === 1) {
+      semesters = [1, 2];
+    } else if (courseNumber === 2) {
+      semesters = [3, 4];
+    } else if (courseNumber === 3) {
+      semesters = [5, 6];
+    } else {
+      throw new BadRequestException('Не вірно заданий курс групи (має бути 1, 2 або 3)');
+    }
+
+    return semesters;
   }
 
   async findOneLessonById(id: number) {
@@ -211,13 +227,49 @@ export class GroupLoadLessonsService {
     return lessons;
   }
 
+  // Навантаження групи з урахуванням курсу навчання (тобто якщо група 1 курсу то повертаються
+  // лише дисципліни 1 та 2 семестру, якщо 2 курсу то дисципліни 2 та 4 семестру і т.д.)
+  // Використовується для розподілу навантаження та розкладу
+  async getGroupLoadByCurrentCourse(groupId: number) {
+    const group = await this.groupRepository.findOne({ where: { id: groupId } });
+    if (!group) throw new NotFoundException('Групу не знайдено');
+
+    const semesters = this.getCurrentCourseSemesters(group.courseNumber);
+
+    return this.groupLoadLessonsRepository.find({
+      where: { group: { id: groupId }, semester: In(semesters) },
+      relations: {
+        group: true,
+        teacher: true,
+        planSubjectId: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        hours: true,
+        typeRu: true,
+        semester: true,
+        subgroupNumber: true,
+        planSubjectId: { id: true },
+        group: { id: true, name: true },
+        teacher: { id: true, firstName: true, lastName: true, middleName: true },
+      },
+    });
+  }
+
   // Навантаження, що йде на розклад (без консультацій до екзамену та метод. керівництва)
   async findLessonsForSchedule(semester: number, scheduleType: 'group' | 'teacher', itemId: number) {
     if (scheduleType === 'group') {
+      const group = await this.groupRepository.findOne({ where: { id: itemId } });
+
+      if (!group) throw new NotFoundException('Групу не знайдено');
+
+      const semesters = this.getCurrentCourseSemesters(group.courseNumber);
+
       const lessons = await this.groupLoadLessonsRepository.find({
         where: {
           group: { id: itemId },
-          semester,
+          semester: semesters[semester - 1],
           teacher: Not(IsNull()),
           typeEn: And(Not('examsConsulation'), Not('metodologicalGuidance')),
         },
@@ -242,13 +294,13 @@ export class GroupLoadLessonsService {
         },
       });
 
-      if (!lessons.length) throw new NotFoundException('Дисципліни не знайдені');
-
       return lessons;
-    } else if (scheduleType === 'teacher') {
+    }
+
+    if (scheduleType === 'teacher') {
       const lessons = await this.groupLoadLessonsRepository.find({
         where: {
-          semester,
+          // semester,
           teacher: { id: itemId },
           typeEn: And(Not('examsConsulation'), Not('metodologicalGuidance')),
         },
@@ -259,7 +311,7 @@ export class GroupLoadLessonsService {
           teacher: true,
         },
         select: {
-          group: { id: true, name: true },
+          group: { id: true, name: true, courseNumber: true },
           planSubjectId: { id: true },
           stream: { id: true, name: true, groups: { id: true, name: true } },
           teacher: {
@@ -271,12 +323,25 @@ export class GroupLoadLessonsService {
         },
       });
 
-      if (!lessons.length) throw new NotFoundException('Дисципліни не знайдені');
+      const currentSemesterLessons = await Promise.all(
+        lessons.map(async (el) => {
+          const groupId = el.group.id;
+          const group = await this.groupRepository.findOne({ where: { id: groupId } });
+          if (!group) throw new NotFoundException('Групу не знайдено');
+          const semesters = this.getCurrentCourseSemesters(group.courseNumber);
 
-      return lessons;
-    } else {
-      return [];
+          if (semesters.some((s) => s === el.semester)) {
+            return el;
+          }
+
+          return null;
+        }),
+      );
+
+      return currentSemesterLessons.filter((el) => !!el);
     }
+
+    return [];
   }
 
   // Коли оновлюється назва дисципліни в навчальному плані - змінюю назву цієї дисципліни для всіх group-load-lessons

@@ -34,6 +34,11 @@ export class GroupLoadLessonsController {
     return this.groupLoadLessonsService.findAllByGroupId(+id);
   }
 
+  @Get('/by-current-cours/:id')
+  getGroupLoadByCurrentCourse(@Param('id') id: string) {
+    return this.groupLoadLessonsService.getGroupLoadByCurrentCourse(+id);
+  }
+
   @Get('/:semester/:groupId')
   findAllByGroupIdAndSemester(@Param('semester') semester: string, @Param('groupId') groupId: string) {
     return this.groupLoadLessonsService.findAllByGroupIdAndSemester(+semester, +groupId);
