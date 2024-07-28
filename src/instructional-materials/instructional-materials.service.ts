@@ -1,6 +1,6 @@
 import { Repository } from 'typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { InstructionalMaterialEnity } from './entities/instructional-material.entity';
 import { CreateInstructionalMaterialDto } from './dto/create-instructional-material.dto';

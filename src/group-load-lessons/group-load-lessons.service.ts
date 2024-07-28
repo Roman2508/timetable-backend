@@ -140,6 +140,44 @@ export class GroupLoadLessonsService {
     return lesson;
   }
 
+  // для instructional-matherials
+  async findAllTeacherLessonsById(teacherId: number) {
+    const lessons = await this.groupLoadLessonsRepository.find({
+      where: { teacher: { id: teacherId } },
+      relations: {
+        stream: true,
+        teacher: true,
+        group: true,
+        planSubjectId: true,
+        unitedWith: true,
+      },
+      select: {
+        group: { id: true, name: true },
+        stream: { id: true, name: true },
+        unitedWith: { id: true, name: true },
+        teacher: { id: true, firstName: true, middleName: true, lastName: true },
+      },
+    });
+
+    if (!lessons) throw new NotFoundException('Дисципліни не знайдено');
+
+    const currentYearLessons = await Promise.all(
+      lessons.map(async (el) => {
+        const group = await this.groupRepository.findOne({ where: { id: el.group.id } });
+        if (!group) return;
+        const semesters = this.getCurrentCourseSemesters(group.courseNumber);
+
+        if (semesters.some((s) => s === el.semester)) {
+          return el;
+        }
+
+        return null;
+      }),
+    );
+
+    return currentYearLessons.filter((el) => !!el);
+  }
+
   // Коли при створенні групи для неї вперше прикріплюється навчальний план - створюю для всіх дисциплін плану group-load-lessons
   // Або коли для групи прикріплюється інший (відмінний від попереднього) план
   // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeByGroupId())

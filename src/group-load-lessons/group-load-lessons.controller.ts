@@ -1,19 +1,19 @@
-import { Get, Post, Body, Patch, Param, UseGuards, Controller, Delete } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { Get, Post, Body, Patch, Param, UseGuards, Controller } from '@nestjs/common';
 
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
 import { GroupLoadLessonsService } from './group-load-lessons.service';
+import { AddStudentToLessonDto } from './dto/add-student-to-lesson.dto';
 import { AttachSpecializationDto } from './dto/attach-specialization.dto';
+import { LessonsTypeRu } from 'src/grade-book/entities/grade-book.entity';
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto';
+import { DeleteStudentFromLessonDto } from './dto/delete-student-from-lesson.dto';
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto';
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto';
-import { ChangeStudentsCountByNameAndTypeDto } from './dto/change-students-count-by-name-and-type.dto';
-import { AddStudentToLessonDto } from './dto/add-student-to-lesson.dto';
-import { LessonsTypeRu } from 'src/grade-book/entities/grade-book.entity';
-import { DeleteStudentFromLessonDto } from './dto/delete-student-from-lesson.dto';
 import { AddStudentsToAllGroupLessonsDto } from './dto/add-students-to-all-group-lessons.dto';
 import { DeleteStudentsFromAllGroupLessonsDto } from './dto/delete-students-to-all-group-lessons.dto';
+import { ChangeStudentsCountByNameAndTypeDto } from './dto/change-students-count-by-name-and-type.dto';
 
 @Controller('group-load-lessons')
 @ApiTags('group-load-lessons')
@@ -27,6 +27,11 @@ export class GroupLoadLessonsController {
   @Post()
   createAll(@Body() dto: CreateGroupLoadLessonDto) {
     return this.groupLoadLessonsService.createAll(dto);
+  }
+
+  @Get('/teacher/:teacherId')
+  findAllTeacherLessonsById(@Param('teacherId') teacherId: string) {
+    return this.groupLoadLessonsService.findAllTeacherLessonsById(+teacherId);
   }
 
   @Get(':id')
