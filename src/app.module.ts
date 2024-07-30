@@ -42,6 +42,8 @@ import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-
 import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
 import { InstructionalMaterialsModule } from './instructional-materials/instructional-materials.module';
 import { InstructionalMaterialEnity } from './instructional-materials/entities/instructional-material.entity';
+import { IndividualTeacherWorkModule } from './individual-teacher-work/individual-teacher-work.module';
+import { TeacherReportModule } from './teacher-report/teacher-report.module';
 
 @Module({
   imports: [
@@ -98,6 +100,8 @@ import { InstructionalMaterialEnity } from './instructional-materials/entities/i
     GradeBookModule,
     GradesModule,
     InstructionalMaterialsModule,
+    IndividualTeacherWorkModule,
+    TeacherReportModule,
   ],
   controllers: [AppController],
   providers: [AppService],
