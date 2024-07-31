@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import { IndividualTeacherWorkEntity } from 'src/individual-teacher-work/entities/individual-teacher-work.entity';
@@ -9,9 +9,11 @@ export class TeacherReportEntity {
   id: number;
 
   @ManyToOne(() => TeacherEntity, (teacher) => teacher.id)
+  @JoinColumn({ name: 'teacher' })
   teacher: TeacherEntity;
 
   @ManyToOne(() => IndividualTeacherWorkEntity, (work) => work.id)
+  @JoinColumn({ name: 'individualWork' })
   individualWork: IndividualTeacherWorkEntity;
 
   @Column()
@@ -26,9 +28,9 @@ export class TeacherReportEntity {
   @Column()
   doneDate: string;
 
-  @Column()
+  @Column({ default: '' })
   description: string;
 
-  @Column()
+  @Column('text', { array: true, default: [] })
   files: string[];
 }

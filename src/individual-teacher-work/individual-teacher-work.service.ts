@@ -1,9 +1,10 @@
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { IndividualTeacherWorkEntity } from './entities/individual-teacher-work.entity';
 import { CreateIndividualTeacherWorkDto } from './dto/create-individual-teacher-work.dto';
 import { UpdateIndividualTeacherWorkDto } from './dto/update-individual-teacher-work.dto';
-import { Repository } from 'typeorm';
-import { IndividualTeacherWorkEntity } from './entities/individual-teacher-work.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class IndividualTeacherWorkService {
@@ -13,7 +14,6 @@ export class IndividualTeacherWorkService {
   ) {}
 
   create(dto: CreateIndividualTeacherWorkDto) {
-    console.log(dto);
     const entity = this.repository.create(dto);
     return this.repository.save(entity);
   }
@@ -22,13 +22,10 @@ export class IndividualTeacherWorkService {
     return this.repository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} individualTeacherWork`;
-  }
-
   async update(id: number, dto: UpdateIndividualTeacherWorkDto) {
-    const updatedEntity = await this.repository.update({ id }, dto);
-    return updatedEntity;
+    const entity = await this.repository.findOne({ where: { id } });
+    if (!entity) throw new NotFoundException('Не знайдено');
+    return this.repository.save({ ...entity, ...dto });
   }
 
   async remove(id: number) {

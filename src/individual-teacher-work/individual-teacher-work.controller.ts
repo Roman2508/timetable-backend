@@ -1,7 +1,7 @@
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { IndividualTeacherWorkService } from './individual-teacher-work.service';
 import { CreateIndividualTeacherWorkDto } from './dto/create-individual-teacher-work.dto';
 import { UpdateIndividualTeacherWorkDto } from './dto/update-individual-teacher-work.dto';
@@ -23,14 +23,9 @@ export class IndividualTeacherWorkController {
     return this.individualTeacherWorkService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.individualTeacherWorkService.findOne(+id);
-  }
-
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateIndividualTeacherWorkDto: UpdateIndividualTeacherWorkDto) {
-    return this.individualTeacherWorkService.update(+id, updateIndividualTeacherWorkDto);
+  update(@Param('id') id: string, @Body() dto: UpdateIndividualTeacherWorkDto) {
+    return this.individualTeacherWorkService.update(+id, dto);
   }
 
   @Delete(':id')

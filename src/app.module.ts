@@ -33,6 +33,7 @@ import { PlanSubjectEntity } from './plan-subjects/entities/plan-subject.entity'
 import { GroupCategoriesModule } from './group-categories/group-categories.module';
 import { ScheduleLessonsModule } from './schedule-lessons/schedule-lessons.module';
 import { PlanCategoryEntity } from './plan-categories/entities/plan-category.entity';
+import { TeacherReportEntity } from './teacher-report/entities/teacher-report.entity';
 import { GroupCategoryEntity } from './group-categories/entities/group-category.entity';
 import { GroupLoadLessonsModule } from './group-load-lessons/group-load-lessons.module';
 import { TeacherCategoriesModule } from './teacher-categories/teacher-categories.module';
@@ -44,6 +45,7 @@ import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-
 import { IndividualTeacherWorkModule } from './individual-teacher-work/individual-teacher-work.module';
 import { InstructionalMaterialsModule } from './instructional-materials/instructional-materials.module';
 import { InstructionalMaterialEnity } from './instructional-materials/entities/instructional-material.entity';
+import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/individual-teacher-work.entity';
 
 @Module({
   imports: [
@@ -56,52 +58,54 @@ import { InstructionalMaterialEnity } from './instructional-materials/entities/i
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       entities: [
-        PlanCategoryEntity,
         PlanEntity,
-        PlanSubjectEntity,
         UserEntity,
-        TeacherCategoryEntity,
-        TeacherEntity,
-        AuditoryCategoryEntity,
-        AuditoryEntity,
-        GroupCategoryEntity,
         GroupEntity,
-        GroupLoadLessonEntity,
-        StreamEntity,
-        ScheduleLessonsEntity,
-        SettingsEntity,
-        StudentEntity,
-        GradeBookEntity,
         GradesEntity,
+        StreamEntity,
+        StudentEntity,
+        TeacherEntity,
+        SettingsEntity,
+        AuditoryEntity,
+        GradeBookEntity,
+        PlanSubjectEntity,
+        PlanCategoryEntity,
+        GroupCategoryEntity,
+        TeacherReportEntity,
+        TeacherCategoryEntity,
+        ScheduleLessonsEntity,
+        GroupLoadLessonEntity,
+        AuditoryCategoryEntity,
         InstructionalMaterialEnity,
+        IndividualTeacherWorkEntity,
       ],
       extra: {
         max: 1, // set pool max size
       },
       synchronize: true,
     }),
-    PlanCategoriesModule,
-    PlansModule,
-    PlanSubjectsModule,
-    UsersModule,
     AuthModule,
-    TeacherCategoriesModule,
-    TeachersModule,
-    AuditoryCategoriesModule,
-    AuditoriesModule,
-    GroupCategoriesModule,
+    PlansModule,
+    UsersModule,
     GroupsModule,
-    GroupLoadLessonsModule,
-    StreamsModule,
-    ScheduleLessonsModule,
-    SettingsModule,
-    GoogleCalendarModule,
-    StudentsModule,
-    GradeBookModule,
     GradesModule,
-    InstructionalMaterialsModule,
-    IndividualTeacherWorkModule,
+    StreamsModule,
+    SettingsModule,
+    StudentsModule,
+    TeachersModule,
+    GradeBookModule,
+    AuditoriesModule,
+    PlanSubjectsModule,
     TeacherReportModule,
+    PlanCategoriesModule,
+    GoogleCalendarModule,
+    ScheduleLessonsModule,
+    GroupCategoriesModule,
+    GroupLoadLessonsModule,
+    TeacherCategoriesModule,
+    AuditoryCategoriesModule,
+    IndividualTeacherWorkModule,
+    InstructionalMaterialsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

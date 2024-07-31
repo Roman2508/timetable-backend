@@ -1,16 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { IndividualTeacherWordTypes } from 'src/individual-teacher-work/entities/individual-teacher-work.entity';
 
 export class CreateTeacherReportDto {
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty({ message: 'name is required' })
-  name: string;
+  @IsNumber()
+  @IsNotEmpty({ message: 'teacher ID is required' })
+  teacher: number;
 
   @ApiProperty()
-  @IsNotEmpty({ message: 'type is required' })
-  type: IndividualTeacherWordTypes;
+  @IsNumber()
+  @IsNotEmpty({ message: 'individual work item ID is required' })
+  individualWork: number;
 
   @ApiProperty()
   @IsNumber()
@@ -18,9 +18,8 @@ export class CreateTeacherReportDto {
   hours: number;
 
   @ApiProperty()
-  @IsBoolean()
-  @IsNotEmpty({ message: 'status is required' })
-  status: boolean;
+  @IsString()
+  description?: string;
 
   @ApiProperty()
   @IsString()
