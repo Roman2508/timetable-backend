@@ -23,10 +23,4 @@ export class IndividualTeacherWorkEntity {
 
   @Column()
   hours: number;
-
-  @Column()
-  date: string;
-
-  @Column()
-  description: string;
 }

@@ -26,6 +26,7 @@ import { SettingsEntity } from './settings/entities/setting.entity';
 import { AuditoryEntity } from './auditories/entities/auditory.entity';
 import { GradeBookEntity } from './grade-book/entities/grade-book.entity';
 import { PlanSubjectsModule } from './plan-subjects/plan-subjects.module';
+import { TeacherReportModule } from './teacher-report/teacher-report.module';
 import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 import { PlanCategoriesModule } from './plan-categories/plan-categories.module';
 import { PlanSubjectEntity } from './plan-subjects/entities/plan-subject.entity';
@@ -40,10 +41,9 @@ import { AuditoryCategoriesModule } from './auditory-categories/auditory-categor
 import { TeacherCategoryEntity } from './teacher-categories/entities/teacher-category.entity';
 import { GroupLoadLessonEntity } from './group-load-lessons/entities/group-load-lesson.entity';
 import { AuditoryCategoryEntity } from './auditory-categories/entities/auditory-category.entity';
+import { IndividualTeacherWorkModule } from './individual-teacher-work/individual-teacher-work.module';
 import { InstructionalMaterialsModule } from './instructional-materials/instructional-materials.module';
 import { InstructionalMaterialEnity } from './instructional-materials/entities/instructional-material.entity';
-import { IndividualTeacherWorkModule } from './individual-teacher-work/individual-teacher-work.module';
-import { TeacherReportModule } from './teacher-report/teacher-report.module';
 
 @Module({
   imports: [

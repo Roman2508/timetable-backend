@@ -17,14 +17,4 @@ export class CreateIndividualTeacherWorkDto {
   @IsNumber()
   @IsNotEmpty({ message: 'hours is required' })
   hours: number;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty({ message: 'date is required' })
-  date: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty({ message: 'description is required' })
-  description: string;
 }
