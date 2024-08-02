@@ -5,11 +5,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { TeacherEntity } from './entities/teacher.entity';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import { GoogleDriveService } from 'src/google-drive/google-drive.service';
 import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
 
 @Injectable()
 export class TeachersService {
   constructor(
+    private readonly googleDriveService: GoogleDriveService,
     private readonly googleCalendarService: GoogleCalendarService,
 
     @InjectRepository(TeacherEntity)
@@ -26,10 +28,10 @@ export class TeachersService {
 
   async create(dto: CreateTeacherDto) {
     const owner = `${dto.lastName} ${dto.firstName[0]}. ${dto.middleName[0]}. `;
+    const calendarId = await this.googleCalendarService.createCalendar({ owner });
 
-    const calendarId = await this.googleCalendarService.createCalendar({
-      owner,
-    });
+    const name = `${dto.lastName} ${dto.firstName} ${dto.middleName}`;
+    const folderId = await this.googleDriveService.createFolder({ name });
 
     const newTeacher = this.repository.create({
       firstName: dto.firstName,
@@ -37,6 +39,7 @@ export class TeachersService {
       lastName: dto.lastName,
       category: { id: dto.category },
       calendarId,
+      folderId,
     });
 
     return this.repository.save(newTeacher);
@@ -56,14 +59,14 @@ export class TeachersService {
     const isMiddleNameDifferent = teacher.middleName !== dto.middleName;
     const isLastNameDifferent = teacher.lastName !== dto.lastName;
 
-    // Якщо змінилось ім'я, прізвище або побатькові - переіменовую гугл календар
+    // Якщо змінилось ім'я, прізвище або побатькові - переіменовую гугл календар та папку на гугл диску
     if (isFirstNameDifferent || isMiddleNameDifferent || isLastNameDifferent) {
       const owner = `${dto.lastName} ${dto.firstName[0]}. ${dto.middleName[0]}. `;
+      const name = `${dto.lastName} ${dto.firstName} ${dto.middleName}`;
+      const { calendarId, folderId } = teacher;
 
-      await this.googleCalendarService.updateCalendar({
-        calendarId: teacher.calendarId,
-        owner,
-      });
+      await this.googleCalendarService.updateCalendar({ calendarId, owner });
+      await this.googleDriveService.updateFolderName({ name, folderId });
     }
 
     const { category, ...rest } = dto;
@@ -88,11 +91,19 @@ export class TeachersService {
   }
 
   async remove(id: number) {
+    const teacher = await this.repository.findOne({ where: { id } });
+
+    if (!teacher) throw new NotFoundException('Не знайдено');
+
+    const folderId = teacher.folderId;
+
     const res = await this.repository.delete(id);
 
     if (res.affected === 0) {
       throw new NotFoundException('Не знайдено');
     }
+
+    await this.googleDriveService.deleteFolder(folderId);
 
     return id;
   }

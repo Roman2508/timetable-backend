@@ -1,11 +1,7 @@
 const path = require('path');
 const fs = require('fs').promises;
 
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import * as dayjs from 'dayjs';
 import { google } from 'googleapis';
 import { Between, Repository } from 'typeorm';
@@ -14,7 +10,7 @@ import { customDayjs } from 'src/utils/customDayjs';
 import { authenticate } from '@google-cloud/local-auth';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
-import { FindCalendarEventDto } from './find-calendar-event.dto';
+import { FindCalendarEventDto } from './dto/find-calendar-event.dto';
 import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
 import { SettingsEntity } from 'src/settings/entities/setting.entity';
 import { CreateGoogleCalendarDto } from './dto/create-google-calendar.dto';
@@ -24,10 +20,7 @@ import { UpdateGoogleCalendarEventDto } from './dto/update-google-calendar-event
 import { CreateGoogleCalendarEventDto } from './dto/create-google-calendar-event.dto';
 
 const TOKEN_PATH = path.join(process.cwd(), 'src/google-calendar/token.json');
-const CREDENTIALS_PATH = path.join(
-  process.cwd(),
-  'src/google-calendar/client_secret.json',
-);
+const CREDENTIALS_PATH = path.join(process.cwd(), 'src/google-calendar/client_secret.json');
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/meetings',
@@ -198,11 +191,7 @@ export class GoogleCalendarService {
     });
   }
 
-  async findCalendarEvent(
-    calendarId: string,
-    summary: string,
-    description: string,
-  ): Promise<string> {
+  async findCalendarEvent(calendarId: string, summary: string, description: string): Promise<string> {
     const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
@@ -212,9 +201,7 @@ export class GoogleCalendarService {
 
     const eventsList = res.data.items;
 
-    const event = eventsList.find(
-      (e) => e.summary === summary && e.description === description,
-    );
+    const event = eventsList.find((e) => e.summary === summary && e.description === description);
     if (!event) return;
 
     return event.id;
@@ -226,11 +213,7 @@ export class GoogleCalendarService {
 
     const eventDto = await this.getCalendarEventDto(dto);
 
-    const eventId = await this.findCalendarEvent(
-      calendarId,
-      eventDto.summary,
-      eventDto.description,
-    );
+    const eventId = await this.findCalendarEvent(calendarId, eventDto.summary, eventDto.description);
 
     if (!calendarId || !eventId) return;
 
@@ -282,9 +265,7 @@ export class GoogleCalendarService {
 
     const callSchedule = settings.callSchedule[dto.lessonNumber];
 
-    const subgroup = dto.subgroupNumber
-      ? ` ${dto.subgroupNumber} підгрупа`
-      : '';
+    const subgroup = dto.subgroupNumber ? ` ${dto.subgroupNumber} підгрупа` : '';
 
     const summary = `${dto.lessonName} - Група ${dto.groupName}${subgroup}`;
     const description = `${formattedDateTime} ⋅ ${callSchedule.start} - ${callSchedule.end}`;

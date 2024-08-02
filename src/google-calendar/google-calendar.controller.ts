@@ -1,15 +1,6 @@
-import {
-  Get,
-  Post,
-  Body,
-  Patch,
-  Delete,
-  UseGuards,
-  Controller,
-  Param,
-} from '@nestjs/common';
+import { Get, Post, Body, Patch, Delete, UseGuards, Controller, Param } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { FindCalendarEventDto } from './find-calendar-event.dto';
+import { FindCalendarEventDto } from './dto/find-calendar-event.dto';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { GoogleCalendarService } from './google-calendar.service';
 import { CreateGoogleCalendarDto } from './dto/create-google-calendar.dto';
@@ -31,10 +22,7 @@ export class GoogleCalendarController {
 
   @ApiBody({ type: FindCalendarEventDto })
   @Patch('event/:calendarId')
-  deleteCalendarEvent(
-    @Param('calendarId') calendarId: string,
-    @Body() dto: FindCalendarEventDto,
-  ) {
+  deleteCalendarEvent(@Param('calendarId') calendarId: string, @Body() dto: FindCalendarEventDto) {
     return this.googleCalendarService.deleteCalendarEvent(calendarId, dto);
   }
 

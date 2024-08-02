@@ -21,8 +21,4 @@ export class UpdateTeacherReportDto {
   @IsString()
   @IsNotEmpty({ message: 'date is required' })
   doneDate: string;
-
-  @ApiProperty()
-  @IsNotEmpty({ message: 'files is required' })
-  files?: string[];
 }

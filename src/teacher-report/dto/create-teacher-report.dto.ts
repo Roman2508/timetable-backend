@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateTeacherReportDto {
   @ApiProperty()
@@ -30,8 +30,4 @@ export class CreateTeacherReportDto {
   @IsString()
   @IsNotEmpty({ message: 'date is required' })
   doneDate: string;
-
-  @ApiProperty()
-  @IsNotEmpty({ message: 'files is required' })
-  files?: string[];
 }

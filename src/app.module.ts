@@ -24,6 +24,7 @@ import { TeacherEntity } from './teachers/entities/teacher.entity';
 import { StudentEntity } from './students/entities/student.entity';
 import { SettingsEntity } from './settings/entities/setting.entity';
 import { AuditoryEntity } from './auditories/entities/auditory.entity';
+import { GoogleDriveModule } from './google-drive/google-drive.module';
 import { GradeBookEntity } from './grade-book/entities/grade-book.entity';
 import { PlanSubjectsModule } from './plan-subjects/plan-subjects.module';
 import { TeacherReportModule } from './teacher-report/teacher-report.module';
@@ -95,6 +96,7 @@ import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/
     TeachersModule,
     GradeBookModule,
     AuditoriesModule,
+    GoogleDriveModule,
     PlanSubjectsModule,
     TeacherReportModule,
     PlanCategoriesModule,
