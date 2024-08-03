@@ -30,4 +30,9 @@ export class CreateTeacherReportDto {
   @IsString()
   @IsNotEmpty({ message: 'date is required' })
   doneDate: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @IsNotEmpty({ message: 'year is required' })
+  year: number;
 }

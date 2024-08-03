@@ -31,6 +31,9 @@ export class TeacherReportEntity {
   @Column({ default: '' })
   description: string;
 
+  @Column({ default: 2024 })
+  year: number;
+
   @Column('simple-json', { default: [] })
   files: GoogleDriveFileEntity[];
 }

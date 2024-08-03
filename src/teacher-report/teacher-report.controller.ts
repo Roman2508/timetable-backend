@@ -1,6 +1,4 @@
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import {
-  Controller,
   Get,
   Post,
   Body,
@@ -8,17 +6,19 @@ import {
   Param,
   Delete,
   UseGuards,
-  UseInterceptors,
+  Controller,
   UploadedFile,
   ParseFilePipe,
+  UseInterceptors,
   MaxFileSizeValidator,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { TeacherReportService } from './teacher-report.service';
 import { CreateTeacherReportDto } from './dto/create-teacher-report.dto';
 import { UpdateTeacherReportDto } from './dto/update-teacher-report.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('teacher-report')
 @ApiTags('teacher-report')
@@ -32,9 +32,9 @@ export class TeacherReportController {
     return this.teacherReportService.create(dto);
   }
 
-  @Get(':id')
-  findByTeacherId(@Param('id') id: string) {
-    return this.teacherReportService.findByTeacherId(+id);
+  @Get('/:year/:id')
+  find(@Param('year') year: string, @Param('id') id: string) {
+    return this.teacherReportService.find(+year, +id);
   }
 
   @Patch(':id')

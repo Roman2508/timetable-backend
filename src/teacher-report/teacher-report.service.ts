@@ -26,9 +26,9 @@ export class TeacherReportService {
     return this.repository.save(newTeacherReport);
   }
 
-  findByTeacherId(id: number) {
+  find(year: number, id: number) {
     return this.repository.find({
-      where: { teacher: { id } },
+      where: { year, teacher: { id } },
       relations: { teacher: true, individualWork: true },
       select: {
         teacher: { id: true, firstName: true, lastName: true, middleName: true },
