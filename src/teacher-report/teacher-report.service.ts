@@ -20,6 +20,8 @@ export class TeacherReportService {
   create(dto: CreateTeacherReportDto) {
     const newTeacherReport = this.repository.create({
       ...dto,
+      // За замовчуванням plannedDate === doneDate
+      doneDate: dto.plannedDate,
       teacher: { id: dto.teacher },
       individualWork: { id: dto.individualWork },
     });

@@ -27,11 +27,6 @@ export class CreateTeacherReportDto {
   plannedDate: string;
 
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty({ message: 'date is required' })
-  doneDate: string;
-
-  @ApiProperty()
   @IsNumber()
   @IsNotEmpty({ message: 'year is required' })
   year: number;
