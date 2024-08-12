@@ -5,6 +5,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { InstructionalMaterialsService } from './instructional-materials.service';
 import { CreateInstructionalMaterialDto } from './dto/create-instructional-material.dto';
 import { UpdateInstructionalMaterialDto } from './dto/update-instructional-material.dto';
+import { ImportInstructionalMaterialDto } from './dto/import-instructional-material.dto';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -18,9 +19,14 @@ export class InstructionalMaterialsController {
     return this.instructionalMaterialsService.create(dto);
   }
 
-  @Get(':id')
-  find(@Param('id') id: string) {
-    return this.instructionalMaterialsService.find(+id);
+  @Post('/import')
+  importFromFile(@Body() dto: ImportInstructionalMaterialDto) {
+    return this.instructionalMaterialsService.importFromFile(dto);
+  }
+
+  @Get('/:id/:year')
+  find(@Param('id') id: string, @Param('year') year: string) {
+    return this.instructionalMaterialsService.find(+id, +year);
   }
 
   @Patch(':id')

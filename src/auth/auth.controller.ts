@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  Post,
-  UseGuards,
-  UsePipes,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthDto, GetMeDto, LoginDto } from './dto/auth.dto';
 import { AuthService } from './auth.service';
 import { ApiBody, ApiProperty, ApiTags } from '@nestjs/swagger';
@@ -39,5 +31,13 @@ export class AuthController {
   @Post('/me')
   async getMe(@Body() dto: { token: string }) {
     return this.authService.getMe(dto.token);
+  }
+
+  @ApiBody({ type: GetMeDto })
+  @UsePipes(new ValidationPipe())
+  @HttpCode(200)
+  @Post('/google/me')
+  async getByEmail(@Body() dto: { email: string }) {
+    return this.authService.getByEmail(dto.email);
   }
 }

@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcryptjs';
 
@@ -70,5 +66,14 @@ export class AuthService {
     }
 
     return null;
+  }
+
+  async getByEmail(email: string) {
+    const user = await this.usersService.findByEmail(email);
+
+    if (!user) throw new NotFoundException('Такого користувача не існує');
+
+    const { password, ...rest } = user;
+    return rest;
   }
 }

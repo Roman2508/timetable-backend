@@ -14,4 +14,8 @@ export class InstructionalMaterialEnity {
 
   @Column()
   lessonNumber: number;
+
+  // default value === current year
+  @Column({ default: new Date().getFullYear() })
+  year: number;
 }

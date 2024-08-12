@@ -16,4 +16,9 @@ export class CreateInstructionalMaterialDto {
   @IsNotEmpty({ message: 'lesson ID is required' })
   @IsNumber()
   lessonId: number;
+
+  @ApiProperty()
+  @IsNotEmpty({ message: 'year is required' })
+  @IsNumber()
+  year: number;
 }
