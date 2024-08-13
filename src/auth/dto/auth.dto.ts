@@ -1,5 +1,7 @@
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+
+import { UserRoles } from 'src/users/entities/user.entity';
 
 export class AuthDto {
   @ApiProperty()
@@ -14,12 +16,16 @@ export class AuthDto {
   @ApiProperty()
   @MinLength(3, { message: 'Мінімальна довжина 3 символа' })
   @IsString()
-  fullName: string;
+  login: string;
 
   @ApiProperty()
   @IsOptional()
   @IsString()
-  access?: 'admin' | 'user';
+  role: UserRoles;
+
+  @IsOptional()
+  @IsString()
+  roleId?: number;
 }
 
 export class LoginDto {
@@ -37,4 +43,10 @@ export class GetMeDto {
   @ApiProperty()
   @IsString()
   token: string;
+}
+
+export class AuthGoogleDto {
+  @ApiProperty()
+  @IsEmail()
+  email: string;
 }

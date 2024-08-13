@@ -1,5 +1,7 @@
 import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
+import { UserRoles } from '../entities/user.entity';
+
 export class CreateUserDto {
   @IsEmail()
   email: string;
@@ -10,9 +12,12 @@ export class CreateUserDto {
 
   @MinLength(3, { message: 'Мінімальна довжина 3 символа' })
   @IsString()
-  fullName: string;
+  login: string;
+
+  @IsString()
+  role: UserRoles;
 
   @IsOptional()
   @IsString()
-  access?: 'admin' | 'user';
+  roleId?: number;
 }

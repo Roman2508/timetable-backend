@@ -1,7 +1,8 @@
-import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
-import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
-import { TeacherReportEntity } from 'src/teacher-report/entities/teacher-report.entity';
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+
+import { TeacherReportEntity } from 'src/teacher-report/entities/teacher-report.entity';
+import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
 @Entity('teacher')
 export class TeacherEntity {

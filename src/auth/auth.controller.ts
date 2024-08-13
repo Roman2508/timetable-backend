@@ -1,8 +1,8 @@
-import { Body, Controller, HttpCode, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
-import { AuthDto, GetMeDto, LoginDto } from './dto/auth.dto';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, HttpCode, Post, UsePipes, ValidationPipe } from '@nestjs/common';
+
 import { AuthService } from './auth.service';
-import { ApiBody, ApiProperty, ApiTags } from '@nestjs/swagger';
-import { LocalAuthGuard } from './guards/local.guard';
+import { AuthDto, AuthGoogleDto, GetMeDto, LoginDto } from './dto/auth.dto';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -33,7 +33,7 @@ export class AuthController {
     return this.authService.getMe(dto.token);
   }
 
-  @ApiBody({ type: GetMeDto })
+  @ApiBody({ type: AuthGoogleDto })
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post('/google/me')
