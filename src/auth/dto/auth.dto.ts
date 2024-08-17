@@ -14,11 +14,6 @@ export class AuthDto {
   password: string;
 
   @ApiProperty()
-  @MinLength(3, { message: 'Мінімальна довжина 3 символа' })
-  @IsString()
-  login: string;
-
-  @ApiProperty()
   @IsOptional()
   @IsString()
   role: UserRoles;

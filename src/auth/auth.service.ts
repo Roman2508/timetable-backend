@@ -20,7 +20,11 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
 
-    const isPasswordsTheSame = await compare(password, user?.password);
+    if (!user) {
+      throw new UnauthorizedException('Логін або пароль не вірний');
+    }
+
+    const isPasswordsTheSame = await compare(password, user.password);
 
     if (!isPasswordsTheSame) {
       throw new UnauthorizedException('Логін або пароль не вірний');
@@ -62,7 +66,11 @@ export class AuthService {
 
     if (id) {
       const user = await this.usersService.findById(id);
-      return user;
+      const { password, ...rest } = user;
+      return {
+        user: rest,
+        accessToken: await this.issueAccessToken(rest.id),
+      };
     }
 
     return null;
@@ -74,6 +82,9 @@ export class AuthService {
     if (!user) throw new NotFoundException('Такого користувача не існує');
 
     const { password, ...rest } = user;
-    return rest;
+    return {
+      user: rest,
+      accessToken: await this.issueAccessToken(rest.id),
+    };
   }
 }

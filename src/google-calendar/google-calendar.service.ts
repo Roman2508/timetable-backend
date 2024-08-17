@@ -1,13 +1,12 @@
 const path = require('path');
 const fs = require('fs').promises;
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import * as dayjs from 'dayjs';
 import { google } from 'googleapis';
-import { Between, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { customDayjs } from 'src/utils/customDayjs';
 import { authenticate } from '@google-cloud/local-auth';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { FindCalendarEventDto } from './dto/find-calendar-event.dto';
@@ -41,18 +40,18 @@ export class GoogleCalendarService {
   ) {}
 
   // auth
-
-  async loadSavedCredentialsIfExist() {
-    try {
-      const content = await fs.readFile(TOKEN_PATH);
-      const string = content.toString();
-      const credentials = JSON.parse(string);
-      return google.auth.fromJSON(credentials);
-    } catch (err) {
-      // console.error('Помилка завантаження збережених облікових даних:', err);
-      return null;
-    }
-  }
+  // ???????????????????????????????????????????????????????????
+  // async loadSavedCredentialsIfExist() {
+  //   try {
+  //     const content = await fs.readFile(TOKEN_PATH);
+  //     const string = content.toString();
+  //     const credentials = JSON.parse(string);
+  //     return google.auth.fromJSON(credentials);
+  //   } catch (err) {
+  //     // console.error('Помилка завантаження збережених облікових даних:', err);
+  //     return null;
+  //   }
+  // }
 
   async saveCredentials(client) {
     const content = await fs.readFile(CREDENTIALS_PATH);
@@ -68,7 +67,9 @@ export class GoogleCalendarService {
   }
 
   async authorize() {
-    let client: any = await this.loadSavedCredentialsIfExist();
+    // ???????????????????????????????????????????????????????????
+    // let client: any = await this.loadSavedCredentialsIfExist();
+    let client: any = '';
 
     if (client) {
       return client;

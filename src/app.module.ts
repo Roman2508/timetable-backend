@@ -47,6 +47,7 @@ import { IndividualTeacherWorkModule } from './individual-teacher-work/individua
 import { InstructionalMaterialsModule } from './instructional-materials/instructional-materials.module';
 import { InstructionalMaterialEnity } from './instructional-materials/entities/instructional-material.entity';
 import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/individual-teacher-work.entity';
+import { GoogleAdminModule } from './google-admin/google-admin.module';
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/
     AuditoryCategoriesModule,
     IndividualTeacherWorkModule,
     InstructionalMaterialsModule,
+    GoogleAdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

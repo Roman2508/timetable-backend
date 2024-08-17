@@ -16,9 +16,6 @@ export class UserEntity {
   id: number;
 
   @Column()
-  login: string;
-
-  @Column()
   password: string;
 
   @Column()
@@ -26,6 +23,9 @@ export class UserEntity {
 
   @Column({ type: 'enum', enum: UserRoles })
   role: UserRoles[];
+
+  @Column({ default: null })
+  picture?: string;
 
   @OneToOne(() => TeacherEntity, (teacher) => teacher.id)
   @JoinColumn({ name: 'teacher' })
