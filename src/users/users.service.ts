@@ -41,11 +41,21 @@ export class UsersService {
     return this.repository.findOne({ where: { id }, relations: { teacher: true, student: true } });
   }
 
+  findByRoleId(id: number, role: UserRoles) {
+    return this.repository.findOne({ where: { [role]: { id } }, relations: { teacher: true, student: true } });
+  }
+
   async create(dto: CreateUserDto) {
     const salt = await genSalt(10);
 
     if (!dto.roleId && (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT)) {
       throw new BadRequestException('Role ID is required for roles teacher and student');
+    }
+
+    const existedUser = await this.findByEmail(dto.email);
+
+    if (existedUser) {
+      throw new BadRequestException('Користувач з таким адресом ел.пошти вже існує');
     }
 
     let userPayload: Omit<UserEntity, 'id'> = {
@@ -86,6 +96,12 @@ export class UsersService {
 
   async update(dto: UpdateUserDto) {
     // if teacher: id === teacherId, if student: id === studentId, else id === this entity id
+
+    const existedUser = await this.findByEmail(dto.email);
+
+    if (existedUser && dto.id !== existedUser.id) {
+      throw new BadRequestException('Користувач з таким адресом ел.пошти вже існує');
+    }
 
     const isTeacher = dto.role.some((el) => el === UserRoles.TEACHER);
     const isStudent = dto.role.some((el) => el === UserRoles.STUDENT);

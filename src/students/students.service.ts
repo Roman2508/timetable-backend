@@ -2,14 +2,18 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { UsersService } from 'src/users/users.service';
 import { StudentEntity } from './entities/student.entity';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { GroupEntity } from 'src/groups/entities/group.entity';
+import { UserRoles } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class StudentsService {
   constructor(
+    private usersService: UsersService,
+
     @InjectRepository(GroupEntity)
     private groupRepository: Repository<GroupEntity>,
 
@@ -32,8 +36,18 @@ export class StudentsService {
 
     if (!group) throw new BadRequestException('Не вірно вказано групу');
 
-    const student = this.repository.create({ ...dto, group: { id: group.id } });
-    return this.repository.save(student);
+    const doc = this.repository.create({ ...dto, group: { id: group.id } });
+
+    const student = await this.repository.save(doc);
+
+    await this.usersService.create({
+      email: dto.email,
+      password: dto.password,
+      role: UserRoles.STUDENT,
+      roleId: student.id,
+    });
+
+    return student;
   }
 
   async findAllByGroupId(id: number) {
@@ -51,11 +65,20 @@ export class StudentsService {
 
     if (typeof dto.group === 'string') throw new BadRequestException('Не вірно вказано групу');
 
+    await this.usersService.update({
+      id: student.id,
+      email: dto.email,
+      password: dto.password,
+      role: [UserRoles.STUDENT],
+    });
+
     return this.repository.save({ ...student, ...dto, group: { id: Number(dto.group) } });
   }
 
   async remove(id: number) {
     const res = await this.repository.delete(id);
+
+    await this.usersService.delete({ id, role: UserRoles.STUDENT });
 
     if (res.affected === 0) {
       throw new NotFoundException('Не знайдено');

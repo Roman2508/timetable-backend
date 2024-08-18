@@ -1,13 +1,4 @@
-import {
-  Column,
-  Entity,
-  JoinTable,
-  ManyToOne,
-  OneToMany,
-  JoinColumn,
-  ManyToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
@@ -29,7 +20,7 @@ export class StudentEntity {
   @Column()
   login: string;
 
-  @Column()
+  @Column({ unique: true })
   password: string;
 
   @Column()

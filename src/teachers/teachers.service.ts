@@ -2,7 +2,9 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
+import { UsersService } from 'src/users/users.service';
 import { TeacherEntity } from './entities/teacher.entity';
+import { UserRoles } from 'src/users/entities/user.entity';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import { GoogleDriveService } from 'src/google-drive/google-drive.service';
@@ -11,6 +13,7 @@ import { GoogleCalendarService } from 'src/google-calendar/google-calendar.servi
 @Injectable()
 export class TeachersService {
   constructor(
+    private readonly usersService: UsersService,
     private readonly googleDriveService: GoogleDriveService,
     private readonly googleCalendarService: GoogleCalendarService,
 
@@ -33,27 +36,42 @@ export class TeachersService {
     const name = `${dto.lastName} ${dto.firstName} ${dto.middleName}`;
     const folderId = await this.googleDriveService.createFolder({ name });
 
-    const newTeacher = this.repository.create({
+    const doc = this.repository.create({
+      folderId,
+      calendarId,
+      lastName: dto.lastName,
       firstName: dto.firstName,
       middleName: dto.middleName,
-      lastName: dto.lastName,
       category: { id: dto.category },
-      calendarId,
-      folderId,
     });
 
-    return this.repository.save(newTeacher);
+    const newTeacher = await this.repository.save(doc);
+
+    await this.usersService.create({
+      email: dto.email,
+      roleId: newTeacher.id,
+      password: dto.password,
+      role: UserRoles.TEACHER,
+    });
+
+    return newTeacher;
   }
 
   async update(id: number, dto: UpdateTeacherDto) {
-    const teacher = await this.repository.findOne({
-      where: { id },
-      relations: { category: true },
-    });
+    const teacher = await this.repository.findOne({ where: { id }, relations: { category: true } });
 
     if (!teacher) {
       throw new NotFoundException();
     }
+
+    const user = await this.usersService.findByEmail(dto.email);
+
+    await this.usersService.update({
+      id: teacher.id,
+      role: [UserRoles.TEACHER],
+      email: dto.email ? dto.email : user.email,
+      password: dto.password ? dto.password : user.password,
+    });
 
     const isFirstNameDifferent = teacher.firstName !== dto.firstName;
     const isMiddleNameDifferent = teacher.middleName !== dto.middleName;
@@ -95,7 +113,7 @@ export class TeachersService {
 
     if (!teacher) throw new NotFoundException('Не знайдено');
 
-    const folderId = teacher.folderId;
+    await this.usersService.delete({ id, role: UserRoles.TEACHER });
 
     const res = await this.repository.delete(id);
 
@@ -103,6 +121,7 @@ export class TeachersService {
       throw new NotFoundException('Не знайдено');
     }
 
+    const folderId = teacher.folderId;
     await this.googleDriveService.deleteFolder(folderId);
 
     return id;

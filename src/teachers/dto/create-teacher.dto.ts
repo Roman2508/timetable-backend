@@ -12,4 +12,10 @@ export class CreateTeacherDto {
 
   @ApiProperty()
   lastName: string;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty()
+  password: string;
 }
