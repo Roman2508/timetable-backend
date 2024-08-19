@@ -20,10 +20,10 @@ export class StudentEntity {
   @Column()
   login: string;
 
-  @Column({ unique: true })
+  @Column()
   password: string;
 
-  @Column()
+  @Column({ unique: true })
   email: string;
 
   @Column({
