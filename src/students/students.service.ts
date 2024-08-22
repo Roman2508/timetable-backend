@@ -4,10 +4,10 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 import { UsersService } from 'src/users/users.service';
 import { StudentEntity } from './entities/student.entity';
+import { UserRoles } from 'src/users/entities/user.entity';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { GroupEntity } from 'src/groups/entities/group.entity';
-import { UserRoles } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class StudentsService {

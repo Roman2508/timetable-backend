@@ -1,13 +1,4 @@
-import {
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Controller,
-} from '@nestjs/common';
+import { Get, Post, Body, Patch, Param, Delete, UseGuards, Controller } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 
 import { GroupsService } from './groups.service';
@@ -55,6 +46,16 @@ export class GroupsController {
   @Delete('/specialization/:id/:name')
   deleteSpecialization(@Param('id') id: string, @Param('name') name: string) {
     return this.groupsService.deleteSpecialization(+id, name);
+  }
+
+  @Patch('/increment-all-groups-course')
+  incrementAllGroupsCourse() {
+    return this.groupsService.incrementAllGroupsCourse();
+  }
+
+  @Patch('/decrement-all-groups-course')
+  decrementAllGroupsCourse() {
+    return this.groupsService.decrementAllGroupsCourse();
   }
 
   @Patch(':id')

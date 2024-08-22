@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { createQueryBuilder, getRepository, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 
@@ -159,6 +159,38 @@ export class GroupsService {
       category: { id: category },
       educationPlan: { id: educationPlan },
     });
+  }
+
+  async incrementAllGroupsCourse() {
+    const allGroups = await this.groupsRepository.find({
+      where: { isHide: false },
+      relations: { category: true },
+      select: { category: { id: true } },
+    });
+
+    const updatedGroups = Promise.all(
+      allGroups.map(async (el) => {
+        return await this.groupsRepository.save({ ...el, courseNumber: el.courseNumber + 1 });
+      }),
+    );
+
+    return updatedGroups;
+  }
+
+  async decrementAllGroupsCourse() {
+    const allGroups = await this.groupsRepository.find({
+      where: { isHide: false },
+      relations: { category: true },
+      select: { category: { id: true } },
+    });
+
+    const updatedGroups = Promise.all(
+      allGroups.map(async (el) => {
+        return await this.groupsRepository.save({ ...el, courseNumber: el.courseNumber - 1 });
+      }),
+    );
+
+    return updatedGroups;
   }
 
   // Коли видаляється група - видаляються такод всі group-load-lessons які були в цієї групи
