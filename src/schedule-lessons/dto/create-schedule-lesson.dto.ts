@@ -25,9 +25,14 @@ export class CreateScheduleLessonDto {
   @ApiProperty()
   students: number;
 
+  // Всього годин з дисципліни
   @ApiProperty()
   hours: number;
-  
+
+  // К-ть год поточного уроку (1 або 2)
+  @ApiProperty()
+  currentLessonHours: number;
+
   @ApiProperty()
   isRemote?: boolean;
 
