@@ -53,6 +53,9 @@ export class Colors {
 
   @Column({ default: '#ffffff' })
   exams: string;
+
+  @Column({ default: '#ffffff' })
+  examsConsulation: string;
 }
 
 @Entity('settings')

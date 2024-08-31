@@ -29,7 +29,7 @@ export class StreamsService {
 
   findAll() {
     return this.repository.find({
-      relations: { groups: true, lessons: true },
+      relations: { groups: true, lessons: { planSubjectId: true, unitedWith: true } },
       select: {
         groups: { id: true, name: true },
         lessons: {
@@ -42,6 +42,7 @@ export class StreamsService {
           subgroupNumber: true,
           specialization: true,
           planSubjectId: { id: true },
+          unitedWith: { id: true, name: true },
         },
       },
     });

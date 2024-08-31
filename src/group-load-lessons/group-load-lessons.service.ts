@@ -309,7 +309,7 @@ export class GroupLoadLessonsService {
           group: { id: itemId },
           semester: semesters[semester - 1],
           teacher: Not(IsNull()),
-          typeEn: And(Not('examsConsulation'), Not('metodologicalGuidance')),
+          typeEn: Not('metodologicalGuidance'), // And(Not('examsConsulation'), Not('metodologicalGuidance'))
         },
         relations: {
           group: true,
@@ -332,7 +332,7 @@ export class GroupLoadLessonsService {
         },
       });
 
-      return lessons;
+      return lessons.filter((el) => el.specialization !== 'Не вивчається');
     }
 
     if (scheduleType === 'teacher') {
@@ -340,7 +340,7 @@ export class GroupLoadLessonsService {
         where: {
           // semester,
           teacher: { id: itemId },
-          typeEn: And(Not('examsConsulation'), Not('metodologicalGuidance')),
+          typeEn: Not('metodologicalGuidance'), // And(Not('examsConsulation'), Not('metodologicalGuidance'))
         },
         relations: {
           group: true,
@@ -371,6 +371,8 @@ export class GroupLoadLessonsService {
           if (semesters.some((s) => s === el.semester)) {
             return el;
           }
+
+          if (el.specialization === 'Не вивчається') return null;
 
           return null;
         }),

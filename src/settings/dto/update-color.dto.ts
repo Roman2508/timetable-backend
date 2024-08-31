@@ -15,4 +15,7 @@ export class UpdateColorDto {
 
   @ApiProperty()
   exams: string;
+
+  @ApiProperty()
+  examsConsulation: string;
 }

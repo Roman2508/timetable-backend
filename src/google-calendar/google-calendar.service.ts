@@ -17,6 +17,7 @@ import { UpdateGoogleCalendarDto } from './dto/update-google-calendar.dto';
 import { DeleteGoogleCalendarDto } from './dto/delete-google-calendar.dto';
 import { UpdateGoogleCalendarEventDto } from './dto/update-google-calendar-event.dto';
 import { CreateGoogleCalendarEventDto } from './dto/create-google-calendar-event.dto';
+import { GoogleAuth, JSONClient } from 'google-auth-library/build/src/auth/googleauth';
 
 const TOKEN_PATH = path.join(process.cwd(), 'src/google-calendar/token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'src/google-calendar/client_secret.json');
@@ -85,6 +86,20 @@ export class GoogleCalendarService {
     }
     return client;
   }
+
+  // async authorize(): Promise<any> {
+  //   const content = await fs.readFile(CREDENTIALS_PATH);
+  //   const apiKeys = JSON.parse(content);
+
+  //   const auth = new google.auth.GoogleAuth({
+  //     credentials: apiKeys,
+  //     scopes: SCOPES,
+  //   });
+  //   return auth;
+
+  //   // const calendar = google.calendar({ version: 'v3', auth });
+  //   // return calendar;
+  // }
 
   // calendar
 

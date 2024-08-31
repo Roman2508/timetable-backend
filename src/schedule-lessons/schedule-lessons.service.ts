@@ -151,107 +151,291 @@ export class ScheduleLessonsService {
     if (dto.stream) {
       const stream = await this.streamRepository.findOne({
         where: { id: dto.stream },
-        relations: { groups: true },
-        select: { groups: { id: true, name: true } },
+        relations: { groups: true, lessons: { unitedWith: { group: true } } },
+        select: {
+          groups: { id: true, name: true },
+          lessons: {
+            id: true,
+            name: true,
+            group: { id: true, name: true },
+            unitedWith: { id: true, name: true, group: { id: true, name: true } },
+          },
+        },
       });
 
       if (!stream) {
         throw new NotFoundException('Помилка при створенні елемента розкладу для потоку');
       }
 
-      await Promise.all(
-        stream.groups.map(async (el) => {
-          const { group, teacher, auditory, stream, ...rest } = dto;
+      /*  */
+      /*  */
+      /*  */
+      const unitedLesson = stream.lessons.find((el) => el.id === dto.id);
 
-          const payload = {
-            ...rest,
-            group: { id: el.id },
-            teacher: { id: teacher },
-            stream: { id: stream },
-          };
+      if (unitedLesson) {
+        await Promise.all(
+          unitedLesson.unitedWith.map(async (el) => {
+            const { id, group, teacher, auditory, stream, ...rest } = dto;
 
-          const googleCalendarEventDto = {
-            lessonName: dto.name,
-            lessonNumber: dto.lessonNumber,
-            date: dto.date,
-            groupName: el.name,
-            subgroupNumber: dto.subgroupNumber,
-          };
+            const payload = {
+              ...rest,
+              name: el.name,
+              group: { id: el.group.id },
+              teacher: { id: teacher },
+              stream: { id: stream },
+            };
 
-          if (!auditory) {
-            // Якщо урок буде проводитись дистанційно
-            const newLesson = this.repository.create(payload);
+            let auditoryName = '';
+            let createdLesson = null;
+
+            if (!auditory) {
+              // Якщо урок буде проводитись дистанційно
+              const newLesson = this.repository.create(payload);
+
+              auditoryName = 'Дистанційно';
+              createdLesson = await this.repository.save(newLesson);
+            } else {
+              // Якщо урок буде проводитись НЕ дистанційно
+              const newLesson = this.repository.create({ ...payload, auditory: { id: auditory } });
+              await this.repository.save(newLesson);
+
+              const lesson = await this.findOneByDateAndGroup(
+                dto.date,
+                dto.lessonNumber,
+                dto.semester,
+                el.group.id,
+                dto.typeRu,
+              );
+
+              auditoryName = lesson.auditory.name;
+              createdLesson = lesson;
+            }
+
+            // const googleCalendarEventDto = {
+            //   lessonName: el.name,
+            //   lessonNumber: dto.lessonNumber,
+            //   date: dto.date,
+            //   groupName: el.group.name,
+            //   subgroupNumber: dto.subgroupNumber,
+            // };
 
             // const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
             //   ...googleCalendarEventDto,
-            //   auditoryName: 'Дистанційно',
-            //   itemId: el.id,
+            //   itemId: el.group.id,
             //   type: 'group',
+            //   auditoryName,
             // });
-
             // await this.googleCalendarService.createCalendarEvent(groupEventDto);
 
             // const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
             //   ...googleCalendarEventDto,
-            //   auditoryName: 'Дистанційно',
+            //   itemId: createdLesson.teacher.id,
+            //   type: 'teacher',
+            //   auditoryName,
+            // });
+            // await this.googleCalendarService.createCalendarEvent(teacherEventDto);
+
+            return createdLesson;
+
+            /*  */
+            /*  */
+            /*  */
+            /*  */
+
+            // const googleCalendarEventDto = {
+            //   lessonName: el.name,
+            //   lessonNumber: dto.lessonNumber,
+            //   date: dto.date,
+            //   groupName: el.group.name,
+            //   subgroupNumber: dto.subgroupNumber,
+            // };
+
+            // if (!auditory) {
+            //   // Якщо урок буде проводитись дистанційно
+            //   const newLesson = this.repository.create(payload);
+
+            //   const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
+            //     ...googleCalendarEventDto,
+            //     auditoryName: 'Дистанційно',
+            //     itemId: el.group.id,
+            //     type: 'group',
+            //   });
+
+            //   await this.googleCalendarService.createCalendarEvent(groupEventDto);
+
+            //   const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
+            //     ...googleCalendarEventDto,
+            //     auditoryName: 'Дистанційно',
+            //     itemId: newLesson.teacher.id,
+            //     type: 'teacher',
+            //   });
+
+            //   await this.googleCalendarService.createCalendarEvent(teacherEventDto);
+
+            //   return this.repository.save(newLesson);
+            // }
+
+            // // Якщо урок буде проводитись НЕ дистанційно
+            // const newLesson = this.repository.create({
+            //   ...payload,
+            //   auditory: { id: auditory },
+            // });
+
+            // await this.repository.save(newLesson);
+
+            // const createdLesson = await this.findOneByDateAndGroup(
+            //   dto.date,
+            //   dto.lessonNumber,
+            //   dto.semester,
+            //   el.group.id,
+            //   dto.typeRu,
+            // );
+
+            // const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
+            //   ...googleCalendarEventDto,
+            //   auditoryName: createdLesson.auditory.name,
+            //   itemId: el.group.id,
+            //   type: 'group',
+            // });
+
+            // this.googleCalendarService.createCalendarEvent(groupEventDto);
+
+            // const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
+            //   ...googleCalendarEventDto,
+            //   auditoryName: createdLesson.auditory.name,
             //   itemId: newLesson.teacher.id,
             //   type: 'teacher',
             // });
 
-            // await this.googleCalendarService.createCalendarEvent(teacherEventDto);
+            // this.googleCalendarService.createCalendarEvent(teacherEventDto);
 
-            return this.repository.save(newLesson);
-          }
+            // return createdLesson;
+          }),
+        );
 
-          // Якщо урок буде проводитись НЕ дистанційно
-          const newLesson = this.repository.create({
-            ...payload,
-            auditory: { id: auditory },
-          });
+        const newLesson = await this.findOneByDateAndGroup(
+          dto.date,
+          dto.lessonNumber,
+          dto.semester,
+          dto.group,
+          dto.typeRu,
+        );
 
-          await this.repository.save(newLesson);
+        return newLesson;
+      }
 
-          const createdLesson = await this.findOneByDateAndGroup(
-            dto.date,
-            dto.lessonNumber,
-            dto.semester,
-            el.id,
-            dto.typeRu,
-          );
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      // await Promise.all(
+      //   stream.groups.map(async (el) => {
+      //     const { group, teacher, auditory, stream, ...rest } = dto;
 
-          // const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
-          //   ...googleCalendarEventDto,
-          //   auditoryName: createdLesson.auditory.name,
-          //   itemId: el.id,
-          //   type: 'group',
-          // });
+      //     const payload = {
+      //       ...rest,
+      //       group: { id: el.id },
+      //       teacher: { id: teacher },
+      //       stream: { id: stream },
+      //     };
 
-          // this.googleCalendarService.createCalendarEvent(groupEventDto);
+      //     const googleCalendarEventDto = {
+      //       lessonName: dto.name,
+      //       lessonNumber: dto.lessonNumber,
+      //       date: dto.date,
+      //       groupName: el.name,
+      //       subgroupNumber: dto.subgroupNumber,
+      //     };
 
-          // const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
-          //   ...googleCalendarEventDto,
-          //   auditoryName: createdLesson.auditory.name,
-          //   itemId: newLesson.teacher.id,
-          //   type: 'teacher',
-          // });
+      //     if (!auditory) {
+      //       // Якщо урок буде проводитись дистанційно
+      //       const newLesson = this.repository.create(payload);
 
-          // this.googleCalendarService.createCalendarEvent(teacherEventDto);
+      //       const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
+      //         ...googleCalendarEventDto,
+      //         auditoryName: 'Дистанційно',
+      //         itemId: el.id,
+      //         type: 'group',
+      //       });
 
-          return createdLesson;
-        }),
-      );
+      //       await this.googleCalendarService.createCalendarEvent(groupEventDto);
 
-      const newLesson = await this.findOneByDateAndGroup(
-        dto.date,
-        dto.lessonNumber,
-        dto.semester,
-        dto.group,
-        dto.typeRu,
-      );
+      //       const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
+      //         ...googleCalendarEventDto,
+      //         auditoryName: 'Дистанційно',
+      //         itemId: newLesson.teacher.id,
+      //         type: 'teacher',
+      //       });
 
-      return newLesson;
+      //       await this.googleCalendarService.createCalendarEvent(teacherEventDto);
+
+      //       return this.repository.save(newLesson);
+      //     }
+
+      //     // Якщо урок буде проводитись НЕ дистанційно
+      //     const newLesson = this.repository.create({
+      //       ...payload,
+      //       auditory: { id: auditory },
+      //     });
+
+      //     await this.repository.save(newLesson);
+
+      //     const createdLesson = await this.findOneByDateAndGroup(
+      //       dto.date,
+      //       dto.lessonNumber,
+      //       dto.semester,
+      //       el.id,
+      //       dto.typeRu,
+      //     );
+
+      //     const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
+      //       ...googleCalendarEventDto,
+      //       auditoryName: createdLesson.auditory.name,
+      //       itemId: el.id,
+      //       type: 'group',
+      //     });
+
+      //     this.googleCalendarService.createCalendarEvent(groupEventDto);
+
+      //     const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
+      //       ...googleCalendarEventDto,
+      //       auditoryName: createdLesson.auditory.name,
+      //       itemId: newLesson.teacher.id,
+      //       type: 'teacher',
+      //     });
+
+      //     this.googleCalendarService.createCalendarEvent(teacherEventDto);
+
+      //     return createdLesson;
+      //   }),
+      // );
+
+      // const newLesson = await this.findOneByDateAndGroup(
+      //   dto.date,
+      //   dto.lessonNumber,
+      //   dto.semester,
+      //   dto.group,
+      //   dto.typeRu,
+      // );
+
+      // return newLesson;
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
+      /* ?????????????????????????? */
     }
 
+    // Якщо дисципліна не об'єднана в потік
     const { group, teacher, auditory, stream, ...rest } = dto;
 
     const payload = this.repository.create({
@@ -277,13 +461,15 @@ export class ScheduleLessonsService {
 
     const newLesson = await this.findOneByDateAndGroup(dto.date, dto.lessonNumber, dto.semester, dto.group, dto.typeRu);
 
+    const auditoryName = newLesson.auditory ? newLesson.auditory.name : 'Дистанційно';
+
     // const createDtoPayload = {
     //   lessonName: newLesson.name,
     //   lessonNumber: newLesson.lessonNumber,
     //   date: newLesson.date,
     //   groupName: newLesson.group.name,
     //   subgroupNumber: newLesson.subgroupNumber,
-    //   auditoryName: newLesson.auditory.name,
+    //   auditoryName,
     // };
 
     // const teacherEventDto = await this.googleCalendarService.getCalendarEventDto({
@@ -332,7 +518,7 @@ export class ScheduleLessonsService {
       lessons.map(async (lesson) => {
         const date = customDayjs(lesson.date, { format: 'MM.DD.YYYY' }).add(weekDifference, 'week').toDate();
 
-        const { id, group, teacher, auditory, stream, ...rest } = lesson;
+        const { group, teacher, auditory, stream, ...rest } = lesson;
 
         const newLesson = await this.create({
           ...rest,
@@ -378,7 +564,7 @@ export class ScheduleLessonsService {
       lessons.map(async (lesson) => {
         const date = customDayjs(lesson.date, { format: 'MM.DD.YYYY' }).add(daysDifference, 'day').toDate();
 
-        const { id, group, teacher, auditory, stream, ...rest } = lesson;
+        const { group, teacher, auditory, stream, ...rest } = lesson;
 
         const newLesson = await this.create({
           ...rest,
@@ -715,8 +901,8 @@ export class ScheduleLessonsService {
 
       const streamLessonsInCurrentDate = await this.repository.find({
         where: {
-          name: lesson.name,
-          semester: lesson.semester,
+          // name: lesson.name,
+          // semester: lesson.semester,
           date: currentsLessonDate.date,
           stream: { id: lesson.stream.id },
           lessonNumber: currentsLessonDate.lessonNumber,
