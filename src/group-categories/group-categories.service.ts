@@ -27,6 +27,7 @@ export class GroupCategoriesService {
           isHide: true,
           students: { id: true },
           courseNumber: true,
+          yearOfAdmission: true,
           category: { id: true, name: true },
         },
       },
