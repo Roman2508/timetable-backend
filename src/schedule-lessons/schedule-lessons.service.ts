@@ -35,9 +35,21 @@ export class ScheduleLessonsService {
     semester: number,
     groupId: number,
     typeRu: 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ',
+    subgroupNumber?: number,
+    streamId?: number,
   ) {
+    const filter: any = { date, lessonNumber, semester, typeRu, group: { id: groupId } };
+
+    if (subgroupNumber) {
+      filter.subgroupNumber = subgroupNumber;
+    }
+
+    if (streamId) {
+      filter.stream = { id: streamId };
+    }
+
     return this.repository.findOne({
-      where: { date, lessonNumber, semester, typeRu, group: { id: groupId } },
+      where: filter,
       relations: {
         group: true,
         teacher: true,
@@ -135,6 +147,19 @@ export class ScheduleLessonsService {
 
     if (lessonsOverlay) {
       throw new BadRequestException('Можливі накладки занять');
+    }
+
+    const auditoryOverlay = await this.repository.findOne({
+      where: {
+        date: dto.date,
+        lessonNumber: dto.lessonNumber,
+      },
+      relations: { auditory: true },
+      select: { auditory: { id: true } },
+    });
+
+    if (auditoryOverlay && auditoryOverlay.auditory.id === dto.auditory) {
+      throw new BadRequestException('Помилка! Аудиторія зайнята');
     }
 
     // Перевіряю чи правильно передані дані
@@ -459,7 +484,15 @@ export class ScheduleLessonsService {
       await this.repository.save(newLesson);
     }
 
-    const newLesson = await this.findOneByDateAndGroup(dto.date, dto.lessonNumber, dto.semester, dto.group, dto.typeRu);
+    const newLesson = await this.findOneByDateAndGroup(
+      dto.date,
+      dto.lessonNumber,
+      dto.semester,
+      dto.group,
+      dto.typeRu,
+      dto.subgroupNumber,
+      dto.stream,
+    );
 
     const auditoryName = newLesson.auditory ? newLesson.auditory.name : 'Дистанційно';
 
@@ -681,7 +714,7 @@ export class ScheduleLessonsService {
 
       const streamLessonsInCurrentDate = await this.repository.find({
         where: {
-          name: lesson.name,
+          // name: lesson.name,
           semester: lesson.semester,
           date: currentsLessonDate.date,
           stream: { id: lesson.stream.id },
@@ -735,7 +768,7 @@ export class ScheduleLessonsService {
         }),
       );
 
-      // Якщо передано id аудиторії і isRemote = false - становлюю аудиторію для всіх груп в потоці
+      // Якщо передано id аудиторії і isRemote = false - встановлюю аудиторію для всіх груп в потоці
       if (dto.auditoryId && !dto.isRemote) {
         Promise.all(
           streamLessonsInCurrentDate.map(async (el) => {
