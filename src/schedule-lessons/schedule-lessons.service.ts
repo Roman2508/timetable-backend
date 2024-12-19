@@ -99,7 +99,7 @@ export class ScheduleLessonsService {
     const end = semesterEnd && customDayjs(semesterEnd, 'MM.DD.YYYY').toDate();
     const date = start && end ? Between(start, end) : undefined;
 
-    return this.repository.find({
+    const lessons = await this.repository.find({
       where: {
         [type]: { id },
         // semester: semester ? semester : undefined,
@@ -130,6 +130,78 @@ export class ScheduleLessonsService {
         stream: { id: true, name: true, groups: { id: true, name: true } },
       },
     });
+
+    // Якщо тип розкладу який потрібно отримати це група або аудиторія - просто повертаю список виставленого розкладу
+    if (type !== 'teacher') {
+      return lessons;
+    }
+
+    // Якщо тип розкладу викладач - повертаю ще й заміни викладача
+    const replacementLessons = await this.repository.find({
+      where: {
+        replacement: { id },
+        // semester: semester ? semester : undefined,
+        date,
+      },
+      relations: {
+        group: true,
+        teacher: true,
+        stream: { groups: true },
+        auditory: true,
+        replacement: true,
+      },
+      select: {
+        group: { id: true, name: true },
+        teacher: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+        replacement: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+        },
+        auditory: { id: true, name: true },
+        stream: { id: true, name: true, groups: { id: true, name: true } },
+      },
+    });
+
+    return [...lessons, ...replacementLessons];
+
+    // return this.repository.find({
+    //   where: {
+    //     [type]: { id },
+    //     // semester: semester ? semester : undefined,
+    //     date,
+    //   },
+    //   relations: {
+    //     group: true,
+    //     teacher: true,
+    //     stream: { groups: true },
+    //     auditory: true,
+    //     replacement: true,
+    //   },
+    //   select: {
+    //     group: { id: true, name: true },
+    //     teacher: {
+    //       id: true,
+    //       firstName: true,
+    //       middleName: true,
+    //       lastName: true,
+    //     },
+    //     replacement: {
+    //       id: true,
+    //       firstName: true,
+    //       middleName: true,
+    //       lastName: true,
+    //     },
+    //     auditory: { id: true, name: true },
+    //     stream: { id: true, name: true, groups: { id: true, name: true } },
+    //   },
+    // });
   }
 
   async create(dto: CreateScheduleLessonDto) {
@@ -628,7 +700,7 @@ export class ScheduleLessonsService {
 
     const replacementTeacher = updatedLesson.replacement;
 
-    return replacementTeacher;
+    return { id: dto.lessonId, teacher: replacementTeacher };
   }
 
   async deleteReplacement(id: number) {
@@ -897,13 +969,17 @@ export class ScheduleLessonsService {
     const lessons = await this.repository.find({
       // @ts-ignore
       where: { date, lessonNumber },
-      relations: { teacher: true },
-      select: { teacher: { id: true, firstName: true, lastName: true, middleName: true } },
+      relations: { teacher: true, replacement: true },
+      select: {
+        teacher: { id: true, firstName: true, lastName: true, middleName: true },
+        replacement: { id: true, firstName: true, lastName: true, middleName: true },
+      },
     });
 
-    const auditories = lessons.map((el) => el.teacher);
+    const busyTeachers = lessons.map((el) => el.teacher);
+    const busyReplacementTeachers = lessons.map((el) => el.replacement).filter((el) => !!el);
 
-    return auditories;
+    return [...busyTeachers, ...busyReplacementTeachers];
   }
 
   async remove(id: number) {

@@ -81,15 +81,16 @@ export class GroupsService {
   async create(dto: CreateGroupDto) {
     const { category, educationPlan, ...rest } = dto;
 
-    const calendarId = await this.googleCalendarService.createCalendar({
-      owner: dto.name,
-    });
+    // const calendarId = await this.googleCalendarService.createCalendar({
+    //   owner: dto.name,
+    // });
 
     const newGroup = this.groupsRepository.create({
       ...rest,
       educationPlan: { id: educationPlan },
       category: { id: category },
-      calendarId,
+      calendarId: 'https://calendar.google.com',
+      // calendarId,
     });
 
     const group = await this.groupsRepository.save(newGroup);

@@ -1,15 +1,15 @@
-import { IsNotEmpty } from 'class-validator';
-import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
-import { GroupEntity } from 'src/groups/entities/group.entity';
 import {
   Column,
   Entity,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
   OneToMany,
+  JoinColumn,
+  ManyToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { IsNotEmpty } from 'class-validator';
+
+import { GroupEntity } from 'src/groups/entities/group.entity';
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
 @Entity('streams')
 export class StreamEntity {
