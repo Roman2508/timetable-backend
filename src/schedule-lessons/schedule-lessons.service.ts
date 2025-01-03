@@ -268,7 +268,7 @@ export class ScheduleLessonsService {
       /*  */
       /*  */
       const unitedLesson = stream.lessons.find((el) => el.id === dto.id);
-
+      alert('скоріше за все (при копіюванні) проблема в unitedLesson. el.id === dto.id не співпадають');
       if (unitedLesson) {
         await Promise.all(
           unitedLesson.unitedWith.map(async (el) => {
@@ -533,14 +533,23 @@ export class ScheduleLessonsService {
     }
 
     // Якщо дисципліна не об'єднана в потік
-    const { group, teacher, auditory, stream, ...rest } = dto;
+    const { group, teacher, auditory, stream, id, ...rest } = dto;
 
-    const payload = this.repository.create({
+    // ХЗ чого я так зробив. Розібратись!!!!
+    // ХЗ чого я так зробив. Розібратись!!!!
+    // ХЗ чого я так зробив. Розібратись!!!!
+    // const payload = this.repository.create({
+    //   ...rest,
+    //   group: { id: group },
+    //   teacher: { id: teacher },
+    //   stream: { id: stream },
+    // });
+    const payload = {
       ...rest,
       group: { id: group },
       teacher: { id: teacher },
       stream: { id: stream },
-    });
+    };
 
     if (auditory) {
       // Якщо урок буде проводитись НЕ дистанційно
