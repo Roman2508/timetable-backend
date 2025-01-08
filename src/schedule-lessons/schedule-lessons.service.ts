@@ -13,6 +13,7 @@ import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
 import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
 import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
 import { FindAllLessonDatesForTheSemesterDto } from './dto/find-lesson-dates-for-the-semester.dto';
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
 @Injectable()
 export class ScheduleLessonsService {
@@ -24,6 +25,9 @@ export class ScheduleLessonsService {
 
     @InjectRepository(StreamEntity)
     private streamRepository: Repository<StreamEntity>,
+
+    @InjectRepository(GroupLoadLessonEntity)
+    private groupLoadRepository: Repository<GroupLoadLessonEntity>,
 
     @InjectRepository(SettingsEntity)
     private settingsRepository: Repository<SettingsEntity>,
@@ -268,7 +272,11 @@ export class ScheduleLessonsService {
       /*  */
       /*  */
       const unitedLesson = stream.lessons.find((el) => el.id === dto.id);
-      alert('скоріше за все (при копіюванні) проблема в unitedLesson. el.id === dto.id не співпадають');
+      console.log('скоріше за все (при копіюванні) проблема в unitedLesson. el.id === dto.id не співпадають');
+      console.log('stream.lessons', stream.lessons);
+      // console.log(stream);
+      console.log('dto', dto);
+      console.log('unitedLesson', unitedLesson);
       if (unitedLesson) {
         await Promise.all(
           unitedLesson.unitedWith.map(async (el) => {
@@ -609,7 +617,8 @@ export class ScheduleLessonsService {
 
     const copyToStart = customDayjs(dto.copyToStartDay, { format: 'MM.DD.YYYY' });
 
-    if (!copyFromStart.isValid() || !copyToStart.isValid) {
+    if (!copyFromStart.isValid() || !copyToStart.isValid()) {
+      // if (!copyFromStart.isValid() || !copyToStart.isValid) {
       throw new BadRequestException('Не вірний формат дати');
     }
 
@@ -630,12 +639,26 @@ export class ScheduleLessonsService {
 
     await Promise.all(
       lessons.map(async (lesson) => {
+        // Заміняю id на id з таблиці group_load_lessons щоб правильно виставлялись дисц. потоку які копіюються (copyWeekOfSchedule)
+        const groupLoadLesson = await this.groupLoadRepository.findOne({
+          where: {
+            group: { id: lesson.group.id },
+            name: lesson.name,
+            semester: lesson.semester,
+            subgroupNumber: lesson.subgroupNumber,
+            typeRu: lesson.typeRu,
+            specialization: lesson.specialization,
+            stream: lesson.stream ? { id: lesson.stream.id } : null,
+          },
+        });
+
         const date = customDayjs(lesson.date, { format: 'MM.DD.YYYY' }).add(weekDifference, 'week').toDate();
 
         const { group, teacher, auditory, stream, ...rest } = lesson;
 
         const newLesson = await this.create({
           ...rest,
+          id: groupLoadLesson ? groupLoadLesson.id : lesson.id,
           group: group.id,
           stream: stream ? stream.id : null,
           teacher: teacher.id,

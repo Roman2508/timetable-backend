@@ -9,6 +9,7 @@ import { ScheduleLessonsController } from './schedule-lessons.controller';
 import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
 import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
 import { GoogleCalendarModule } from 'src/google-calendar/google-calendar.module';
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
 @Module({
   controllers: [ScheduleLessonsController],
@@ -16,6 +17,7 @@ import { GoogleCalendarModule } from 'src/google-calendar/google-calendar.module
   imports: [
     TypeOrmModule.forFeature([
       ScheduleLessonsEntity,
+      GroupLoadLessonEntity,
       SettingsEntity,
       StreamEntity,
       GroupEntity,
