@@ -37,3 +37,11 @@ lerna-debug.log*
 # Project files
 */client_secret.json
 */token.json
+
+# Google config
+/src/google-admin/service-account-key.json
+
+/src/google-calender/client_secret.json
+/src/google-calender/token.json
+
+/src/google-drive/client_secret.json

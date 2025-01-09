@@ -25,6 +25,14 @@ export class StudentsService {
     // Можна передавати ID групи або ім'я циклової та групу в такому форматі: CategoryName/GroupName
     if (typeof dto.group === 'number') {
       const student = this.repository.create({ ...dto, group: { id: dto.group } });
+
+      await this.usersService.create({
+        email: dto.email,
+        password: dto.password,
+        role: UserRoles.STUDENT,
+        roleId: student.id,
+      });
+
       return this.repository.save(student);
     }
 
