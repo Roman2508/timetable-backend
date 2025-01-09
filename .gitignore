@@ -39,12 +39,9 @@ lerna-debug.log*
 # */token.json
 
 # Google config #
-**/google-admin/service-account-key.json
-
-**/google-calender/client_secret.json
-**/google-calender/token.json
-
-**/google-drive/client_secret.json
+**/google-admin/*.json
+**/google-calendar/*.json
+**/google-drive/*.json
 
 # /src/google-admin/service-account-key.json
 
