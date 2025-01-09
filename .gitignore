@@ -35,8 +35,8 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 # Project files
-*/client_secret.json
-*/token.json
+# */client_secret.json
+# */token.json
 
 # Google config
 */service-account-key.json
