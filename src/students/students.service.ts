@@ -22,9 +22,22 @@ export class StudentsService {
   ) {}
 
   async create(dto: CreateStudentDto) {
+    let existedStudent = await this.findByEmail(dto.email);
+    if (existedStudent) {
+      throw new BadRequestException('Студент з таким email вже існує');
+    }
+
+    existedStudent = await this.findByLogin(dto.login);
+    if (existedStudent) {
+      throw new BadRequestException('Студент з таким login вже існує');
+    }
+
     // Можна передавати ID групи або ім'я циклової та групу в такому форматі: CategoryName/GroupName
     if (typeof dto.group === 'number') {
-      const student = this.repository.create({ ...dto, group: { id: dto.group } });
+      console.log(dto);
+      const doc = this.repository.create({ ...dto, group: { id: dto.group } });
+
+      const student = await this.repository.save(doc);
 
       await this.usersService.create({
         email: dto.email,
@@ -33,7 +46,7 @@ export class StudentsService {
         roleId: student.id,
       });
 
-      return this.repository.save(student);
+      return student;
     }
 
     const groupData = dto.group.split('/');
@@ -64,6 +77,26 @@ export class StudentsService {
       relations: { group: true },
       select: { group: { id: true, name: true } },
     });
+  }
+
+  async findByEmail(email: string) {
+    const student = await this.repository.findOne({ where: { email } });
+
+    if (student) {
+      throw new BadRequestException('Студент з таким email вже існує');
+    }
+
+    return student;
+  }
+
+  async findByLogin(login: string) {
+    const student = await this.repository.findOne({ where: { login } });
+
+    if (student) {
+      throw new BadRequestException('Студент з таким login вже існує');
+    }
+
+    return student;
   }
 
   async update(id: number, dto: UpdateStudentDto) {

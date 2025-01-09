@@ -28,7 +28,6 @@ export class UsersService {
       where: {
         role: dto.role,
         email: dto.email,
-        // role: ILike(`%${name}%`), // Case-insensitive search
       },
     });
   }
