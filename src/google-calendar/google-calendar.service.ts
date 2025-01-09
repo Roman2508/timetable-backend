@@ -299,7 +299,7 @@ export class GoogleCalendarService {
 }
 
 /*
----
+
       SettingsEntity {
         id: 1,
         firstSemesterStart: '09.01.2023',
