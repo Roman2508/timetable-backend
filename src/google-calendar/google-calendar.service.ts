@@ -1,8 +1,10 @@
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 
 import { google } from 'googleapis';
 import { Repository } from 'typeorm';
+import { JWT } from 'google-auth-library';
 import { InjectRepository } from '@nestjs/typeorm';
 import { customDayjs } from 'src/utils/customDayjs';
 import { authenticate } from '@google-cloud/local-auth';
@@ -21,14 +23,18 @@ import { GoogleAuth, JSONClient } from 'google-auth-library/build/src/auth/googl
 
 const TOKEN_PATH = path.join(process.cwd(), 'src/google-calendar/token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'src/google-calendar/client_secret.json');
+
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/meetings',
   'https://www.googleapis.com/auth/meetings.space.created',
 ];
+const KEY_FILE = path.join(process.cwd(), 'src/google-calendar/service-account-key.json');
 
 @Injectable()
 export class GoogleCalendarService {
+  private googleClient: any;
+
   constructor(
     @InjectRepository(SettingsEntity)
     private settingsRepository: Repository<SettingsEntity>,
@@ -38,7 +44,19 @@ export class GoogleCalendarService {
 
     @InjectRepository(GroupEntity)
     private groupRepository: Repository<GroupEntity>,
-  ) {}
+  ) {
+    const key = JSON.parse(fsSync.readFileSync(KEY_FILE, 'utf8'));
+
+    const client = new JWT({
+      email: key.client_email,
+      key: key.private_key,
+      scopes: SCOPES,
+      subject: 'admin.calendar@pharm.zt.ua',
+    });
+
+    // @ts-ignore
+    this.googleClient = google.calendar({ version: 'v3', auth: client });
+  }
 
   // auth
   // ???????????????????????????????????????????????????????????
@@ -104,19 +122,20 @@ export class GoogleCalendarService {
   // calendar
 
   async getCalendar() {
-    const auth = await this.authorize();
-    const calendar = google.calendar({ version: 'v3', auth });
-
-    const res = await calendar.calendarList.list();
+    const res = await this.googleClient.calendarList.list();
     return res.data;
+
+    // Старий варіант авторизації: (Після тестування нового цей видалити)
+    // const auth = await this.authorize();
+    // const calendar = google.calendar({ version: 'v3', auth });
+
+    // const res = await calendar.calendarList.list();
+    // return res.data;
   }
 
   // return new calendar id
   async createCalendar(dto: CreateGoogleCalendarDto): Promise<string> {
-    const auth = await this.authorize();
-    const calendar = google.calendar({ version: 'v3', auth });
-
-    const res = await calendar.calendars.insert({
+    const res = await this.googleClient.calendars.insert({
       requestBody: { summary: `Розклад ${dto.owner}`, timeZone: 'Europe/Kiev' },
     });
 
@@ -125,13 +144,20 @@ export class GoogleCalendarService {
     }
 
     return res.data.id;
+    // Старий варіант авторизації: (Після тестування нового цей видалити)
+    // const auth = await this.authorize();
+    // const calendar = google.calendar({ version: 'v3', auth });
+    // const res = await calendar.calendars.insert({
+    //   requestBody: { summary: `Розклад ${dto.owner}`, timeZone: 'Europe/Kiev' },
+    // });
+    // if (!res.data.id) {
+    //   throw new BadRequestException('Помилка при створенні календаря');
+    // }
+    // return res.data.id;
   }
 
   async updateCalendar(dto: UpdateGoogleCalendarDto) {
-    const auth = await this.authorize();
-    const calendar = google.calendar({ version: 'v3', auth });
-
-    const res = await calendar.calendars.patch({
+    const res = await this.googleClient.calendars.patch({
       calendarId: dto.calendarId,
       requestBody: { summary: `Розклад ${dto.owner}` },
     });
@@ -139,23 +165,38 @@ export class GoogleCalendarService {
     if (!res.data.id) {
       throw new BadRequestException('Помилка при оновленні календаря');
     }
+    // Старий варіант авторизації: (Після тестування нового цей видалити)
+    // const auth = await this.authorize();
+    // const calendar = google.calendar({ version: 'v3', auth });
+
+    // const res = await calendar.calendars.patch({
+    //   calendarId: dto.calendarId,
+    //   requestBody: { summary: `Розклад ${dto.owner}` },
+    // });
+
+    // if (!res.data.id) {
+    //   throw new BadRequestException('Помилка при оновленні календаря');
+    // }
   }
 
   async deleteCalendar(dto: DeleteGoogleCalendarDto) {
-    const auth = await this.authorize();
-    const calendar = google.calendar({ version: 'v3', auth });
-
-    const res = await calendar.calendars.delete({ calendarId: dto.calendarId });
+    const res = await this.googleClient.calendars.delete({ calendarId: dto.calendarId });
     return res.data;
+    // Старий варіант авторизації: (Після тестування нового цей видалити)
+    // const auth = await this.authorize();
+    // const calendar = google.calendar({ version: 'v3', auth });
+
+    // const res = await calendar.calendars.delete({ calendarId: dto.calendarId });
+    // return res.data;
   }
 
   // calendar events
   async createCalendarEvent(dto: CreateGoogleCalendarEventDto) {
-    const auth = await this.authorize();
-    const calendar = google.calendar({ version: 'v3', auth });
+    // const auth = await this.authorize();
+    // const calendar = google.calendar({ version: 'v3', auth });
 
-    const response = await calendar.events.insert({
-      auth: auth,
+    const res = await this.googleClient.events.insert({
+      // auth: auth,
       calendarId: dto.calendarId,
       // calendarId: 'primary', // указывает на основной календарь этого пользователя
       conferenceDataVersion: 1,
@@ -168,12 +209,61 @@ export class GoogleCalendarService {
       },
     });
 
-    return response.data;
+    return res.data;
+    // Старий варіант авторизації: (Після тестування нового цей видалити)
+    // const auth = await this.authorize();
+    // const calendar = google.calendar({ version: 'v3', auth });
+
+    // const response = await calendar.events.insert({
+    //   auth: auth,
+    //   calendarId: dto.calendarId,
+    //   // calendarId: 'primary', // указывает на основной календарь этого пользователя
+    //   conferenceDataVersion: 1,
+    //   requestBody: {
+    //     summary: dto.summary,
+    //     description: dto.description,
+    //     location: dto.location,
+    //     start: { dateTime: dto.startTime, timeZone: 'Europe/Kyiv' },
+    //     end: { dateTime: dto.endTime, timeZone: 'Europe/Kyiv' },
+    //   },
+    // });
+
+    // return response.data;
   }
 
   // Оновити аудиторію
   async updateCalendarEvent(dto: UpdateGoogleCalendarEventDto) {
-    const auth = await this.authorize();
+    const response = await this.googleClient.events.get({
+      calendarId: dto.calendarId,
+      eventId: '',
+    });
+
+    // @ts-ignore
+    const existedEvent = response.data.items.filter((el) => {
+      return el.summary === dto.summary && el.description === dto.description;
+    });
+
+    if (!existedEvent.length) return;
+
+    await this.googleClient.events.update({
+      calendarId: dto.calendarId, // Идентификатор календаря
+      eventId: existedEvent[0].id, // Идентификатор события, которое нужно хотите обновить
+      requestBody: {
+        summary: existedEvent[0].summary,
+        description: existedEvent[0].description,
+        location: dto.location,
+        start: {
+          dateTime: existedEvent[0].start.dateTime,
+          timeZone: 'Europe/Kiev',
+        },
+        end: {
+          dateTime: existedEvent[0].end.dateTime,
+          timeZone: 'Europe/Kiev',
+        },
+      },
+    });
+    // Старий варіант авторизації: (Після тестування нового цей видалити)
+    /* const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
     const response = await calendar.events.get({
@@ -204,11 +294,22 @@ export class GoogleCalendarService {
           timeZone: 'Europe/Kiev',
         },
       },
-    });
+    }); */
   }
 
   async findCalendarEvent(calendarId: string, summary: string, description: string): Promise<string> {
-    const auth = await this.authorize();
+    const res = await this.googleClient.events.list({ calendarId });
+
+    if (!res.data.items) return;
+
+    const eventsList = res.data.items;
+
+    const event = eventsList.find((e) => e.summary === summary && e.description === description);
+    if (!event) return;
+
+    return event.id;
+    // Старий варіант авторизації: (Після тестування нового цей видалити)
+    /* const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
     const res = await calendar.events.list({ calendarId });
@@ -220,11 +321,20 @@ export class GoogleCalendarService {
     const event = eventsList.find((e) => e.summary === summary && e.description === description);
     if (!event) return;
 
-    return event.id;
+    return event.id; */
   }
 
   async deleteCalendarEvent(calendarId: string, dto: FindCalendarEventDto) {
-    const auth = await this.authorize();
+    const eventDto = await this.getCalendarEventDto(dto);
+
+    const eventId = await this.findCalendarEvent(calendarId, eventDto.summary, eventDto.description);
+
+    if (!calendarId || !eventId) return;
+
+    const res = await this.googleClient.events.delete({ calendarId, eventId });
+    return res.data;
+    // Старий варіант авторизації: (Після тестування нового цей видалити)
+    /* const auth = await this.authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
     const eventDto = await this.getCalendarEventDto(dto);
@@ -234,7 +344,7 @@ export class GoogleCalendarService {
     if (!calendarId || !eventId) return;
 
     const res = await calendar.events.delete({ calendarId, eventId });
-    return res.data;
+    return res.data; */
   }
 
   async getCalendarEventDto(dto: FindCalendarEventDto) {
@@ -345,3 +455,36 @@ export class GoogleCalendarService {
 //     ],
 //   },
 // };
+
+// {
+//   kind: 'admin#directory#user',
+//   id: '111079848888783784505',
+//   etag: '"g3-uukzdDYX7mcsQqDSmVT-0S6NlDP7HhGVb5s3jADM/VvkIwZiqJvf3bBHiaBaW8qs4M9g"',
+//   primaryEmail: 'test.student@pharm.zt.ua',
+//   name: {
+//     givenName: 'Студент',
+//     familyName: 'ЖБФФК',
+//     fullName: 'Студент ЖБФФК'
+//   },
+//   isAdmin: false,
+//   isDelegatedAdmin: false,
+//   lastLoginTime: '2025-01-13T06:52:32.000Z',
+//   creationTime: '2024-01-24T11:30:47.000Z',
+//   agreedToTerms: true,
+//   suspended: false,
+//   archived: false,
+//   changePasswordAtNextLogin: false,
+//   ipWhitelisted: false,
+//   emails: [
+//     { address: 'test.student@pharm.zt.ua', primary: true },
+//     { address: 'test.student@pharm.zt.ua.test-google-a.com' }
+//   ],
+//   languages: [ { languageCode: 'uk', preference: 'preferred' } ],
+//   nonEditableAliases: [ 'test.student@pharm.zt.ua.test-google-a.com' ],
+//   customerId: 'C03l794bc',
+//   orgUnitPath: '/Студенти/Відраховані',
+//   isMailboxSetup: true,
+//   isEnrolledIn2Sv: false,
+//   isEnforcedIn2Sv: false,
+//   includeInGlobalAddressList: true
+// }

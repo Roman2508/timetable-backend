@@ -75,22 +75,23 @@ export class GroupsService {
     });
 
     if (!group) throw new NotFoundException('Групу не знайдено');
-    return group;
+    const students = group.students.filter((el) => el.status === 'Навчається');
+    return { ...group, students };
   }
 
   async create(dto: CreateGroupDto) {
     const { category, educationPlan, ...rest } = dto;
 
-    // const calendarId = await this.googleCalendarService.createCalendar({
-    //   owner: dto.name,
-    // });
+    const calendarId = await this.googleCalendarService.createCalendar({
+      owner: dto.name,
+    });
 
     const newGroup = this.groupsRepository.create({
       ...rest,
       educationPlan: { id: educationPlan },
       category: { id: category },
-      calendarId: 'https://calendar.google.com',
-      // calendarId,
+      // calendarId: 'https://calendar.google.com',
+      calendarId,
     });
 
     const group = await this.groupsRepository.save(newGroup);

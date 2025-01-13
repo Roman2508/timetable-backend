@@ -280,6 +280,7 @@ export class GroupLoadLessonsService {
         group: true,
         teacher: true,
         planSubjectId: true,
+        stream: { groups: true },
       },
       select: {
         id: true,
@@ -291,6 +292,7 @@ export class GroupLoadLessonsService {
         planSubjectId: { id: true },
         group: { id: true, name: true },
         teacher: { id: true, firstName: true, lastName: true, middleName: true },
+        stream: { id: true, name: true, groups: { id: true, name: true } },
       },
     });
   }
@@ -578,7 +580,8 @@ export class GroupLoadLessonsService {
     });
 
     if (!lessons) throw new NotFoundException('Дисципліна не знайдена');
-    return lessons.students;
+    const students = lessons.students.filter((el) => el.status === 'Навчається');
+    return students;
   }
 
   async addStudentToLesson(dto: AddStudentToLessonDto) {

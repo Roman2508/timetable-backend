@@ -33,6 +33,83 @@ export class ScheduleLessonsService {
     private settingsRepository: Repository<SettingsEntity>,
   ) {}
 
+  // Create Teacher and Group events in Google Calendar
+  // using in "this.create()" method
+  async createGoogleEvents(
+    lessonName: string,
+    lessonNumber: number,
+    date: Date,
+    groupName: string,
+    subgroupNumber: number,
+    auditoryName: string,
+    teacherId: number,
+    groupId: number,
+  ) {
+    // gDto === groupDto, tDto === teacherDto
+    const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName };
+
+    const tDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: teacherId, type: 'teacher' });
+    await this.googleCalendarService.createCalendarEvent(tDto);
+
+    const gDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: groupId, type: 'group' });
+    await this.googleCalendarService.createCalendarEvent(gDto);
+  }
+
+  // Update auditory in Teacher and Group events in Google Calendar
+  // using in "this.update()" method
+  async updateGoogleEvents(
+    lessonName: string,
+    lessonNumber: number,
+    date: Date,
+    groupName: string,
+    subgroupNumber: number,
+    auditoryName: string,
+    teacherId: number,
+    groupId: number,
+    groupCalendarId: string,
+    teacherCalendarId: string,
+  ) {
+    // gDto === groupDto, tDto === teacherDto
+    const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName };
+
+    const gDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: groupId, type: 'group' });
+    // update group event
+    this.googleCalendarService.updateCalendarEvent({
+      calendarId: groupCalendarId,
+      summary: gDto.summary,
+      description: gDto.description,
+      location: auditoryName,
+    });
+
+    const tDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: teacherId, type: 'teacher' });
+    // update teacher event
+    this.googleCalendarService.updateCalendarEvent({
+      calendarId: teacherCalendarId,
+      summary: tDto.summary,
+      description: tDto.description,
+      location: auditoryName,
+    });
+  }
+
+  // Delete Teacher and Group events in Google Calendar
+  // using in "this.remove()" method
+  async deleteGoogleEvents(
+    lessonName: string,
+    lessonNumber: number,
+    date: Date,
+    groupName: string,
+    subgroupNumber: number,
+    auditoryName: string,
+    teacherId: number,
+    groupId: number,
+    groupCalendarId: string,
+    teacherCalendarId: string,
+  ) {
+    const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName };
+    this.googleCalendarService.deleteCalendarEvent(groupCalendarId, { ...dto, itemId: groupId, type: 'group' });
+    this.googleCalendarService.deleteCalendarEvent(teacherCalendarId, { ...dto, itemId: teacherId, type: 'teacher' });
+  }
+
   async findOneByDateAndGroup(
     date: Date,
     lessonNumber: number,
@@ -102,7 +179,7 @@ export class ScheduleLessonsService {
     const start = semesterStart && customDayjs(semesterStart, 'MM.DD.YYYY').toDate();
     const end = semesterEnd && customDayjs(semesterEnd, 'MM.DD.YYYY').toDate();
     const date = start && end ? Between(start, end) : undefined;
-
+    
     const lessons = await this.repository.find({
       where: {
         [type]: { id },
@@ -272,11 +349,10 @@ export class ScheduleLessonsService {
       /*  */
       /*  */
       const unitedLesson = stream.lessons.find((el) => el.id === dto.id);
-      console.log('скоріше за все (при копіюванні) проблема в unitedLesson. el.id === dto.id не співпадають');
-      console.log('stream.lessons', stream.lessons);
-      // console.log(stream);
-      console.log('dto', dto);
-      console.log('unitedLesson', unitedLesson);
+      // console.log('скоріше за все (при копіюванні) проблема в unitedLesson. el.id === dto.id не співпадають');
+      // console.log('stream.lessons', stream.lessons);
+      // console.log('dto', dto);
+      // console.log('unitedLesson', unitedLesson);
       if (unitedLesson) {
         await Promise.all(
           unitedLesson.unitedWith.map(async (el) => {
@@ -322,13 +398,13 @@ export class ScheduleLessonsService {
             //   date: dto.date,
             //   groupName: el.group.name,
             //   subgroupNumber: dto.subgroupNumber,
+            //   auditoryName,
             // };
 
             // const groupEventDto = await this.googleCalendarService.getCalendarEventDto({
             //   ...googleCalendarEventDto,
             //   itemId: el.group.id,
             //   type: 'group',
-            //   auditoryName,
             // });
             // await this.googleCalendarService.createCalendarEvent(groupEventDto);
 
@@ -336,9 +412,19 @@ export class ScheduleLessonsService {
             //   ...googleCalendarEventDto,
             //   itemId: createdLesson.teacher.id,
             //   type: 'teacher',
-            //   auditoryName,
             // });
             // await this.googleCalendarService.createCalendarEvent(teacherEventDto);
+
+            await this.createGoogleEvents(
+              dto.name,
+              dto.lessonNumber,
+              dto.date,
+              el.group.name,
+              dto.subgroupNumber,
+              auditoryName,
+              createdLesson.teacher.id,
+              el.group.id,
+            );
 
             return createdLesson;
 
@@ -541,6 +627,8 @@ export class ScheduleLessonsService {
     }
 
     // Якщо дисципліна не об'єднана в потік
+    // Якщо дисципліна не об'єднана в потік
+    // Якщо дисципліна не об'єднана в потік
     const { group, teacher, auditory, stream, id, ...rest } = dto;
 
     // ХЗ чого я так зробив. Розібратись!!!!
@@ -584,6 +672,17 @@ export class ScheduleLessonsService {
     );
 
     const auditoryName = newLesson.auditory ? newLesson.auditory.name : 'Дистанційно';
+
+    await this.createGoogleEvents(
+      newLesson.name,
+      newLesson.lessonNumber,
+      newLesson.date,
+      newLesson.group.name,
+      newLesson.subgroupNumber,
+      auditoryName,
+      newLesson.teacher.id,
+      newLesson.group.id,
+    );
 
     // const createDtoPayload = {
     //   lessonName: newLesson.name,
@@ -800,14 +899,14 @@ export class ScheduleLessonsService {
       throw new BadRequestException('Урок який буде проводитись дистанційно не повинен займати аудиторію');
     }
 
-    const updateGoogleCalendarEventDto = {
-      lessonName: lesson.name,
-      lessonNumber: lesson.lessonNumber,
-      date: lesson.date,
-      groupName: lesson.group.name,
-      subgroupNumber: lesson.subgroupNumber,
-      auditoryName: lesson.auditory ? lesson.auditory.name : 'Дистанційно',
-    };
+    // const updateGoogleCalendarEventDto = {
+    //   lessonName: lesson.name,
+    //   lessonNumber: lesson.lessonNumber,
+    //   date: lesson.date,
+    //   groupName: lesson.group.name,
+    //   subgroupNumber: lesson.subgroupNumber,
+    //   auditoryName: lesson.auditory ? lesson.auditory.name : 'Дистанційно',
+    // };
 
     // Якщо група об'єднана в потік і кількість груп в потоці більше 1
     if (lesson.stream && lesson.stream.groups.length > 1) {
@@ -843,6 +942,19 @@ export class ScheduleLessonsService {
 
       Promise.all(
         streamLessonsInCurrentDate.map(async (el) => {
+          await this.updateGoogleEvents(
+            lesson.name,
+            lesson.lessonNumber,
+            lesson.date,
+            el.group.name, // || lesson.group.name,
+            lesson.subgroupNumber,
+            dto.auditoryName ? dto.auditoryName : 'Дистанційно', // || lesson.auditory ? lesson.auditory.name : 'Дистанційно',
+            el.teacher.id,
+            el.group.id,
+            el.group.calendarId,
+            el.teacher.calendarId,
+          );
+
           // const updateGroupEventDto = await this.googleCalendarService.getCalendarEventDto({
           //   ...updateGoogleCalendarEventDto,
           //   groupName: el.group.name,
@@ -946,6 +1058,19 @@ export class ScheduleLessonsService {
     //   description: updateTeacherEventDto.description,
     //   location: dto.auditoryName ? dto.auditoryName : 'Дистанційно',
     // });
+
+    await this.updateGoogleEvents(
+      lesson.name,
+      lesson.lessonNumber,
+      lesson.date,
+      lesson.group.name,
+      lesson.subgroupNumber,
+      dto.auditoryName ? dto.auditoryName : 'Дистанційно',
+      lesson.teacher.id,
+      lesson.group.id,
+      lesson.group.calendarId,
+      lesson.teacher.calendarId,
+    );
 
     // Якщо дисципліна читається аудиторно
     if (dto.auditoryId) {
@@ -1058,18 +1183,31 @@ export class ScheduleLessonsService {
         },
       });
 
-      const deleteGoogleCalendarEventDto = {
-        lessonName: lesson.name,
-        lessonNumber: lesson.lessonNumber,
-        date: lesson.date,
-        subgroupNumber: lesson.subgroupNumber,
-        auditoryName: lesson.auditory ? lesson.auditory.name : 'Дистанційно',
-      };
+      // const deleteGoogleCalendarEventDto = {
+      //   lessonName: lesson.name,
+      //   lessonNumber: lesson.lessonNumber,
+      //   date: lesson.date,
+      //   subgroupNumber: lesson.subgroupNumber,
+      //   auditoryName: lesson.auditory ? lesson.auditory.name : 'Дистанційно',
+      // };
 
       // Потрібно перевіряти чи були видалені елементи, якщо ні - повернути помилку !!!!!
 
       Promise.all(
         streamLessonsInCurrentDate.map(async (el) => {
+          await this.deleteGoogleEvents(
+            lesson.name,
+            lesson.lessonNumber,
+            lesson.date,
+            el.group.name,
+            lesson.subgroupNumber,
+            lesson.auditory ? lesson.auditory.name : 'Дистанційно',
+            el.teacher.id,
+            el.group.id,
+            el.group.calendarId,
+            el.teacher.calendarId,
+          );
+
           // this.googleCalendarService.deleteCalendarEvent(el.group.calendarId, {
           //   ...deleteGoogleCalendarEventDto,
           //   groupName: el.group.name,
@@ -1096,6 +1234,8 @@ export class ScheduleLessonsService {
     }
 
     // Якщо дисипліна не об'єднана в потік
+    // Якщо дисипліна не об'єднана в потік
+    // Якщо дисипліна не об'єднана в потік
     // const deleteGoogleCalendarEventDto = {
     //   lessonName: lesson.name,
     //   lessonNumber: lesson.lessonNumber,
@@ -1116,6 +1256,19 @@ export class ScheduleLessonsService {
     //   itemId: lesson.teacher.id,
     //   type: 'teacher',
     // });
+
+    await this.deleteGoogleEvents(
+      lesson.name,
+      lesson.lessonNumber,
+      lesson.date,
+      lesson.group.name,
+      lesson.subgroupNumber,
+      lesson.auditory ? lesson.auditory.name : 'Дистанційно',
+      lesson.teacher.id,
+      lesson.group.id,
+      lesson.group.calendarId,
+      lesson.teacher.calendarId,
+    );
 
     const res = await this.repository.delete({ id });
 

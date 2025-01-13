@@ -11,28 +11,28 @@ import { Injectable } from '@nestjs/common';
 // ];
 // const CREDENTIALS_PATH = path.join(process.cwd(), 'src/google-admin/service-account-key.json');
 
+const KEY_FILE = path.join(process.cwd(), 'src/google-admin/service-account-key.json');
+const SCOPES = [
+  'https://www.googleapis.com/auth/admin.directory.user',
+  'https://www.googleapis.com/auth/admin.directory.user.readonly',
+];
+
 @Injectable()
 export class GoogleAdminService {
-  private adminClient: any;
+  private googleClient: any;
 
   constructor() {
-    const keyFile = path.join(process.cwd(), 'src/google-admin/service-account-key.json');
-    const scopes = [
-      'https://www.googleapis.com/auth/admin.directory.user',
-      'https://www.googleapis.com/auth/admin.directory.user.readonly',
-    ];
-
-    const key = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
+    const key = JSON.parse(fs.readFileSync(KEY_FILE, 'utf8'));
 
     const client = new JWT({
       email: key.client_email,
       key: key.private_key,
-      scopes,
+      scopes: SCOPES,
       subject: 'admin.calendar@pharm.zt.ua',
     });
 
     // @ts-ignore
-    this.adminClient = google.admin({ version: 'directory_v1', auth: client });
+    this.googleClient = google.admin({ version: 'directory_v1', auth: client });
 
     // const oauth2Client = new google.auth.OAuth2(
     //   keyFile.client_id,
@@ -58,7 +58,7 @@ export class GoogleAdminService {
   // }
 
   async listUsers() {
-    const res = await this.adminClient.users.list({
+    const res = await this.googleClient.users.list({
       customer: 'my_customer',
       maxResults: 20,
       orderBy: 'email',
@@ -66,21 +66,23 @@ export class GoogleAdminService {
     return res.data.users;
   }
 
-  async getUserPhotoByEmail(email: string): Promise<string | undefined> {
+  async getUserPhotoByEmail(email: string): Promise<string | null> {
     try {
       // const admin = await this.authorize();
       // console.log(admin);
       // const user = await admin.users.get({ userKey: email });
       // return user.data.thumbnailPhotoUrl;
 
-      const res = await this.adminClient.users.get({
+      const res = await this.googleClient.users.get({
         userKey: email,
       });
       const user = res.data;
+      console.log(user);
       return user.thumbnailPhotoUrl;
     } catch (error) {
       if (error.code === 404) {
-        throw new Error(`User with email ${email} not found.`);
+        // throw new Error(`User with email ${email} not found.`);
+        return null;
       } else {
         throw new Error(`Failed to get user: ${error.message}`);
       }
