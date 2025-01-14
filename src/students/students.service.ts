@@ -105,12 +105,12 @@ export class StudentsService {
 
     if (typeof dto.group === 'string') throw new BadRequestException('Не вірно вказано групу');
 
-    await this.usersService.update({
-      id: student.id,
-      email: dto.email,
-      password: dto.password,
-      role: [UserRoles.STUDENT],
-    });
+    // await this.usersService.update({
+    //   id: student.id,
+    //   email: dto.email,
+    //   password: dto.password,
+    //   role: [UserRoles.STUDENT],
+    // });
 
     return this.repository.save({ ...student, ...dto, group: { id: Number(dto.group) } });
   }

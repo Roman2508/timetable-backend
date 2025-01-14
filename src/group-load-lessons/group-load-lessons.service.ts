@@ -315,26 +315,26 @@ export class GroupLoadLessonsService {
         },
         relations: {
           group: true,
+          teacher: true,
+          students: true,
           planSubjectId: true,
           stream: { groups: true },
-          students: true,
-          teacher: true,
         },
         select: {
-          group: { id: true, name: true },
           planSubjectId: { id: true },
-          students: { id: true },
+          group: { id: true, name: true },
+          students: { id: true, status: true },
           stream: { id: true, name: true, groups: { id: true, name: true } },
-          teacher: {
-            id: true,
-            firstName: true,
-            middleName: true,
-            lastName: true,
-          },
+          teacher: { id: true, firstName: true, middleName: true, lastName: true },
         },
       });
 
-      return lessons.filter((el) => el.specialization !== 'Не вивчається');
+      const lessonWithStudyingStudents = lessons.map((el) => {
+        const students = el.students.filter((el) => el.status === 'Навчається');
+        return { ...el, students: students.map((s) => s.id) };
+      });
+
+      return lessonWithStudyingStudents.filter((el) => el.specialization !== 'Не вивчається');
     }
 
     if (scheduleType === 'teacher') {
@@ -346,20 +346,17 @@ export class GroupLoadLessonsService {
         },
         relations: {
           group: true,
+          teacher: true,
+          students: true,
           planSubjectId: true,
           stream: { groups: true },
-          teacher: true,
         },
         select: {
-          group: { id: true, name: true, courseNumber: true },
           planSubjectId: { id: true },
+          students: { id: true, status: true },
+          group: { id: true, name: true, courseNumber: true },
           stream: { id: true, name: true, groups: { id: true, name: true } },
-          teacher: {
-            id: true,
-            firstName: true,
-            middleName: true,
-            lastName: true,
-          },
+          teacher: { id: true, firstName: true, middleName: true, lastName: true },
         },
       });
 
@@ -380,7 +377,14 @@ export class GroupLoadLessonsService {
         }),
       );
 
-      return currentSemesterLessons.filter((el) => !!el);
+      const semesterLessons = currentSemesterLessons.filter((el) => !!el);
+
+      const lessonWithStudyingStudents = semesterLessons.map((el) => {
+        const students = el.students.filter((el) => el.status === 'Навчається');
+        return { ...el, students: students.map((s) => s.id) };
+      });
+
+      return lessonWithStudyingStudents;
     }
 
     return [];
