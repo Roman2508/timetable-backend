@@ -19,6 +19,7 @@ import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-ho
 import { RemoveLessonsFromStreamDto } from 'src/streams/dto/remove-lessons-from-stream.dto';
 import { AddStudentsToAllGroupLessonsDto } from './dto/add-students-to-all-group-lessons.dto';
 import { DeleteStudentsFromAllGroupLessonsDto } from './dto/delete-students-to-all-group-lessons.dto';
+import e from 'express';
 
 @Injectable()
 export class GroupLoadLessonsService {
@@ -591,19 +592,35 @@ export class GroupLoadLessonsService {
   async addStudentToLesson(dto: AddStudentToLessonDto) {
     const lesson = await this.groupLoadLessonsRepository.findOne({
       where: { id: dto.lessonId },
-      relations: { students: true },
-      select: { students: { id: true } },
+      relations: { students: true, stream: { groups: true }, unitedWith: { students: true } },
+      select: {
+        students: { id: true },
+        unitedWith: { id: true, students: { id: true } },
+        stream: { id: true, groups: { id: true } },
+      },
     });
 
     if (!lesson) throw new NotFoundException('Дисипліну не знайдено');
 
-    /* add student to group-load-lessons */
-    const students = dto.studentIds.map((id) => ({ id }));
-    await this.groupLoadLessonsRepository.save({ id: lesson.id, students: [...lesson.students, ...students] });
-
-    /* CREATE grades */
-    await this.gradesService.create(dto);
-
+    // Якщо дисципліна об'єднана в потік і кількість груп в потоці більше 1 - зараховую студентів на дисц. всіх груп потоку.
+    if (lesson.stream && lesson.stream.groups.length > 1) {
+      await Promise.all(
+        lesson.unitedWith.map(async (l) => {
+          /* add student to group-load-lessons */
+          const students = dto.studentIds.map((id) => ({ id }));
+          await this.groupLoadLessonsRepository.save({ id: l.id, students: [...l.students, ...students] });
+          // /* CREATE grades */
+          await this.gradesService.create({ lessonId: l.id, studentIds: dto.studentIds });
+        }),
+      );
+    } else {
+      // Якщо дисципліна не об'єднана в потік - зараховую студентів на одну дисципліну
+      /* add student to group-load-lessons */
+      const students = dto.studentIds.map((id) => ({ id }));
+      await this.groupLoadLessonsRepository.save({ id: lesson.id, students: [...lesson.students, ...students] });
+      /* CREATE grades */
+      await this.gradesService.create(dto);
+    }
     const updatedLesson = await this.groupLoadLessonsRepository.findOne({
       where: { id: lesson.id },
       relations: { group: true, students: true },
@@ -616,8 +633,12 @@ export class GroupLoadLessonsService {
   async deleteStudentFromLesson(dto: DeleteStudentFromLessonDto) {
     const lesson = await this.groupLoadLessonsRepository.findOne({
       where: { id: dto.lessonId },
-      relations: { students: true },
-      select: { students: { id: true } },
+      relations: { students: true, stream: { groups: true }, unitedWith: { students: true } },
+      select: {
+        students: { id: true },
+        stream: { id: true, groups: { id: true } },
+        unitedWith: { id: true, students: { id: true } },
+      },
     });
 
     if (!lesson) throw new NotFoundException('Дисциплінау не знайдено');
@@ -629,10 +650,29 @@ export class GroupLoadLessonsService {
       students = data;
     });
 
-    await this.groupLoadLessonsRepository.save({ id: lesson.id, students });
+    // Якщо дисципліна об'єднана в потік і кількість груп в потоці більше 1 - зараховую студентів на дисц. всіх груп потоку.
+    if (lesson.stream && lesson.stream.groups.length > 1) {
+      await Promise.all(
+        lesson.unitedWith.map(async (l) => {
+          let students = JSON.parse(JSON.stringify(l.students));
 
-    /* DELETE grades */
-    await this.gradesService.delete(dto);
+          dto.studentIds.forEach((id) => {
+            const data = students.filter((el) => el.id !== id);
+            students = data;
+          });
+
+          await this.groupLoadLessonsRepository.save({ id: l.id, students });
+
+          /* DELETE grades */
+          await this.gradesService.delete(dto);
+        }),
+      );
+    } else {
+      // Якщо дисципліна не об'єднана в потік - відраховую студентів з однієї дисципліни
+      await this.groupLoadLessonsRepository.save({ id: lesson.id, students });
+      /* DELETE grades */
+      await this.gradesService.delete(dto);
+    }
 
     return students;
   }
@@ -648,11 +688,14 @@ export class GroupLoadLessonsService {
 
     await Promise.allSettled(
       lessons.map(async (lesson) => {
-        const students = dto.studentIds.map((id) => ({ id }));
-        await this.groupLoadLessonsRepository.save({ id: lesson.id, students: [...lesson.students, ...students] });
+        await this.addStudentToLesson({ lessonId: lesson.id, studentIds: dto.studentIds });
 
-        /* CREATE grades */
-        await this.gradesService.create({ lessonId: lesson.id, studentIds: dto.studentIds });
+        // Старий варіант, після тестів видалити
+        // const students = dto.studentIds.map((id) => ({ id }));
+        // await this.groupLoadLessonsRepository.save({ id: lesson.id, students: [...lesson.students, ...students] });
+
+        // /* CREATE grades */
+        // await this.gradesService.create({ lessonId: lesson.id, studentIds: dto.studentIds });
       }),
     );
 
@@ -668,19 +711,20 @@ export class GroupLoadLessonsService {
 
     if (!lessons.length) throw new NotFoundException('Дисипліни не знайдено');
 
-    await Promise.allSettled(
+    await Promise.all(
       lessons.map(async (lesson) => {
-        let students = JSON.parse(JSON.stringify(lesson.students));
+        await this.deleteStudentFromLesson({ lessonId: lesson.id, studentIds: dto.studentIds });
+        // let students = JSON.parse(JSON.stringify(lesson.students));
 
-        dto.studentIds.forEach((id) => {
-          const data = students.filter((el) => el.id !== id);
-          students = data;
-        });
+        // dto.studentIds.forEach((id) => {
+        //   const data = students.filter((el) => el.id !== id);
+        //   students = data;
+        // });
 
-        await this.groupLoadLessonsRepository.save({ id: lesson.id, students });
+        // await this.groupLoadLessonsRepository.save({ id: lesson.id, students });
 
-        /* DELETE grades */
-        await this.gradesService.delete({ lessonId: lesson.id, studentIds: dto.studentIds });
+        // /* DELETE grades */
+        // await this.gradesService.delete({ lessonId: lesson.id, studentIds: dto.studentIds });
       }),
     );
 

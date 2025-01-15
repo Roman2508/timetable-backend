@@ -8,6 +8,7 @@ export enum UserRoles {
   TEACHER = 'TEACHER',
   STUDENT = 'STUDENT',
   HEAD_OF_DEPARTMENT = 'HEAD_OF_DEPARTMENT',
+  METHODIST = 'METHODIST',
 }
 
 @Entity('user')
