@@ -112,10 +112,29 @@ export class GroupLoadLessonsService {
     } else if (courseNumber === 3) {
       semesters = [5, 6];
     } else {
-      throw new BadRequestException('Не вірно заданий курс групи (має бути 1, 2 або 3)');
+      // throw new BadRequestException('Не вірно заданий курс групи (має бути 1, 2 або 3)');
     }
 
     return semesters;
+  }
+
+  getStudyYear(yearOfAdmission: number) {
+    const currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth();
+
+    // Університетський рік починається у вересні
+    const isAfterSeptember = currentMonth >= 8;
+
+    // Розрахунок курсу
+    const course = currentYear - yearOfAdmission + (isAfterSeptember ? 1 : 0);
+
+    // Перевірка на допустимі значення курсу
+    if (course < 1) {
+      return 'Група ще не почала навчання';
+    } else if (course > 4) {
+      return 'Група завершила навчання';
+    }
+    return course;
   }
 
   async findOneLessonById(id: number) {
@@ -142,9 +161,12 @@ export class GroupLoadLessonsService {
   }
 
   // для instructional-matherials
-  async findAllTeacherLessonsById(teacherId: number) {
+  async findAllTeacherLessonsById(teacherId: number, year?: string) {
     const lessons = await this.groupLoadLessonsRepository.find({
-      where: { teacher: { id: teacherId } },
+      where: {
+        teacher: { id: teacherId },
+        typeEn: And(Not('exams'), Not('examsConsulation'), Not('metodologicalGuidance')),
+      },
       relations: {
         stream: true,
         teacher: true,
@@ -153,29 +175,32 @@ export class GroupLoadLessonsService {
         unitedWith: true,
       },
       select: {
-        group: { id: true, name: true },
         stream: { id: true, name: true },
         unitedWith: { id: true, name: true },
         teacher: { id: true, firstName: true, middleName: true, lastName: true },
+        group: { id: true, name: true, yearOfAdmission: true, courseNumber: true },
       },
     });
 
     if (!lessons) throw new NotFoundException('Дисципліни не знайдено');
 
-    const currentYearLessons = await Promise.all(
-      lessons.map(async (el) => {
-        const group = await this.groupRepository.findOne({ where: { id: el.group.id } });
-        if (!group) return;
-        const semesters = this.getCurrentCourseSemesters(group.courseNumber);
+    const currentYearLessons = lessons.map((el) => {
+      let semesters;
 
-        if (semesters.some((s) => s === el.semester)) {
-          return el;
-        }
+      if (year) {
+        const courseNumber = +year - el.group.yearOfAdmission + 1;
+        semesters = this.getCurrentCourseSemesters(courseNumber);
+      } else {
+        semesters = this.getCurrentCourseSemesters(el.group.courseNumber);
+      }
+      if (semesters.some((s) => s === el.semester)) {
+        return el;
+      }
 
-        return null;
-      }),
-    );
+      return null;
+    });
 
+    console.log(currentYearLessons.filter((el) => !!el).length);
     return currentYearLessons.filter((el) => !!el);
   }
 

@@ -96,6 +96,22 @@ export class TeachersService {
     });
   }
 
+  async updateBio(id: number, bio: any) {
+    const teacher = await this.repository.findOne({ where: { id } });
+    if (!teacher) {
+      throw new NotFoundException();
+    }
+    return this.repository.save({ ...teacher, bio });
+  }
+
+  async updatePrintedWorks(id: number, printedWorks: any) {
+    const teacher = await this.repository.findOne({ where: { id } });
+    if (!teacher) {
+      throw new NotFoundException();
+    }
+    return this.repository.save({ ...teacher, printedWorks });
+  }
+
   async handleVisible(id: number) {
     const teacher = await this.repository.findOne({
       where: { id },
