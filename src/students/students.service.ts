@@ -116,9 +116,8 @@ export class StudentsService {
   }
 
   async remove(id: number) {
-    const res = await this.repository.delete(id);
-
     await this.usersService.delete({ id, role: UserRoles.STUDENT });
+    const res = await this.repository.delete(id);
 
     if (res.affected === 0) {
       throw new NotFoundException('Не знайдено');

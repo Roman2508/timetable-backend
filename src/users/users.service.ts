@@ -9,6 +9,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UserEntity, UserRoles } from './entities/user.entity';
 import { GoogleAdminService } from 'src/google-admin/google-admin.service';
+import { GetAllUsersDto } from './dto/get-all-users.dto';
 
 @Injectable()
 export class UsersService {
@@ -18,6 +19,41 @@ export class UsersService {
 
     private readonly googleAdminService: GoogleAdminService,
   ) {}
+
+  getAll(dto: GetAllUsersDto) {
+    // query може бути іменем, поштою або ролями, sort це ключ по якому сортувати, order - порядок сортування
+    // dto: {query: string, page: number, limit: number, sort: string, order: 'asc' | 'desc'}
+
+    const filter = {} as any;
+    const order = {} as any;
+
+    if (dto.query) {
+      filter.email = ILike(`%${dto.query}%`);
+      filter.role = ILike(`%${dto.query}%`);
+
+      // if(role === UserRoles.TEACHER ) {}
+      // if(role === UserRoles.STUDENT) {}
+    }
+
+    if (dto.sortBy && (dto.order === 'ASC' || dto.order === 'DESC')) {
+      if (dto.sortBy === 'email') {
+        order.price = dto.order;
+      } else if (dto.sortBy === 'role') {
+        order.role = 'DESC';
+      } else {
+        // order.createdAt = 'DESC';
+      }
+    } else {
+      // order.createdAt = 'DESC';
+    }
+
+    return this.repository.findAndCount({
+      where: filter,
+      take: dto.limit ? dto.limit : 20,
+      skip: dto.offset ? dto.offset : 0,
+      order,
+    });
+  }
 
   get(dto: { role: UserRoles; email: string; name: string }) {
     // dto = { role, email, name }

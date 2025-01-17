@@ -28,6 +28,12 @@ export class UserEntity {
   @Column({ default: null })
   picture?: string;
 
+  // @Column({ default: null })
+  // lastLogin?: string;
+
+  // @Column({ default: null })
+  // createdAt?: string;
+
   @OneToOne(() => TeacherEntity, (teacher) => teacher.id)
   @JoinColumn({ name: 'teacher' })
   teacher?: TeacherEntity;
