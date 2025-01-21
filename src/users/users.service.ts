@@ -1,7 +1,7 @@
 import { ILike, Repository } from 'typeorm';
 import { compare, genSalt, hash } from 'bcryptjs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
@@ -51,6 +51,17 @@ export class UsersService {
       where: filter,
       take: dto.limit ? dto.limit : 20,
       skip: dto.offset ? dto.offset : 0,
+      relations: {
+        student: true,
+        teacher: true,
+      },
+      select: {
+        id: true,
+        role: true,
+        email: true,
+        picture: true,
+        lastLogin: true,
+      },
       order,
     });
   }
@@ -172,33 +183,48 @@ export class UsersService {
   async updateRole(dto: UpdateUserRoleDto) {
     const user = await this.repository.findOne({ where: { id: dto.id } });
     if (!user) throw new NotFoundException('Не знайдено');
-    return this.repository.save({ ...user, role: [...user.role, dto.newRole] });
+    return this.repository.save({ ...user, role: dto.newRoles });
   }
 
   async updatePicture() {}
 
+  // Цей метод для видалення користувачів з ролями admin, head_of_department, guest
+  // Для видалення студентів та викладачів у відповідних сервісах є свої методи
   async delete(dto: DeleteUserDto) {
-    if (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT) {
-      const roleKey = dto.role.toLowerCase();
+    const res = await this.repository.delete(dto.id);
 
-      const user = await this.repository.findOne({ where: { role: dto.role, [roleKey]: { id: dto.id } } });
-      if (!user) throw new NotFoundException('Не знайдено');
-      const res = await this.repository.delete(user.id);
-
-      if (res.affected === 0) {
-        throw new NotFoundException('Не знайдено');
-      }
-      return user.id;
+    if (res.affected === 0) {
+      throw new NotFoundException('Не знайдено');
     }
 
-    if (dto.role === UserRoles.ADMIN || dto.role === UserRoles.HEAD_OF_DEPARTMENT || dto.role === UserRoles.GUEST) {
-      const res = await this.repository.delete(dto.id);
+    return dto.id;
 
-      if (res.affected === 0) {
-        throw new NotFoundException('Не знайдено');
-      }
+    // if (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT) {
+    //   const roleKey = dto.role.toLowerCase();
 
-      return dto.id;
-    }
+    //   console.log(dto);
+
+    //   const user = await this.repository.findOne({ where: { role: dto.role, [roleKey]: { id: dto.id } } });
+
+    //   console.log(user);
+
+    //   if (!user) throw new NotFoundException('Не знайдено');
+    //   const res = await this.repository.delete(user.id);
+
+    //   if (res.affected === 0) {
+    //     throw new NotFoundException('Не знайдено');
+    //   }
+    //   return user.id;
+    // }
+
+    // if (dto.role === UserRoles.ADMIN || dto.role === UserRoles.HEAD_OF_DEPARTMENT || dto.role === UserRoles.GUEST) {
+    //   const res = await this.repository.delete(dto.id);
+
+    //   if (res.affected === 0) {
+    //     throw new NotFoundException('Не знайдено');
+    //   }
+
+    //   return dto.id;
+    // }
   }
 }

@@ -22,17 +22,17 @@ export class UserEntity {
   @Column({ unique: true })
   email: string;
 
-  @Column({ type: 'enum', enum: UserRoles })
+  @Column('simple-json', { default: [] })
   role: UserRoles[];
 
   @Column({ default: null })
   picture?: string;
 
-  // @Column({ default: null })
-  // lastLogin?: string;
+  @Column({ default: '' })
+  lastLogin?: string;
 
-  // @Column({ default: null })
-  // createdAt?: string;
+  @Column({ default: () => 'CURRENT_TIMESTAMP' })
+  createdAt?: string;
 
   @OneToOne(() => TeacherEntity, (teacher) => teacher.id)
   @JoinColumn({ name: 'teacher' })

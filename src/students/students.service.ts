@@ -4,7 +4,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 import { UsersService } from 'src/users/users.service';
 import { StudentEntity } from './entities/student.entity';
-import { UserRoles } from 'src/users/entities/user.entity';
+import { UserEntity, UserRoles } from 'src/users/entities/user.entity';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { GroupEntity } from 'src/groups/entities/group.entity';
@@ -19,6 +19,9 @@ export class StudentsService {
 
     @InjectRepository(StudentEntity)
     private repository: Repository<StudentEntity>,
+
+    @InjectRepository(UserEntity)
+    private usersRepository: Repository<UserEntity>,
   ) {}
 
   async create(dto: CreateStudentDto) {
@@ -60,12 +63,17 @@ export class StudentsService {
 
     const student = await this.repository.save(doc);
 
-    await this.usersService.create({
+    const user = await this.usersService.create({
       email: dto.email,
       password: dto.password,
       role: UserRoles.STUDENT,
       roleId: student.id,
     });
+
+    if (!user.id) {
+      await this.remove(student.id);
+      throw new BadRequestException('Не вдалося створити користувача');
+    }
 
     return student;
   }
@@ -116,7 +124,17 @@ export class StudentsService {
   }
 
   async remove(id: number) {
-    await this.usersService.delete({ id, role: UserRoles.STUDENT });
+    // id === studentId
+    const student = await this.repository.findOne({ where: { id } });
+
+    if (!student) throw new NotFoundException('Студента не знайдено');
+
+    const user = await this.usersRepository.findOne({ where: { student: { id } } });
+
+    if (user) {
+      await this.usersRepository.delete({ role: UserRoles.STUDENT, student: { id: student.id } });
+    }
+
     const res = await this.repository.delete(id);
 
     if (res.affected === 0) {

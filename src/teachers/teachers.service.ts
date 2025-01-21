@@ -4,7 +4,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { UsersService } from 'src/users/users.service';
 import { TeacherEntity } from './entities/teacher.entity';
-import { UserRoles } from 'src/users/entities/user.entity';
+import { UserEntity, UserRoles } from 'src/users/entities/user.entity';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import { GoogleDriveService } from 'src/google-drive/google-drive.service';
@@ -19,6 +19,9 @@ export class TeachersService {
 
     @InjectRepository(TeacherEntity)
     private repository: Repository<TeacherEntity>,
+
+    @InjectRepository(UserEntity)
+    private usersRepository: Repository<UserEntity>,
   ) {}
 
   findAll() {
@@ -125,11 +128,16 @@ export class TeachersService {
   }
 
   async remove(id: number) {
+    // id === teacherId
     const teacher = await this.repository.findOne({ where: { id } });
 
-    if (!teacher) throw new NotFoundException('Не знайдено');
+    if (!teacher) throw new NotFoundException('Викладача не знайдено');
 
-    await this.usersService.delete({ id, role: UserRoles.TEACHER });
+    const user = await this.usersRepository.findOne({ where: { teacher: { id } } });
+
+    if (user) {
+      await this.usersRepository.delete({ role: UserRoles.TEACHER, teacher: { id: teacher.id } });
+    }
 
     const res = await this.repository.delete(id);
 
@@ -141,5 +149,22 @@ export class TeachersService {
     await this.googleDriveService.deleteFolder(folderId);
 
     return id;
+
+    // const teacher = await this.repository.findOne({ where: { id } });
+
+    // if (!teacher) throw new NotFoundException('Не знайдено');
+
+    // await this.usersService.delete({ id, role: UserRoles.TEACHER });
+
+    // const res = await this.repository.delete(id);
+
+    // if (res.affected === 0) {
+    //   throw new NotFoundException('Не знайдено');
+    // }
+
+    // const folderId = teacher.folderId;
+    // await this.googleDriveService.deleteFolder(folderId);
+
+    // return id;
   }
 }
