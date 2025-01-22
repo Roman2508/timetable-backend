@@ -20,9 +20,14 @@ const SCOPES = [
 @Injectable()
 export class GoogleAdminService {
   private googleClient: any;
+  private client: JWT;
 
   constructor() {
+    
+
     const key = JSON.parse(fs.readFileSync(KEY_FILE, 'utf8'));
+
+
 
     const client = new JWT({
       email: key.client_email,
@@ -43,6 +48,17 @@ export class GoogleAdminService {
     // google.options({
     //   auth: oauth2Client
     // })
+  }
+
+  private async authorize() {
+    try {
+      // keyFile: path.join(__dirname, './service-account-key.json'),
+      const auth = await google.auth.getClient({ keyFile: KEY_FILE, scopes: SCOPES })
+      const admin = google.admin({ version: 'directory_v1', auth });
+      return admin
+    } catch (error) {
+      throw new Error(`Failed to refresh token: ${error.message}`);
+    }
   }
 
   // async authorize() {
@@ -72,10 +88,13 @@ export class GoogleAdminService {
       // console.log(admin);
       // const user = await admin.users.get({ userKey: email });
       // return user.data.thumbnailPhotoUrl;
+     
+      // const admin = await this.authorize()
+      // const res = await admin.users.get({ userKey: email });
+      // const user = res.data;
+      // return user.thumbnailPhotoUrl;
 
-      const res = await this.googleClient.users.get({
-        userKey: email,
-      });
+      const res = await this.googleClient.users.get({ userKey: email });
       const user = res.data;
       console.log(user);
       return user.thumbnailPhotoUrl;

@@ -1,7 +1,7 @@
 import { ILike, Repository } from 'typeorm';
 import { compare, genSalt, hash } from 'bcryptjs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException,  Injectable, NotFoundException } from '@nestjs/common';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
@@ -140,45 +140,78 @@ export class UsersService {
     return result;
   }
 
-  async update(dto: UpdateUserDto) {
-    // if teacher: id === teacherId, if student: id === studentId, else id === this entity id
-
-    const existedUser = await this.findByEmail(dto.email);
-
-    if (existedUser && dto.id !== existedUser.id) {
-      throw new BadRequestException('Користувач з таким адресом ел.пошти вже існує');
+  async update(id: number, dto: UpdateUserDto) {
+    const existedUser = await this.findById(id);
+    if (!existedUser) {
+      throw new BadRequestException('Користувача не знайдено');
     }
 
-    const isTeacher = dto.role.some((el) => el === UserRoles.TEACHER);
-    const isStudent = dto.role.some((el) => el === UserRoles.STUDENT);
+    let updatedUser: any = { role: dto.role, id };
 
-    let user;
-
-    if (isTeacher || isStudent) {
-      const roleKey = isTeacher ? 'teacher' : 'student';
-
-      user = await this.repository.findOne({
-        where: { [roleKey]: { id: dto.id } },
-        relations: { student: true, teacher: true },
-      });
-    } else {
-      user = await this.repository.findOne({ where: { id: dto.id } });
+    if (dto.email !== existedUser.email) {
+      const userWithSameEmail = await this.findByEmail(dto.email);
+    
+      if (!userWithSameEmail) {
+        updatedUser = {...updatedUser, email: dto.email, }
+      } else {
+        throw new BadRequestException('Користувач з таким email вже зареєстрований');
+      }
     }
 
-    if (!user) throw new NotFoundException('Не знайдено');
+    let isPasswordsTheSame = true
 
-    const isPasswordsTheSame = await compare(dto.password, user.password);
+    if(dto.password) {
+      isPasswordsTheSame = await compare(dto.password, existedUser.password);
+    }
 
-    let updatedUser = { ...user, email: dto.email };
 
     if (!isPasswordsTheSame) {
       const salt = await genSalt(10);
       const newPassword = await hash(dto.password, salt);
       updatedUser = { ...updatedUser, password: newPassword };
     }
-
     return this.repository.save(updatedUser);
   }
+
+  // async update(dto: UpdateUserDto) {
+  //   // if teacher: id === teacherId, if student: id === studentId, else id === this entity id
+
+  //   const existedUser = await this.findByEmail(dto.email);
+
+  //   if (existedUser && dto.id !== existedUser.id) {
+  //     throw new BadRequestException('Користувач з таким адресом ел.пошти вже існує');
+  //   }
+
+  //   const isTeacher = dto.role.some((el) => el === UserRoles.TEACHER);
+  //   const isStudent = dto.role.some((el) => el === UserRoles.STUDENT);
+
+  //   let user;
+
+  //   if (isTeacher || isStudent) {
+  //     const roleKey = isTeacher ? 'teacher' : 'student';
+
+  //     user = await this.repository.findOne({
+  //       where: { [roleKey]: { id: dto.id } },
+  //       relations: { student: true, teacher: true },
+  //     });
+  //   } else {
+  //     user = await this.repository.findOne({ where: { id: dto.id } });
+  //   }
+
+  //   if (!user) throw new NotFoundException('Не знайдено');
+
+  //   const isPasswordsTheSame = await compare(dto.password, user.password);
+
+  //   let updatedUser = { ...user, email: dto.email };
+
+  //   if (!isPasswordsTheSame) {
+  //     const salt = await genSalt(10);
+  //     const newPassword = await hash(dto.password, salt);
+  //     updatedUser = { ...updatedUser, password: newPassword };
+  //   }
+
+  //   return this.repository.save(updatedUser);
+  // }
 
   async updateRole(dto: UpdateUserRoleDto) {
     const user = await this.repository.findOne({ where: { id: dto.id } });

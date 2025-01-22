@@ -69,12 +69,12 @@ export class TeachersService {
 
     const user = await this.usersService.findByEmail(dto.email);
 
-    await this.usersService.update({
-      id: teacher.id,
+    const userDto = {
       role: [UserRoles.TEACHER],
       email: dto.email ? dto.email : user.email,
       password: dto.password ? dto.password : user.password,
-    });
+    }
+    await this.usersService.update(teacher.id, userDto);
 
     const isFirstNameDifferent = teacher.firstName !== dto.firstName;
     const isMiddleNameDifferent = teacher.middleName !== dto.middleName;

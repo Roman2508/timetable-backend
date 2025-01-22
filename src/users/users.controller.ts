@@ -23,9 +23,9 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Patch()
-  update(@Body() dto: UpdateUserDto) {
-    return this.usersService.update(dto);
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return this.usersService.update(+id, dto);
   }
 
   @Patch('/role')
