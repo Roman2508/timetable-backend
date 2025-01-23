@@ -21,10 +21,10 @@ export class GoogleAdminController {
     return this.googleCalendarService.listUsers();
   }
 
-  // @Get('/authorize')
-  // authorize() {
-  //   return this.googleCalendarService.authorize();
-  // }
+  @Get('/authorize')
+  authorize() {
+    return this.googleCalendarService.authorize();
+  }
 
   @Get('/photo/:email')
   getUserPhotoByEmail(@Param('email') email: string) {

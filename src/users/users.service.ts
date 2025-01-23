@@ -1,7 +1,7 @@
 import { ILike, Repository } from 'typeorm';
 import { compare, genSalt, hash } from 'bcryptjs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BadRequestException,  Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
@@ -150,20 +150,19 @@ export class UsersService {
 
     if (dto.email !== existedUser.email) {
       const userWithSameEmail = await this.findByEmail(dto.email);
-    
+
       if (!userWithSameEmail) {
-        updatedUser = {...updatedUser, email: dto.email, }
+        updatedUser = { ...updatedUser, email: dto.email };
       } else {
         throw new BadRequestException('Користувач з таким email вже зареєстрований');
       }
     }
 
-    let isPasswordsTheSame = true
+    let isPasswordsTheSame = true;
 
-    if(dto.password) {
+    if (dto.password) {
       isPasswordsTheSame = await compare(dto.password, existedUser.password);
     }
-
 
     if (!isPasswordsTheSame) {
       const salt = await genSalt(10);
@@ -171,6 +170,29 @@ export class UsersService {
       updatedUser = { ...updatedUser, password: newPassword };
     }
     return this.repository.save(updatedUser);
+  }
+
+  async updateLastLoginTime(id: number) {
+    const user = await this.findById(id);
+
+    const now = new Date();
+
+    // Форматирование даты
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0'); // Месяцы от 0 до 11
+    const day = String(now.getUTCDate()).padStart(2, '0');
+
+    // Форматирование времени
+    const hours = String(now.getUTCHours()).padStart(2, '0');
+    const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+    const milliseconds = String(now.getUTCMilliseconds()).padStart(3, '0');
+
+    // Составляем строку
+    const microseconds = milliseconds + '000'; // Добавляем 3 нуля для миллисекунд -> микросекунд
+    const currentTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${microseconds}+00`;
+
+    return this.repository.save({ ...user, lastLogin: currentTime });
   }
 
   // async update(dto: UpdateUserDto) {

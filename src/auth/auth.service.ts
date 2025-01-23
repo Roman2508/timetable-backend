@@ -40,6 +40,8 @@ export class AuthService {
 
     const { password, ...restult } = user;
 
+    await this.usersService.updateLastLoginTime(user.id);
+
     return {
       user: { ...restult },
       accessToken: await this.issueAccessToken(user.id),
@@ -53,7 +55,7 @@ export class AuthService {
       throw new BadRequestException('Такий email вже зареєстрований');
     }
 
-    const newUser = await this.usersService.create(dto);
+    const newUser = await this.usersService.create({ ...dto });
 
     return {
       user: newUser,
@@ -63,9 +65,10 @@ export class AuthService {
 
   async getMe(token: string) {
     const { id } = this.jwtService.decode(token);
-
+    console.log(id);
     if (id) {
       const user = await this.usersService.findById(id);
+      await this.usersService.updateLastLoginTime(id);
       const { password, ...rest } = user;
       return {
         user: rest,

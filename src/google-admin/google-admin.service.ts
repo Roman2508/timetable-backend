@@ -21,45 +21,36 @@ const SCOPES = [
 export class GoogleAdminService {
   private googleClient: any;
   private client: JWT;
+  private auth: any;
 
-  constructor() {
-    
+  // constructor() {
+  //   const key = JSON.parse(fs.readFileSync(KEY_FILE, 'utf8'));
 
-    const key = JSON.parse(fs.readFileSync(KEY_FILE, 'utf8'));
+  //   const client = new JWT({
+  //     email: key.client_email,
+  //     key: key.private_key,
+  //     scopes: SCOPES,
+  //     subject: 'admin.calendar@pharm.zt.ua',
+  //   });
 
+  //   // @ts-ignore
+  //   this.googleClient = google.admin({ version: 'directory_v1', auth: client });
+  // }
 
+  //
+  //
+  //
 
-    const client = new JWT({
-      email: key.client_email,
-      key: key.private_key,
-      scopes: SCOPES,
-      subject: 'admin.calendar@pharm.zt.ua',
-    });
-
-    // @ts-ignore
-    this.googleClient = google.admin({ version: 'directory_v1', auth: client });
-
-    // const oauth2Client = new google.auth.OAuth2(
-    //   keyFile.client_id,
-    //   keyFile.YOUR_CLIENT_SECRET,
-    //   keyFile.YOUR_REDIRECT_URL
-    // );
-    // set auth as a global default
-    // google.options({
-    //   auth: oauth2Client
-    // })
-  }
-
-  private async authorize() {
-    try {
-      // keyFile: path.join(__dirname, './service-account-key.json'),
-      const auth = await google.auth.getClient({ keyFile: KEY_FILE, scopes: SCOPES })
-      const admin = google.admin({ version: 'directory_v1', auth });
-      return admin
-    } catch (error) {
-      throw new Error(`Failed to refresh token: ${error.message}`);
-    }
-  }
+  // async authorize() {
+  //   try {
+  //     // keyFile: path.join(__dirname, './service-account-key.json'),
+  //     const auth = await google.auth.getClient({ keyFile: KEY_FILE, scopes: SCOPES });
+  //     const admin = google.admin({ version: 'directory_v1', auth });
+  //     return admin;
+  //   } catch (error) {
+  //     throw new Error(`Failed to refresh token: ${error.message}`);
+  //   }
+  // }
 
   // async authorize() {
   //   const content = await fs.promises.readFile(CREDENTIALS_PATH);
@@ -73,14 +64,45 @@ export class GoogleAdminService {
   //   return admin;
   // }
 
-  async listUsers() {
-    const res = await this.googleClient.users.list({
-      customer: 'my_customer',
-      maxResults: 20,
-      orderBy: 'email',
+  async authorize() {
+    const keyFile = 'src/google-admin/service-account-key.json'; 
+    const credentials = JSON.parse(fs.readFileSync(keyFile, 'utf-8'));
+
+    this.auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: [
+        'https://www.googleapis.com/auth/admin.directory.user',
+        'https://www.googleapis.com/auth/admin.directory.user.readonly',
+      ],
+      clientOptions: {
+        subject: 'admin.calendar@pharm.zt.ua', // Impersonate an admin account
+      },
     });
-    return res.data.users;
   }
+
+  async listUsers() {
+    await this.authorize();
+
+    const admin = google.admin({
+      version: 'directory_v1',
+      auth: await this.auth.getClient(),
+    });
+
+    return admin.users.list({
+      // domain: 'my_domain',
+      customer: 'my_customer',
+      maxResults: 10,
+    });
+  }
+
+  // async listUsers() {
+  //   const res = await this.googleClient.users.list({
+  //     customer: 'my_customer',
+  //     maxResults: 20,
+  //     orderBy: 'email',
+  //   });
+  //   return res.data.users;
+  // }
 
   async getUserPhotoByEmail(email: string): Promise<string | null> {
     try {
@@ -88,16 +110,29 @@ export class GoogleAdminService {
       // console.log(admin);
       // const user = await admin.users.get({ userKey: email });
       // return user.data.thumbnailPhotoUrl;
-     
       // const admin = await this.authorize()
       // const res = await admin.users.get({ userKey: email });
       // const user = res.data;
       // return user.thumbnailPhotoUrl;
-
-      const res = await this.googleClient.users.get({ userKey: email });
+      //
+      //
+      //
+      await this.authorize();
+      const admin = google.admin({
+        version: 'directory_v1',
+        auth: await this.auth.getClient(),
+      });
+      const res = await admin.users.get({ userKey: email });
       const user = res.data;
       console.log(user);
       return user.thumbnailPhotoUrl;
+      //
+      //
+      //
+      // const res = await this.googleClient.users.get({ userKey: email });
+      // const user = res.data;
+      // console.log(user);
+      // return user.thumbnailPhotoUrl;
     } catch (error) {
       if (error.code === 404) {
         // throw new Error(`User with email ${email} not found.`);

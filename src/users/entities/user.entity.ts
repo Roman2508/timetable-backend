@@ -28,7 +28,7 @@ export class UserEntity {
   @Column({ default: null })
   picture?: string;
 
-  @Column({ default: '' })
+  @Column({ default: () => 'CURRENT_TIMESTAMP' })
   lastLogin?: string;
 
   @Column({ default: () => 'CURRENT_TIMESTAMP' })
