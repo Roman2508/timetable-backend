@@ -65,7 +65,7 @@ export class GoogleAdminService {
   // }
 
   async authorize() {
-    const keyFile = 'src/google-admin/service-account-key.json'; 
+    const keyFile = 'src/google-admin/service-account-key.json';
     const credentials = JSON.parse(fs.readFileSync(keyFile, 'utf-8'));
 
     this.auth = new google.auth.GoogleAuth({
@@ -138,7 +138,9 @@ export class GoogleAdminService {
         // throw new Error(`User with email ${email} not found.`);
         return null;
       } else {
-        throw new Error(`Failed to get user: ${error.message}`);
+        // throw new Error(`Failed to get user: ${error.message}`);
+        console.log(`Failed to get user: ${error.message}`);
+        return null;
       }
     }
   }

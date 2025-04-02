@@ -25,6 +25,7 @@ import { StudentEntity } from './students/entities/student.entity';
 import { SettingsEntity } from './settings/entities/setting.entity';
 import { AuditoryEntity } from './auditories/entities/auditory.entity';
 import { GoogleDriveModule } from './google-drive/google-drive.module';
+import { GoogleAdminModule } from './google-admin/google-admin.module';
 import { GradeBookEntity } from './grade-book/entities/grade-book.entity';
 import { PlanSubjectsModule } from './plan-subjects/plan-subjects.module';
 import { TeacherReportModule } from './teacher-report/teacher-report.module';
@@ -47,7 +48,6 @@ import { IndividualTeacherWorkModule } from './individual-teacher-work/individua
 import { InstructionalMaterialsModule } from './instructional-materials/instructional-materials.module';
 import { InstructionalMaterialEnity } from './instructional-materials/entities/instructional-material.entity';
 import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/individual-teacher-work.entity';
-import { GoogleAdminModule } from './google-admin/google-admin.module';
 
 @Module({
   imports: [
@@ -59,6 +59,7 @@ import { GoogleAdminModule } from './google-admin/google-admin.module';
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
+      ssl: { rejectUnauthorized: false },
       entities: [
         PlanEntity,
         UserEntity,

@@ -179,7 +179,7 @@ export class ScheduleLessonsService {
     const start = semesterStart && customDayjs(semesterStart, 'MM.DD.YYYY').toDate();
     const end = semesterEnd && customDayjs(semesterEnd, 'MM.DD.YYYY').toDate();
     const date = start && end ? Between(start, end) : undefined;
-    
+
     const lessons = await this.repository.find({
       where: {
         [type]: { id },

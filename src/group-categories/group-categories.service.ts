@@ -1,9 +1,10 @@
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { GroupCategoryEntity } from './entities/group-category.entity';
 import { CreateGroupCategoryDto } from './dto/create-group-category.dto';
 import { UpdateGroupCategoryDto } from './dto/update-group-category.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { GroupCategoryEntity } from './entities/group-category.entity';
-import { Repository } from 'typeorm';
 
 @Injectable()
 export class GroupCategoriesService {
@@ -12,14 +13,11 @@ export class GroupCategoriesService {
     private repository: Repository<GroupCategoryEntity>,
   ) {}
 
-  findAll(isHide: 'false' | 'true') {
+  async findAll(isHide: 'false' | 'true') {
     const visible = isHide === 'false' ? false : true;
 
-    return this.repository.find({
-      where: { groups: { isHide: visible } },
-      relations: {
-        groups: { category: true, students: true },
-      },
+    const selectOptions = {
+      relations: { groups: { category: true, students: true } },
       select: {
         groups: {
           id: true,
@@ -31,7 +29,18 @@ export class GroupCategoriesService {
           category: { id: true, name: true },
         },
       },
+    };
+
+    const groupCategories = await this.repository.find({
+      where: { groups: { isHide: visible } },
+      ...selectOptions,
     });
+
+    if (groupCategories.length) {
+      return groupCategories;
+    }
+
+    return this.repository.find(selectOptions);
   }
 
   create(dto: CreateGroupCategoryDto) {
