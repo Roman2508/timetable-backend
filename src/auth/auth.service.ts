@@ -4,8 +4,8 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 
 import { AuthDto } from './dto/auth.dto';
 import { UsersService } from './../users/users.service';
-import { UserEntity, UserRoles } from 'src/users/entities/user.entity';
 import { StudentStatus } from 'src/students/entities/student.entity';
+import { UserEntity, UserRoles } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
