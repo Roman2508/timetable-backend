@@ -21,7 +21,7 @@ export class UserEntity {
   @Column({ unique: true })
   email: string;
 
-  @Column({ type: 'enum', enum: UserRoles })
+  @Column({ type: 'enum', enum: UserRoles, default: null  })
   role: UserRoles[];
 
   @Column({ default: null })

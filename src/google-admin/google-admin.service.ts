@@ -47,11 +47,12 @@ export class GoogleAdminService {
 
       return user.thumbnailPhotoUrl;
     } catch (error) {
-      if (error.code === 404) {
-        throw new Error(`User with email ${email} not found.`);
-      } else {
-        throw new Error(`Failed to get user: ${error.message}`);
-      }
+      // if (error.code === 404) {
+      //   throw new Error(`User with email ${email} not found.`);
+      // } else {
+      //   throw new Error(`Failed to get user: ${error.message}`);
+      // }
+      return '';
     }
   }
 }

@@ -19,10 +19,10 @@ export class SettingsService {
     return this.repository.findOne({ where: { id } });
   }
 
-  // create(dto: UpdateSettingDto) {
-  //   const entity = this.repository.create(dto);
-  //   return this.repository.save(entity);
-  // }
+  create(dto: UpdateSettingDto) {
+    const entity = this.repository.create(dto);
+    return this.repository.save(entity);
+  }
 
   async updateColor(dto: UpdateColorDto) {
     const settings = await this.repository.findOne({ where: { id: 1 } });

@@ -9,4 +9,9 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  @Get('/init-application')
+  initApplication(): Promise<boolean> {
+    return this.appService.initApplication();
+  }
 }
