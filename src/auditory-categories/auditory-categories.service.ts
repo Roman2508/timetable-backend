@@ -1,13 +1,10 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+
+import { AuditoryCategoryEntity } from './entities/auditory-category.entity';
 import { CreateAuditoryCategoryDto } from './dto/create-auditory-category.dto';
 import { UpdateAuditoryCategoryDto } from './dto/update-auditory-category.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { AuditoryCategoryEntity } from './entities/auditory-category.entity';
-import { Repository } from 'typeorm';
 
 @Injectable()
 export class AuditoryCategoriesService {
@@ -65,9 +62,7 @@ export class AuditoryCategoriesService {
     }
 
     if (category.auditories.length > 0) {
-      throw new BadRequestException(
-        'Не можна видалити категорію в якій є аудиторії',
-      );
+      throw new BadRequestException('Не можна видалити категорію в якій є аудиторії');
     }
 
     const res = await this.repository.delete(id);

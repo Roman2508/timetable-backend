@@ -4,6 +4,8 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 
 import { AuthDto } from './dto/auth.dto';
 import { UsersService } from './../users/users.service';
+import { StudentStatus } from 'src/students/entities/student.entity';
+import { UserEntity, UserRoles } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +19,7 @@ export class AuthService {
     return await this.jwtService.signAsync(data, { expiresIn: '30d' });
   }
 
-  async validateUser(email: string, password: string): Promise<any> {
+  async validateUser(email: string, password: string): Promise<Omit<UserEntity, 'password'>> {
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
@@ -38,10 +40,14 @@ export class AuthService {
   async login(dto: { email: string; password: string }): Promise<any> {
     const user = await this.validateUser(dto.email, dto.password);
 
-    const { password, ...restult } = user;
+    if (user.role.includes(UserRoles.STUDENT) && user.student.status !== StudentStatus.STUDYING) {
+      throw new UnauthorizedException('Доступ заборонений');
+    }
+
+    await this.usersService.updateLastLoginTime(user.id);
 
     return {
-      user: { ...restult },
+      user,
       accessToken: await this.issueAccessToken(user.id),
     };
   }
@@ -53,7 +59,7 @@ export class AuthService {
       throw new BadRequestException('Такий email вже зареєстрований');
     }
 
-    const newUser = await this.usersService.create(dto);
+    const newUser = await this.usersService.create({ ...dto });
 
     return {
       user: newUser,
@@ -63,9 +69,9 @@ export class AuthService {
 
   async getMe(token: string) {
     const { id } = this.jwtService.decode(token);
-
     if (id) {
       const user = await this.usersService.findById(id);
+      await this.usersService.updateLastLoginTime(id);
       const { password, ...rest } = user;
       return {
         user: rest,

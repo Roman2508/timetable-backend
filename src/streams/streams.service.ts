@@ -94,24 +94,17 @@ export class StreamsService {
 
     const newStreamGroups = stream.groups.filter((el) => el.id !== groupId);
 
-    await this.repository.save({ ...stream, groups: newStreamGroups });
+    await this.repository.save({ ...stream, groups: newStreamGroups, lessons: [] });
 
     const groupLessons = await this.groupLoadLessonsRepository.find({
-      where: { group: { id: groupId }, stream: { id: streamId } },
+      where: { /* group: { id: groupId },  */ stream: { id: streamId } },
     });
 
-    // Якщо видаляється з потоку групи - чи потрібно роз'єднувати всі дисципліни цього потоку?????
-    // Якщо видаляється з потоку групи - чи потрібно роз'єднувати всі дисципліни цього потоку?????
-    // Якщо видаляється з потоку групи - чи потрібно роз'єднувати всі дисципліни цього потоку?????
     const updatedLessons = await Promise.all(
       groupLessons.map(async (lesson) => {
         await this.groupLoadLessonsRepository.save({ ...lesson, stream: null });
       }),
     );
-
-    // При видаленні групи з потоку потрібно виключити з потоку всі дисципліни цієї групи !!!
-    // При видаленні групи з потоку потрібно виключити з потоку всі дисципліни цієї групи !!!
-    // При видаленні групи з потоку потрібно виключити з потоку всі дисципліни цієї групи !!!
 
     return { streamId, groupId, updatedLessons };
   }

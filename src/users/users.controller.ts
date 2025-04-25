@@ -1,9 +1,11 @@
 import { ApiTags } from '@nestjs/swagger';
-import { Controller, Post, Body, Patch, Param, Delete, Get } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Param, Delete, Get, Query } from '@nestjs/common';
+
 import { UsersService } from './users.service';
 import { UserRoles } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { GetAllUsersDto } from './dto/get-all-users.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 @Controller('users')
@@ -12,8 +14,8 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  get() {
-    // return this.usersService.get();
+  getAll(@Query() query: GetAllUsersDto) {
+    return this.usersService.getAll(query);
   }
 
   @Post()
@@ -21,9 +23,9 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Patch()
-  update(@Body() dto: UpdateUserDto) {
-    return this.usersService.update(dto);
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return this.usersService.update(+id, dto);
   }
 
   @Patch('/role')

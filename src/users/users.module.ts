@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { forwardRef, Module } from '@nestjs/common';
 
 import { UsersService } from './users.service';
 import { UserEntity } from './entities/user.entity';
@@ -10,6 +10,6 @@ import { GoogleAdminModule } from 'src/google-admin/google-admin.module';
   controllers: [UsersController],
   providers: [UsersService],
   imports: [TypeOrmModule.forFeature([UserEntity]), GoogleAdminModule],
-  exports: [UsersService],
+  exports: [UsersService,],
 })
 export class UsersModule {}

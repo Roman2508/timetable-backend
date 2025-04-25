@@ -37,4 +37,37 @@ export class TeacherEntity {
 
   @Column({ default: false })
   isHide: boolean;
+
+  @Column({ default: '' })
+  position: string;
+
+  @Column('simple-json', { default: [] })
+  bio: EditorJSItem[];
+
+  @Column('simple-json', { default: [] })
+  printedWorks: EditorJSItem[];
+}
+
+export class EditorJSItem {
+  @Column({ default: '' })
+  id: string;
+
+  @Column({ default: '' })
+  type: string;
+
+  @Column('simple-json', { default: [] })
+  data: EditorJSItemTextData | EditorJSItemListData;
+}
+
+class EditorJSItemTextData {
+  @Column({ default: '' })
+  text: string;
+}
+
+class EditorJSItemListData {
+  @Column({ default: '' })
+  items: string[];
+
+  @Column({ default: '' })
+  style: string;
 }

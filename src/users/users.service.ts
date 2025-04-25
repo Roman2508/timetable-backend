@@ -9,6 +9,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UserEntity, UserRoles } from './entities/user.entity';
 import { GoogleAdminService } from 'src/google-admin/google-admin.service';
+import { GetAllUsersDto } from './dto/get-all-users.dto';
 
 @Injectable()
 export class UsersService {
@@ -19,6 +20,52 @@ export class UsersService {
     private readonly googleAdminService: GoogleAdminService,
   ) {}
 
+  getAll(dto: GetAllUsersDto) {
+    // query може бути іменем, поштою або ролями, sort це ключ по якому сортувати, order - порядок сортування
+    // dto: {query: string, page: number, limit: number, sort: string, order: 'asc' | 'desc'}
+
+    const filter = {} as any;
+    const order = {} as any;
+
+    if (dto.query) {
+      filter.email = ILike(`%${dto.query}%`);
+      filter.role = ILike(`%${dto.query}%`);
+
+      // if(role === UserRoles.TEACHER ) {}
+      // if(role === UserRoles.STUDENT) {}
+    }
+
+    if (dto.sortBy && (dto.order === 'ASC' || dto.order === 'DESC')) {
+      if (dto.sortBy === 'email') {
+        order.price = dto.order;
+      } else if (dto.sortBy === 'role') {
+        order.role = 'DESC';
+      } else {
+        // order.createdAt = 'DESC';
+      }
+    } else {
+      // order.createdAt = 'DESC';
+    }
+
+    return this.repository.findAndCount({
+      where: filter,
+      take: dto.limit ? dto.limit : 20,
+      skip: dto.offset ? dto.offset : 0,
+      relations: {
+        student: true,
+        teacher: true,
+      },
+      select: {
+        id: true,
+        role: true,
+        email: true,
+        picture: true,
+        lastLogin: true,
+      },
+      order,
+    });
+  }
+
   get(dto: { role: UserRoles; email: string; name: string }) {
     // dto = { role, email, name }
     // const isTeacher = dto.role.some((el) => el === UserRoles.TEACHER);
@@ -28,7 +75,6 @@ export class UsersService {
       where: {
         role: dto.role,
         email: dto.email,
-        // role: ILike(`%${name}%`), // Case-insensitive search
       },
     });
   }
@@ -94,76 +140,146 @@ export class UsersService {
     return result;
   }
 
-  async update(dto: UpdateUserDto) {
-    // if teacher: id === teacherId, if student: id === studentId, else id === this entity id
-
-    const existedUser = await this.findByEmail(dto.email);
-
-    if (existedUser && dto.id !== existedUser.id) {
-      throw new BadRequestException('Користувач з таким адресом ел.пошти вже існує');
+  async update(id: number, dto: UpdateUserDto) {
+    const existedUser = await this.findById(id);
+    if (!existedUser) {
+      throw new BadRequestException('Користувача не знайдено');
     }
 
-    const isTeacher = dto.role.some((el) => el === UserRoles.TEACHER);
-    const isStudent = dto.role.some((el) => el === UserRoles.STUDENT);
+    let updatedUser: any = { role: dto.role, id };
 
-    let user;
+    if (dto.email !== existedUser.email) {
+      const userWithSameEmail = await this.findByEmail(dto.email);
 
-    if (isTeacher || isStudent) {
-      const roleKey = isTeacher ? 'teacher' : 'student';
-
-      user = await this.repository.findOne({
-        where: { [roleKey]: { id: dto.id } },
-        relations: { student: true, teacher: true },
-      });
-    } else {
-      user = await this.repository.findOne({ where: { id: dto.id } });
+      if (!userWithSameEmail) {
+        updatedUser = { ...updatedUser, email: dto.email };
+      } else {
+        throw new BadRequestException('Користувач з таким email вже зареєстрований');
+      }
     }
 
-    if (!user) throw new NotFoundException('Не знайдено');
+    let isPasswordsTheSame = true;
 
-    const isPasswordsTheSame = await compare(dto.password, user.password);
-
-    let updatedUser = { ...user, email: dto.email };
+    if (dto.password) {
+      isPasswordsTheSame = await compare(dto.password, existedUser.password);
+    }
 
     if (!isPasswordsTheSame) {
       const salt = await genSalt(10);
       const newPassword = await hash(dto.password, salt);
       updatedUser = { ...updatedUser, password: newPassword };
     }
-
     return this.repository.save(updatedUser);
   }
+
+  async updateLastLoginTime(id: number) {
+    const user = await this.findById(id);
+
+    const now = new Date();
+
+    // Форматирование даты
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0'); // Месяцы от 0 до 11
+    const day = String(now.getUTCDate()).padStart(2, '0');
+
+    // Форматирование времени
+    const hours = String(now.getUTCHours()).padStart(2, '0');
+    const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+    const milliseconds = String(now.getUTCMilliseconds()).padStart(3, '0');
+
+    // Составляем строку
+    const microseconds = milliseconds + '000'; // Добавляем 3 нуля для миллисекунд -> микросекунд
+    const currentTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${microseconds}+00`;
+
+    return this.repository.save({ ...user, lastLogin: currentTime });
+  }
+
+  // async update(dto: UpdateUserDto) {
+  //   // if teacher: id === teacherId, if student: id === studentId, else id === this entity id
+
+  //   const existedUser = await this.findByEmail(dto.email);
+
+  //   if (existedUser && dto.id !== existedUser.id) {
+  //     throw new BadRequestException('Користувач з таким адресом ел.пошти вже існує');
+  //   }
+
+  //   const isTeacher = dto.role.some((el) => el === UserRoles.TEACHER);
+  //   const isStudent = dto.role.some((el) => el === UserRoles.STUDENT);
+
+  //   let user;
+
+  //   if (isTeacher || isStudent) {
+  //     const roleKey = isTeacher ? 'teacher' : 'student';
+
+  //     user = await this.repository.findOne({
+  //       where: { [roleKey]: { id: dto.id } },
+  //       relations: { student: true, teacher: true },
+  //     });
+  //   } else {
+  //     user = await this.repository.findOne({ where: { id: dto.id } });
+  //   }
+
+  //   if (!user) throw new NotFoundException('Не знайдено');
+
+  //   const isPasswordsTheSame = await compare(dto.password, user.password);
+
+  //   let updatedUser = { ...user, email: dto.email };
+
+  //   if (!isPasswordsTheSame) {
+  //     const salt = await genSalt(10);
+  //     const newPassword = await hash(dto.password, salt);
+  //     updatedUser = { ...updatedUser, password: newPassword };
+  //   }
+
+  //   return this.repository.save(updatedUser);
+  // }
 
   async updateRole(dto: UpdateUserRoleDto) {
     const user = await this.repository.findOne({ where: { id: dto.id } });
     if (!user) throw new NotFoundException('Не знайдено');
-    return this.repository.save({ ...user, role: [...user.role, dto.newRole] });
+    return this.repository.save({ ...user, role: dto.newRoles });
   }
 
   async updatePicture() {}
 
+  // Цей метод для видалення користувачів з ролями admin, head_of_department, guest
+  // Для видалення студентів та викладачів у відповідних сервісах є свої методи
   async delete(dto: DeleteUserDto) {
-    if (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT) {
-      const roleKey = dto.role.toLowerCase();
+    const res = await this.repository.delete(dto.id);
 
-      const user = await this.repository.findOne({ where: { role: dto.role, [roleKey]: { id: dto.id } } });
-      if (!user) throw new NotFoundException('Не знайдено');
-      const res = await this.repository.delete(user.id);
-
-      if (res.affected === 0) {
-        throw new NotFoundException('Не знайдено');
-      }
-      return user.id;
+    if (res.affected === 0) {
+      throw new NotFoundException('Не знайдено');
     }
 
-    if (dto.role === UserRoles.ADMIN || dto.role === UserRoles.HEAD_OF_DEPARTMENT || dto.role === UserRoles.GUEST) {
-      const res = await this.repository.delete(dto.id);
+    return dto.id;
 
-      if (res.affected === 0) {
-        throw new NotFoundException('Не знайдено');
-      }
+    // if (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT) {
+    //   const roleKey = dto.role.toLowerCase();
 
-      return dto.id;
-    }
+    //   console.log(dto);
+
+    //   const user = await this.repository.findOne({ where: { role: dto.role, [roleKey]: { id: dto.id } } });
+
+    //   console.log(user);
+
+    //   if (!user) throw new NotFoundException('Не знайдено');
+    //   const res = await this.repository.delete(user.id);
+
+    //   if (res.affected === 0) {
+    //     throw new NotFoundException('Не знайдено');
+    //   }
+    //   return user.id;
+    // }
+
+    // if (dto.role === UserRoles.ADMIN || dto.role === UserRoles.HEAD_OF_DEPARTMENT || dto.role === UserRoles.GUEST) {
+    //   const res = await this.repository.delete(dto.id);
+
+    //   if (res.affected === 0) {
+    //     throw new NotFoundException('Не знайдено');
+    //   }
+
+    //   return dto.id;
+    // }
   }
 }

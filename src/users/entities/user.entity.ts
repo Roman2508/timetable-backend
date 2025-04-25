@@ -8,6 +8,7 @@ export enum UserRoles {
   TEACHER = 'TEACHER',
   STUDENT = 'STUDENT',
   HEAD_OF_DEPARTMENT = 'HEAD_OF_DEPARTMENT',
+  METHODIST = 'METHODIST',
 }
 
 @Entity('user')
@@ -21,11 +22,17 @@ export class UserEntity {
   @Column({ unique: true })
   email: string;
 
-  @Column({ type: 'enum', enum: UserRoles, default: null  })
+  @Column('simple-json', { default: [] })
   role: UserRoles[];
 
   @Column({ default: null })
   picture?: string;
+
+  @Column({ default: () => 'CURRENT_TIMESTAMP' })
+  lastLogin?: string;
+
+  @Column({ default: () => 'CURRENT_TIMESTAMP' })
+  createdAt?: string;
 
   @OneToOne(() => TeacherEntity, (teacher) => teacher.id)
   @JoinColumn({ name: 'teacher' })

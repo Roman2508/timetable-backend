@@ -4,15 +4,34 @@ const stream = require('stream');
 const process = require('process');
 const { google } = require('googleapis');
 
+// import { JWT } from 'google-auth-library';
 import { Injectable } from '@nestjs/common';
 import { UpdateGoogleDriveFolderDto } from './dto/update-google-drive.dto';
 import { CreateGoogleDriveFolderDto } from './dto/create-google-drive.dto';
 
-const SCOPES = ['https://www.googleapis.com/auth/drive'];
 const CREDENTIALS_PATH = path.join(process.cwd(), 'src/google-drive/client_secret.json');
+
+const SCOPES = ['https://www.googleapis.com/auth/drive'];
+const KEY_FILE = path.join(process.cwd(), 'src/google-drive/client_secret.json');
 
 @Injectable()
 export class GoogleDriveService {
+  // private googleClient: any;
+
+  // constructor() {
+  //   const key = JSON.parse(fs.readFileSync(KEY_FILE, 'utf8'));
+
+  //   const auth = new JWT({
+  //     email: key.client_email,
+  //     key: key.private_key,
+  //     scopes: SCOPES,
+  //     subject: 'admin.calendar@pharm.zt.ua',
+  //   });
+
+  //   // @ts-ignore
+  //   this.googleClient = google.admin({ version: 'v3', auth });
+  // }
+
   async authorize() {
     const content = await fs.promises.readFile(CREDENTIALS_PATH);
     const apiKeys = JSON.parse(content);
@@ -26,7 +45,6 @@ export class GoogleDriveService {
   }
 
   async createFile(file: any, folderId: string) {
-    
     const drive = await this.authorize();
 
     const originalName = file.originalname;

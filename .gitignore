@@ -35,5 +35,17 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 # Project files
-*/client_secret.json
-*/token.json
+# */client_secret.json
+# */token.json
+
+# Google config #
+**/google-admin/*.json
+**/google-calendar/*.json
+**/google-drive/*.json
+
+# /src/google-admin/service-account-key.json
+
+# /src/google-calender/client_secret.json
+# /src/google-calender/token.json
+
+# /src/google-drive/client_secret.json

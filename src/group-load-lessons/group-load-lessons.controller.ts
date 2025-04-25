@@ -34,6 +34,11 @@ export class GroupLoadLessonsController {
     return this.groupLoadLessonsService.findAllTeacherLessonsById(+teacherId);
   }
 
+  @Get('/instructional-materials/:teacherId/:year')
+  findAllTeacherLessonsByIdAndYear(@Param('teacherId') teacherId: string, @Param('year') year: string) {
+    return this.groupLoadLessonsService.findAllTeacherLessonsById(+teacherId, year);
+  }
+
   @Get(':id')
   findAllByGroupId(@Param('id') id: string) {
     return this.groupLoadLessonsService.findAllByGroupId(+id);

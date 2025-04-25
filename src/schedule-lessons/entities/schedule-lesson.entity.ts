@@ -1,5 +1,5 @@
-import { Column, Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { IsNotEmpty } from 'class-validator';
+import { Column, Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { StreamEntity } from 'src/streams/entities/stream.entity';
@@ -67,9 +67,7 @@ export class ScheduleLessonsEntity {
   @JoinColumn({ name: 'teacher' })
   teacher: TeacherEntity;
 
-  @ManyToOne(() => AuditoryEntity, (auditory) => auditory.id, {
-    nullable: true,
-  })
+  @ManyToOne(() => AuditoryEntity, (auditory) => auditory.id, { nullable: true })
   @JoinColumn({ name: 'auditory' })
   auditory: AuditoryEntity;
 

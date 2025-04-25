@@ -75,7 +75,8 @@ export class GroupsService {
     });
 
     if (!group) throw new NotFoundException('Групу не знайдено');
-    return group;
+    const students = group.students.filter((el) => el.status === 'Навчається');
+    return { ...group, students };
   }
 
   async create(dto: CreateGroupDto) {
@@ -89,6 +90,7 @@ export class GroupsService {
       ...rest,
       educationPlan: { id: educationPlan },
       category: { id: category },
+      // calendarId: 'https://calendar.google.com',
       calendarId,
     });
 
