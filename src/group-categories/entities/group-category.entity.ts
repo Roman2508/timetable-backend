@@ -9,6 +9,9 @@ export class GroupCategoryEntity {
   @Column()
   name: string;
 
+  @Column({ default: '' })
+  shortName: string;
+
   @OneToMany(() => GroupEntity, (groups) => groups.category)
   groups: GroupEntity[];
 }

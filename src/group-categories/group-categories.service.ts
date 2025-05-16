@@ -13,39 +13,29 @@ export class GroupCategoriesService {
     private repository: Repository<GroupCategoryEntity>,
   ) {}
 
-  async findAll(isHide: 'false' | 'true') {
-    const visible = isHide === 'false' ? false : true;
-
-    const selectOptions = {
+  async findAll() {
+    return this.repository.find({
       relations: { groups: { category: true, students: true } },
       select: {
         groups: {
           id: true,
           name: true,
           isHide: true,
+          status: true,
           students: { id: true },
           courseNumber: true,
           yearOfAdmission: true,
+          formOfEducation: true,
           category: { id: true, name: true },
         },
       },
-    };
-
-    const groupCategories = await this.repository.find({
-      where: { groups: { isHide: visible } },
-      ...selectOptions,
     });
-
-    if (groupCategories.length) {
-      return groupCategories;
-    }
-
-    return this.repository.find(selectOptions);
   }
 
   create(dto: CreateGroupCategoryDto) {
     const groupsCategory = this.repository.create({
       name: dto.name,
+      shortName: dto.shortName,
       groups: [],
     });
     return this.repository.save(groupsCategory);

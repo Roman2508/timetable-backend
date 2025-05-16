@@ -15,6 +15,11 @@ import { StudentEntity } from 'src/students/entities/student.entity';
 import { GroupCategoryEntity } from 'src/group-categories/entities/group-category.entity';
 import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
+export enum GroupStatus {
+  ACTIVE = 'Активний',
+  ARCHIVE = 'Архів',
+}
+
 @Entity('groups')
 export class GroupEntity {
   @PrimaryGeneratedColumn()
@@ -32,7 +37,7 @@ export class GroupEntity {
   @Max(3, { message: 'Номер курсу може бути від 1 до 3' })
   courseNumber: number;
 
-  @Min(2018, { message: 'Рік вступу не може бути менше ніж 2018' })
+  @Min(2018, { message: 'Рік вступу не може бути менше ніж 2022' })
   @Max(2100, { message: 'Рік вступу не може бути більше ніж 2100' })
   @Column({ default: Number(Date().split(' ')[3]) }) // Поточний рік
   yearOfAdmission: number;
@@ -49,6 +54,9 @@ export class GroupEntity {
 
   @Column({ default: false })
   isHide: boolean;
+
+  @Column({ type: 'enum', enum: GroupStatus, default: GroupStatus.ACTIVE })
+  status: GroupStatus;
 
   @OneToMany(() => GroupLoadLessonEntity, (lessons) => lessons.group)
   groupLoad: GroupLoadLessonEntity[];
