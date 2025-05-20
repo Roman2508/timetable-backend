@@ -34,8 +34,8 @@ export class GroupCategoriesService {
 
   create(dto: CreateGroupCategoryDto) {
     const groupsCategory = this.repository.create({
-      name: dto.name,
       shortName: dto.shortName,
+      name: dto.name,
       groups: [],
     });
     return this.repository.save(groupsCategory);
@@ -44,22 +44,22 @@ export class GroupCategoriesService {
   async update(id: number, dto: UpdateGroupCategoryDto) {
     const groupsCategory = await this.repository.findOne({
       where: { id },
-      relations: { groups: true },
-      select: {
-        groups: {
-          id: true,
-          name: true,
-          students: true,
-          courseNumber: true,
-        },
-      },
+      // relations: { groups: { students: true } },
+      // select: {
+      //   groups: {
+      //     id: true,
+      //     name: true,
+      //     students: { id: true },
+      //     courseNumber: true,
+      //   },
+      // },
     });
 
     if (!groupsCategory) {
       throw new NotFoundException('Категорія не знайдена');
     }
 
-    return this.repository.save({ ...groupsCategory, name: dto.name });
+    return this.repository.save({ ...groupsCategory, name: dto.name, shortName: dto.shortName });
   }
 
   async remove(id: number) {
