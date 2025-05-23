@@ -134,14 +134,6 @@ export class GoogleAdminService {
       // console.log(user);
       // return user.thumbnailPhotoUrl;
     } catch (error) {
-<<<<<<< HEAD
-      // if (error.code === 404) {
-      //   throw new Error(`User with email ${email} not found.`);
-      // } else {
-      //   throw new Error(`Failed to get user: ${error.message}`);
-      // }
-      return '';
-=======
       if (error.code === 404) {
         // throw new Error(`User with email ${email} not found.`);
         return null;
@@ -150,7 +142,6 @@ export class GoogleAdminService {
         console.log(`Failed to get user: ${error.message}`);
         return null;
       }
->>>>>>> 7c58a39ac34cf9067d695aec9b7a0b381d748cf6
     }
   }
 }
