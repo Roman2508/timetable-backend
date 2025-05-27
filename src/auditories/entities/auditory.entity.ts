@@ -1,11 +1,11 @@
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+
 import { AuditoryCategoryEntity } from 'src/auditory-categories/entities/auditory-category.entity';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+
+export enum AuditoriesStatus {
+  ACTIVE = 'Активний',
+  ARCHIVE = 'Архів',
+}
 
 @Entity('auditories')
 export class AuditoryEntity {
@@ -17,6 +17,9 @@ export class AuditoryEntity {
 
   @Column({ default: 1 })
   seatsNumber: number;
+
+  @Column({ type: 'enum', enum: AuditoriesStatus, default: AuditoriesStatus.ACTIVE })
+  status: AuditoriesStatus;
 
   @ManyToOne(() => AuditoryCategoryEntity, (category) => category.auditories)
   @JoinColumn({ name: 'category' })

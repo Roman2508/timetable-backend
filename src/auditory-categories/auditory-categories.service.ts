@@ -19,9 +19,11 @@ export class AuditoryCategoriesService {
       select: {
         id: true,
         name: true,
+        shortName: true,
         auditories: {
           id: true,
           name: true,
+          status: true,
           seatsNumber: true,
           category: { id: true, name: true },
         },
@@ -32,6 +34,7 @@ export class AuditoryCategoriesService {
   create(dto: CreateAuditoryCategoryDto) {
     const newCategory = this.repository.create({
       name: dto.name,
+      shortName: dto.shortName,
       auditories: [],
     });
 
@@ -48,7 +51,7 @@ export class AuditoryCategoriesService {
       throw new NotFoundException('Не знайдено');
     }
 
-    return this.repository.save({ ...category, name: dto.name });
+    return this.repository.save({ ...category, name: dto.name, shortName: dto.shortName });
   }
 
   async remove(id: number) {

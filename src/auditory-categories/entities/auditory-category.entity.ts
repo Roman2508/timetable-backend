@@ -9,6 +9,9 @@ export class AuditoryCategoryEntity {
   @Column()
   name: string;
 
+  @Column()
+  shortName: string;
+
   @OneToMany(() => AuditoryEntity, (auditory) => auditory.category)
   auditories: AuditoryEntity[];
 }
