@@ -9,6 +9,9 @@ export class TeacherCategoryEntity {
   @Column()
   name: string;
 
+  @Column({ default: '' })
+  shortName: string;
+
   @OneToMany(() => TeacherEntity, (teacher) => teacher.category)
   teachers: TeacherEntity[];
 }

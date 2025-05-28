@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -17,15 +13,10 @@ export class TeacherCategoriesService {
     private repository: Repository<TeacherCategoryEntity>,
   ) {}
 
-  findAll(isHide: 'false' | 'true') {
-    const visible = isHide === 'true' ? true : false;
-
+  findAll() {
     return this.repository.find({
-      where: {
-        teachers: { isHide: visible },
-      },
       relations: {
-        teachers: { category: true },
+        teachers: { category: true, user: true },
       },
       select: {
         id: true,
@@ -36,7 +27,9 @@ export class TeacherCategoriesService {
           middleName: true,
           lastName: true,
           calendarId: true,
+          status: true,
           isHide: true,
+          user: { id: true, email: true, lastLogin: true },
           category: { id: true, name: true },
         },
       },
@@ -60,7 +53,7 @@ export class TeacherCategoriesService {
       throw new NotFoundException('Не знайдено');
     }
 
-    return this.repository.save({ ...teacherCategory, name: dto.name });
+    return this.repository.save({ ...teacherCategory, name: dto.name, shortName: dto.shortName });
   }
 
   async remove(id: number) {
@@ -70,9 +63,7 @@ export class TeacherCategoriesService {
     });
 
     if (category.teachers.length > 0) {
-      throw new BadRequestException(
-        'Не можна видалити категорію в якій є викладачi',
-      );
+      throw new BadRequestException('Не можна видалити категорію в якій є викладачi');
     }
 
     const res = await this.repository.delete(id);

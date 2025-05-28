@@ -18,6 +18,11 @@ export class TeachersController {
     return this.teachersService.findAll();
   }
 
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.teachersService.findOne(+id);
+  }
+
   @ApiBody({ type: CreateTeacherDto })
   @Post()
   create(@Body() dto: CreateTeacherDto) {

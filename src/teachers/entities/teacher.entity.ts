@@ -1,8 +1,14 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { TeacherReportEntity } from 'src/teacher-report/entities/teacher-report.entity';
 import { TeacherCategoryEntity } from 'src/teacher-categories/entities/teacher-category.entity';
 import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
+import { UserEntity } from 'src/users/entities/user.entity';
+
+export enum TeachersStatus {
+  ACTIVE = 'Активний',
+  ARCHIVE = 'Архів',
+}
 
 @Entity('teacher')
 export class TeacherEntity {
@@ -27,6 +33,9 @@ export class TeacherEntity {
   @Column()
   lastName: string;
 
+  @Column({ type: 'enum', enum: TeachersStatus, default: TeachersStatus.ACTIVE })
+  status: TeachersStatus;
+
   // google calendar id
   @Column({ default: null })
   calendarId: string;
@@ -46,6 +55,10 @@ export class TeacherEntity {
 
   @Column('simple-json', { default: [] })
   printedWorks: EditorJSItem[];
+
+  @OneToOne(() => UserEntity, (user) => user.id)
+  @JoinColumn({ name: 'user' })
+  user: UserEntity;
 }
 
 export class EditorJSItem {

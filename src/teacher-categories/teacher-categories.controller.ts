@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -20,13 +11,11 @@ import { UpdateTeacherCategoryDto } from './dto/update-teacher-category.dto';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class TeacherCategoriesController {
-  constructor(
-    private readonly teacherCategoriesService: TeacherCategoriesService,
-  ) {}
+  constructor(private readonly teacherCategoriesService: TeacherCategoriesService) {}
 
-  @Get(':isHide')
-  findAll(@Param('isHide') isHide: 'false' | 'true') {
-    return this.teacherCategoriesService.findAll(isHide);
+  @Get()
+  findAll() {
+    return this.teacherCategoriesService.findAll();
   }
 
   @ApiBody({ type: CreateTeacherCategoryDto })

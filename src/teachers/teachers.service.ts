@@ -4,9 +4,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { UsersService } from 'src/users/users.service';
 import { TeacherEntity } from './entities/teacher.entity';
-import { UserEntity, UserRoles } from 'src/users/entities/user.entity';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import { UserEntity, UserRoles } from 'src/users/entities/user.entity';
 import { GoogleDriveService } from 'src/google-drive/google-drive.service';
 import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
 
@@ -28,6 +28,24 @@ export class TeachersService {
     return this.repository.find({
       relations: {
         category: true,
+      },
+    });
+  }
+
+  findOne(id: number) {
+    return this.repository.findOne({
+      where: { id },
+      relations: { category: true, user: true },
+      select: {
+        id: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        calendarId: true,
+        status: true,
+        isHide: true,
+        user: { id: true, email: true, lastLogin: true },
+        category: { id: true, name: true },
       },
     });
   }
@@ -73,7 +91,7 @@ export class TeachersService {
       role: [UserRoles.TEACHER],
       email: dto.email ? dto.email : user.email,
       password: dto.password ? dto.password : user.password,
-    }
+    };
     await this.usersService.update(teacher.id, userDto);
 
     const isFirstNameDifferent = teacher.firstName !== dto.firstName;

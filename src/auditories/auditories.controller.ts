@@ -1,15 +1,7 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-} from '@nestjs/common';
-import { AuditoriesService } from './auditories.service';
+import { Get, Post, Body, Patch, Param, Delete, UseGuards, Controller } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+
+import { AuditoriesService } from './auditories.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { CreateAuditoryDto } from './dto/create-auditory.dto';
 import { UpdateAuditoryDto } from './dto/update-auditory.dto';
@@ -21,10 +13,10 @@ import { UpdateAuditoryDto } from './dto/update-auditory.dto';
 export class AuditoriesController {
   constructor(private readonly auditoriesService: AuditoriesService) {}
 
-  // @Get()
-  // findAll() {
-  //   return this.auditoriesService.findAll();
-  // }
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.auditoriesService.findOne(+id);
+  }
 
   @ApiBody({ type: CreateAuditoryDto })
   @Post()

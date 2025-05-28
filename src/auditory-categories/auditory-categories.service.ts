@@ -51,7 +51,12 @@ export class AuditoryCategoriesService {
       throw new NotFoundException('Не знайдено');
     }
 
-    return this.repository.save({ ...category, name: dto.name, shortName: dto.shortName });
+    await this.repository.save({ ...category, name: dto.name, shortName: dto.shortName });
+
+    return this.repository.findOne({
+      where: { id },
+      relations: { auditories: { category: true } },
+    });
   }
 
   async remove(id: number) {

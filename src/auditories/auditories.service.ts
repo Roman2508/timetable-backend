@@ -1,9 +1,10 @@
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { AuditoryEntity } from './entities/auditory.entity';
 import { CreateAuditoryDto } from './dto/create-auditory.dto';
 import { UpdateAuditoryDto } from './dto/update-auditory.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { AuditoryEntity } from './entities/auditory.entity';
-import { Repository } from 'typeorm';
 
 @Injectable()
 export class AuditoriesService {
@@ -12,9 +13,9 @@ export class AuditoriesService {
     private repository: Repository<AuditoryEntity>,
   ) {}
 
-  // findAll() {
-  //   return this.repository.find({ relations: { category: true } });
-  // }
+  findOne(id: number) {
+    return this.repository.findOne({ where: { id }, relations: { category: true } });
+  }
 
   create(dto: CreateAuditoryDto) {
     const { category, ...rest } = dto;
@@ -40,6 +41,7 @@ export class AuditoriesService {
     await this.repository.save({
       ...category,
       name: dto.name,
+      status: dto.status,
       seatsNumber: dto.seatsNumber,
       category: { id: dto.category },
     });
