@@ -56,7 +56,7 @@ export class TeacherEntity {
   @Column('simple-json', { default: [] })
   printedWorks: EditorJSItem[];
 
-  @OneToOne(() => UserEntity, (user) => user.id)
+  @OneToOne(() => UserEntity, (user) => user.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user' })
   user: UserEntity;
 }

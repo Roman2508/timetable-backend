@@ -28,17 +28,17 @@ export class UserEntity {
   @Column({ default: null })
   picture?: string;
 
-  @Column({ default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ default: '' })
   lastLogin?: string;
 
   @Column({ default: () => 'CURRENT_TIMESTAMP' })
   createdAt?: string;
 
-  @OneToOne(() => TeacherEntity, (teacher) => teacher.id)
+  @OneToOne(() => TeacherEntity, (teacher) => teacher.id, { cascade: true, nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'teacher' })
   teacher?: TeacherEntity;
 
-  @OneToOne(() => StudentEntity, (student) => student.id)
+  @OneToOne(() => StudentEntity, (student) => student.id, { cascade: true, nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'student' })
   student?: StudentEntity;
 }

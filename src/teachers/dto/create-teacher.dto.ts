@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+import { TeachersStatus } from '../entities/teacher.entity';
+
 export class CreateTeacherDto {
   @ApiProperty()
   category: number;
@@ -12,6 +14,9 @@ export class CreateTeacherDto {
 
   @ApiProperty()
   lastName: string;
+
+  @ApiProperty()
+  status: TeachersStatus;
 
   @ApiProperty()
   email: string;

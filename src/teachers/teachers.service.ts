@@ -1,6 +1,6 @@
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { UsersService } from 'src/users/users.service';
 import { TeacherEntity } from './entities/teacher.entity';
@@ -25,11 +25,7 @@ export class TeachersService {
   ) {}
 
   findAll() {
-    return this.repository.find({
-      relations: {
-        category: true,
-      },
-    });
+    return this.repository.find({ relations: { category: true } });
   }
 
   findOne(id: number) {
@@ -44,7 +40,7 @@ export class TeachersService {
         calendarId: true,
         status: true,
         isHide: true,
-        user: { id: true, email: true, lastLogin: true },
+        user: { id: true, email: true, lastLogin: true, createdAt: true },
         category: { id: true, name: true },
       },
     });
@@ -60,6 +56,7 @@ export class TeachersService {
     const doc = this.repository.create({
       folderId,
       calendarId,
+      status: dto.status,
       lastName: dto.lastName,
       firstName: dto.firstName,
       middleName: dto.middleName,
@@ -68,21 +65,27 @@ export class TeachersService {
 
     const newTeacher = await this.repository.save(doc);
 
-    await this.usersService.create({
+    const user = await this.usersService.create({
       email: dto.email,
       roleId: newTeacher.id,
       password: dto.password,
       role: UserRoles.TEACHER,
     });
 
-    return newTeacher;
+    if (user.id) {
+      await this.repository.save({ id: newTeacher.id, user: { id: user.id } });
+      return this.findOne(newTeacher.id);
+    } else {
+      await this.repository.delete(newTeacher.id);
+      throw new BadRequestException('Не вдалось створити викладача');
+    }
   }
 
   async update(id: number, dto: UpdateTeacherDto) {
-    const teacher = await this.repository.findOne({ where: { id }, relations: { category: true } });
+    const teacher = await this.repository.findOne({ where: { id }, relations: { category: true, user: true } });
 
     if (!teacher) {
-      throw new NotFoundException();
+      throw new NotFoundException('Викладач не знайдений');
     }
 
     const user = await this.usersService.findByEmail(dto.email);
@@ -92,7 +95,7 @@ export class TeachersService {
       email: dto.email ? dto.email : user.email,
       password: dto.password ? dto.password : user.password,
     };
-    await this.usersService.update(teacher.id, userDto);
+    await this.usersService.update(teacher.user.id, userDto);
 
     const isFirstNameDifferent = teacher.firstName !== dto.firstName;
     const isMiddleNameDifferent = teacher.middleName !== dto.middleName;
@@ -154,6 +157,7 @@ export class TeachersService {
     const user = await this.usersRepository.findOne({ where: { teacher: { id } } });
 
     if (user) {
+      console.log({ role: UserRoles.TEACHER, teacher: { id: teacher.id } });
       await this.usersRepository.delete({ role: UserRoles.TEACHER, teacher: { id: teacher.id } });
     }
 

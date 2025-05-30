@@ -94,6 +94,7 @@ export class UsersService {
   async create(dto: CreateUserDto) {
     const salt = await genSalt(10);
 
+    // Якщо немає ІД і роль Викладач або Студент = повертаю помилку
     if (!dto.roleId && (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT)) {
       throw new BadRequestException('Role ID is required for roles teacher and student');
     }
@@ -147,6 +148,9 @@ export class UsersService {
     }
 
     let updatedUser: any = { role: dto.role, id };
+
+    console.log('dto.email', dto.email);
+    console.log('existedUser.email', existedUser.email);
 
     if (dto.email !== existedUser.email) {
       const userWithSameEmail = await this.findByEmail(dto.email);
