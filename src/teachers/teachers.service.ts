@@ -40,7 +40,7 @@ export class TeachersService {
         calendarId: true,
         status: true,
         isHide: true,
-        user: { id: true, email: true, lastLogin: true, createdAt: true },
+        user: { id: true, email: true, lastLogin: true },
         category: { id: true, name: true },
       },
     });

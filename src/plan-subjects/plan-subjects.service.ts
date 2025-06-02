@@ -104,7 +104,7 @@ export class PlanSubjectsService {
   }
 
   // Створення або оновлення семестру для дисципліни
-  async updateHours(id: number, dto: UpdatePlanSubjectHoursDto) {
+  async updateHours(_: number, dto: UpdatePlanSubjectHoursDto) {
     const existedLessonWithoutSemester = await this.repository.findOne({
       where: { plan: { id: dto.planId }, name: dto.name, semesterNumber: IsNull() },
     });
