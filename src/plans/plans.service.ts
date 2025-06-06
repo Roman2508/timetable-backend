@@ -1,9 +1,10 @@
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+
 import { PlanEntity } from './entities/plan.entity';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class PlansService {
@@ -47,7 +48,7 @@ export class PlansService {
       throw new NotFoundException('План не знайдено');
     }
 
-    return this.repository.save({ ...plan, ...dto });
+    return this.repository.save({ ...plan, ...dto, category: { id: +dto.categoryId } });
   }
 
   async remove(id: number) {

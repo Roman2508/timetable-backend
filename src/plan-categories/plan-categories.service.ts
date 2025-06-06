@@ -1,28 +1,47 @@
 import { Repository } from 'typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { PlanCategoryEntity } from './entities/plan-category.entity';
 import { CreatePlanCategoryDto } from './dto/create-plan-category.dto';
 import { UpdatePlanCategoryDto } from './dto/update-plan-category.dto';
-import { PlanCategoryEntity } from './entities/plan-category.entity';
+import { PlanSubjectsService } from 'src/plan-subjects/plan-subjects.service';
 
 @Injectable()
 export class PlanCategoriesService {
   constructor(
     @InjectRepository(PlanCategoryEntity)
     private repository: Repository<PlanCategoryEntity>,
+
+    private planSubjectsService: PlanSubjectsService,
   ) {}
 
-  findAll() {
-    return this.repository.find({
+  async findAll() {
+    const planCategories = await this.repository.find({
       relations: {
         plans: { category: true },
       },
       select: {
         id: true,
         name: true,
-        plans: { id: true, name: true, category: { id: true, name: true } },
+        plans: {
+          id: true,
+          name: true,
+          status: true,
+          category: { id: true, name: true },
+        },
       },
     });
+
+    return Promise.all(
+      planCategories.map(async (category) => {
+        const plans = category.plans.map(async (plan) => {
+          const subjects = await this.planSubjectsService.findAll(category.id, '1,2,3,4,5,6,7,8');
+          return { ...plan, subjectsCount: subjects.length };
+        });
+        return { ...category, plans: await Promise.all(plans) };
+      }),
+    );
   }
 
   create(dto: CreatePlanCategoryDto) {

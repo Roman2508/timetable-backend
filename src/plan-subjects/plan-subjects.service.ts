@@ -45,7 +45,7 @@ export class PlanSubjectsService {
     let semesterNumbersArray;
 
     if (!semestersString) {
-      semesterNumbersArray = [1, 2, 3, 4, 5, 6];
+      semesterNumbersArray = [1, 2, 3, 4, 5, 6, 7, 8];
     } else {
       const semesters = semestersString.split(',');
       semesterNumbersArray = semesters.map((el) => +el);
