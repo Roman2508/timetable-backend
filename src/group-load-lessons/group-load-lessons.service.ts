@@ -248,19 +248,16 @@ export class GroupLoadLessonsService {
       relations: {
         group: true,
         planSubjectId: true,
-        stream: true,
+        stream: { groups: true },
         teacher: true,
+        unitedWith: true,
       },
       select: {
-        group: { id: true, name: true },
         planSubjectId: { id: true },
+        group: { id: true, name: true },
+        unitedWith: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
-        teacher: {
-          id: true,
-          firstName: true,
-          middleName: true,
-          lastName: true,
-        },
+        teacher: { id: true, firstName: true, middleName: true, lastName: true },
       },
     });
 
