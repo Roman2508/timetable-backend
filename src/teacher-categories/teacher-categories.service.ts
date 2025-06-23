@@ -21,6 +21,7 @@ export class TeacherCategoriesService {
       select: {
         id: true,
         name: true,
+        shortName: true,
         teachers: {
           id: true,
           firstName: true,
@@ -30,7 +31,7 @@ export class TeacherCategoriesService {
           status: true,
           isHide: true,
           user: { id: true, email: true, lastLogin: true },
-          category: { id: true, name: true },
+          category: { id: true, name: true, shortName: true },
         },
       },
     });
@@ -42,17 +43,13 @@ export class TeacherCategoriesService {
   }
 
   async update(id: number, dto: UpdateTeacherCategoryDto) {
-    const teacherCategory = await this.repository.findOne({
-      where: { id },
-      relations: {
-        teachers: true,
-      },
-    });
+    const teacherCategory = await this.repository.findOne({ where: { id } });
+    // const teacherCategory = await this.repository.findOne({ where: { id }, relations: { teachers: true } });
 
     if (!teacherCategory) {
       throw new NotFoundException('Не знайдено');
     }
-
+    console.log('dto', dto);
     return this.repository.save({ ...teacherCategory, name: dto.name, shortName: dto.shortName });
   }
 
