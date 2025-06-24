@@ -309,13 +309,14 @@ export class GroupLoadLessonsService {
         id: true,
         name: true,
         hours: true,
+        typeEn: true,
         typeRu: true,
         semester: true,
         subgroupNumber: true,
         planSubjectId: { id: true },
         group: { id: true, name: true },
-        teacher: { id: true, firstName: true, lastName: true, middleName: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
+        teacher: { id: true, firstName: true, lastName: true, middleName: true },
       },
     });
   }
