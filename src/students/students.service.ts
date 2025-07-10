@@ -78,6 +78,14 @@ export class StudentsService {
     return student;
   }
 
+  async getById(id: number) {
+    return this.repository.findOne({
+      where: { id },
+      relations: { group: true },
+      select: { group: { id: true, name: true } },
+    });
+  }
+
   async findAllByGroupId(id: number) {
     return this.repository.find({
       where: { group: { id } },

@@ -18,9 +18,14 @@ export class StudentsController {
     return this.studentsService.create(dto);
   }
 
-  @Get(':id')
+  @Get('group/:id')
   findAllByGroupId(@Param('id') id: string) {
     return this.studentsService.findAllByGroupId(+id);
+  }
+
+  @Get(':id')
+  getById(@Param('id') id: string) {
+    return this.studentsService.getById(+id);
   }
 
   @Patch(':id')
