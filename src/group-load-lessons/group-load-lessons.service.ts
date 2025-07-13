@@ -200,7 +200,6 @@ export class GroupLoadLessonsService {
       return null;
     });
 
-    console.log(currentYearLessons.filter((el) => !!el).length);
     return currentYearLessons.filter((el) => !!el);
   }
 
