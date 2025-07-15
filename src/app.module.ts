@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
 import { UsersModule } from './users/users.module';
 import { PlansModule } from './plans/plans.module';
+import { RedisModule } from './redis/redis.module';
 import { GroupsModule } from './groups/groups.module';
 import { GradesModule } from './grades/grades.module';
 import { StreamsModule } from './streams/streams.module';
@@ -90,6 +91,7 @@ import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/
     AuthModule,
     PlansModule,
     UsersModule,
+    RedisModule,
     GroupsModule,
     GradesModule,
     StreamsModule,
