@@ -1,5 +1,6 @@
 import { compare } from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
+import { Response, Request } from 'express';
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 
 import { AuthDto } from './dto/auth.dto';
@@ -37,7 +38,22 @@ export class AuthService {
     return restult;
   }
 
-  async login(dto: { email: string; password: string }): Promise<any> {
+  // async login(dto: { email: string; password: string }): Promise<any> {
+  //   const user = await this.validateUser(dto.email, dto.password);
+
+  //   if (user.role.includes(UserRoles.STUDENT) && user.student.status !== StudentStatus.STUDYING) {
+  //     throw new UnauthorizedException('Доступ заборонений');
+  //   }
+
+  //   await this.usersService.updateLastLoginTime(user.id);
+
+  //   return {
+  //     user,
+  //     accessToken: await this.issueAccessToken(user.id),
+  //   };
+  // }
+
+  async login(dto: { email: string; password: string }, res: Response): Promise<any> {
     const user = await this.validateUser(dto.email, dto.password);
 
     if (user.role.includes(UserRoles.STUDENT) && user.student.status !== StudentStatus.STUDYING) {
@@ -46,10 +62,16 @@ export class AuthService {
 
     await this.usersService.updateLastLoginTime(user.id);
 
-    return {
-      user,
-      accessToken: await this.issueAccessToken(user.id),
-    };
+    const accessToken = this.issueAccessToken(user.id);
+
+    res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== 'development',
+      sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 днів
+    });
+
+    return user;
   }
 
   async register(dto: AuthDto): Promise<any> {
@@ -67,16 +89,45 @@ export class AuthService {
     };
   }
 
-  async getMe(token: string) {
+  // async getMe(token: string) {
+  //   const { id } = this.jwtService.decode(token);
+  //   if (id) {
+  //     const user = await this.usersService.findById(id);
+  //     await this.usersService.updateLastLoginTime(id);
+  //     const { password, ...rest } = user;
+  //     return {
+  //       user: rest,
+  //       accessToken: await this.issueAccessToken(rest.id),
+  //     };
+  //   }
+
+  //   return null;
+  // }
+
+  async getMe(req: Request, res: Response) {
+    const token = req.cookies?.['token'];
+
+    if (!token) {
+      throw new UnauthorizedException('No token');
+    }
+
     const { id } = this.jwtService.decode(token);
+
     if (id) {
       const user = await this.usersService.findById(id);
       await this.usersService.updateLastLoginTime(id);
       const { password, ...rest } = user;
-      return {
-        user: rest,
-        accessToken: await this.issueAccessToken(rest.id),
-      };
+
+      const accessToken = this.issueAccessToken(user.id);
+
+      res.cookie('token', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 днів
+      });
+
+      return rest;
     }
 
     return null;

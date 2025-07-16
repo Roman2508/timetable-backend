@@ -1,7 +1,9 @@
+import { Response, Request } from 'express';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
-import { Body, Controller, HttpCode, Post, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
+import { Cookies } from './decorators/cookies.decorator';
 import { AuthDto, AuthGoogleDto, GetMeDto, LoginDto } from './dto/auth.dto';
 
 @Controller('auth')
@@ -9,12 +11,17 @@ import { AuthDto, AuthGoogleDto, GetMeDto, LoginDto } from './dto/auth.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // @UseGuards(LocalAuthGuard)
+  // @UsePipes(new ValidationPipe())
+  // @HttpCode(200)
+  // @Post('/login')
+  // async login(@Body() dto: LoginDto) {
+  //   return this.authService.login(dto);
+  // }
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post('/login')
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    return this.authService.login(dto, res);
   }
 
   @UsePipes(new ValidationPipe())
@@ -24,13 +31,19 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  // @ApiProperty()
+  // @ApiBody({ type: GetMeDto })
+  // @UsePipes(new ValidationPipe())
+  // @HttpCode(200)
+  // @Post('/me')
+  // async getMe(@Body() dto: { token: string }) {
+  //   return this.authService.getMe(token);
+  // }
   @ApiBody({ type: GetMeDto })
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post('/me')
-  async getMe(@Body() dto: { token: string }) {
-    return this.authService.getMe(dto.token);
+  async getMe(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.authService.getMe(req, res);
   }
 
   @ApiBody({ type: AuthGoogleDto })
