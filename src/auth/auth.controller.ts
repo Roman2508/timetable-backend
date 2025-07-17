@@ -1,6 +1,6 @@
 import { Response, Request } from 'express';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
-import { Body, Controller, HttpCode, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Headers, HttpCode, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { Cookies } from './decorators/cookies.decorator';

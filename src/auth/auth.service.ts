@@ -62,13 +62,14 @@ export class AuthService {
 
     await this.usersService.updateLastLoginTime(user.id);
 
-    const accessToken = this.issueAccessToken(user.id);
+    const accessToken = await this.issueAccessToken(user.id);
 
     res.cookie('token', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development',
-      sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 днів
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 24, // 1 день
     });
 
     return user;
@@ -105,7 +106,7 @@ export class AuthService {
   // }
 
   async getMe(req: Request, res: Response) {
-    const token = req.cookies?.['token'];
+    const token = req.headers.cookie;
 
     if (!token) {
       throw new UnauthorizedException('No token');
@@ -122,9 +123,10 @@ export class AuthService {
 
       res.cookie('token', accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 днів
+        secure: false,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 1000 * 60 * 60 * 24, // 1 день
       });
 
       return rest;
