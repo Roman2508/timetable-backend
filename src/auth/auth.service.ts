@@ -8,6 +8,9 @@ import { UsersService } from './../users/users.service';
 import { StudentStatus } from 'src/students/entities/student.entity';
 import { UserEntity, UserRoles } from 'src/users/entities/user.entity';
 
+const TOKEN_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
+const TOKEN_NAME = 'token';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -15,9 +18,17 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async issueAccessToken(userId: number): Promise<any> {
+  async issueAccessToken(userId: number, res: Response): Promise<any> {
     const data = { id: userId };
-    return await this.jwtService.signAsync(data, { expiresIn: '30d' });
+    const accessToken = await this.jwtService.signAsync(data, { expiresIn: '30d' });
+
+    res.cookie(TOKEN_NAME, accessToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: TOKEN_MAX_AGE,
+    });
   }
 
   async validateUser(email: string, password: string): Promise<Omit<UserEntity, 'password'>> {
@@ -38,21 +49,6 @@ export class AuthService {
     return restult;
   }
 
-  // async login(dto: { email: string; password: string }): Promise<any> {
-  //   const user = await this.validateUser(dto.email, dto.password);
-
-  //   if (user.role.includes(UserRoles.STUDENT) && user.student.status !== StudentStatus.STUDYING) {
-  //     throw new UnauthorizedException('Доступ заборонений');
-  //   }
-
-  //   await this.usersService.updateLastLoginTime(user.id);
-
-  //   return {
-  //     user,
-  //     accessToken: await this.issueAccessToken(user.id),
-  //   };
-  // }
-
   async login(dto: { email: string; password: string }, res: Response): Promise<any> {
     const user = await this.validateUser(dto.email, dto.password);
 
@@ -62,15 +58,7 @@ export class AuthService {
 
     await this.usersService.updateLastLoginTime(user.id);
 
-    const accessToken = await this.issueAccessToken(user.id);
-
-    res.cookie('token', accessToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 1000 * 60 * 60 * 24, // 1 день
-    });
+    await this.issueAccessToken(user.id, res);
 
     return user;
   }
@@ -83,27 +71,8 @@ export class AuthService {
     }
 
     const newUser = await this.usersService.create({ ...dto });
-
-    return {
-      user: newUser,
-      accessToken: await this.issueAccessToken(newUser.id),
-    };
+    return newUser;
   }
-
-  // async getMe(token: string) {
-  //   const { id } = this.jwtService.decode(token);
-  //   if (id) {
-  //     const user = await this.usersService.findById(id);
-  //     await this.usersService.updateLastLoginTime(id);
-  //     const { password, ...rest } = user;
-  //     return {
-  //       user: rest,
-  //       accessToken: await this.issueAccessToken(rest.id),
-  //     };
-  //   }
-
-  //   return null;
-  // }
 
   async getMe(req: Request, res: Response) {
     const token = req.headers.cookie;
@@ -119,15 +88,7 @@ export class AuthService {
       await this.usersService.updateLastLoginTime(id);
       const { password, ...rest } = user;
 
-      const accessToken = this.issueAccessToken(user.id);
-
-      res.cookie('token', accessToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 1000 * 60 * 60 * 24, // 1 день
-      });
+      await this.issueAccessToken(user.id, res);
 
       return rest;
     }
@@ -135,15 +96,25 @@ export class AuthService {
     return null;
   }
 
-  async getByEmail(email: string) {
+  async getByEmail(res: Response, email: string) {
     const user = await this.usersService.findByEmail(email);
 
     if (!user) throw new NotFoundException('Такого користувача не існує');
 
+    await this.issueAccessToken(user.id, res);
+
     const { password, ...rest } = user;
-    return {
-      user: rest,
-      accessToken: await this.issueAccessToken(rest.id),
-    };
+    return rest;
+  }
+
+  async logout(res: Response): Promise<boolean> {
+    res.clearCookie(TOKEN_NAME, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    return true;
   }
 }

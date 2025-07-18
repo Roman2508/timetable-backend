@@ -11,12 +11,6 @@ import { AuthDto, AuthGoogleDto, GetMeDto, LoginDto } from './dto/auth.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // @UsePipes(new ValidationPipe())
-  // @HttpCode(200)
-  // @Post('/login')
-  // async login(@Body() dto: LoginDto) {
-  //   return this.authService.login(dto);
-  // }
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post('/login')
@@ -31,13 +25,6 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  // @ApiBody({ type: GetMeDto })
-  // @UsePipes(new ValidationPipe())
-  // @HttpCode(200)
-  // @Post('/me')
-  // async getMe(@Body() dto: { token: string }) {
-  //   return this.authService.getMe(token);
-  // }
   @ApiBody({ type: GetMeDto })
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
@@ -50,7 +37,14 @@ export class AuthController {
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post('/google/me')
-  async getByEmail(@Body() dto: { email: string }) {
-    return this.authService.getByEmail(dto.email);
+  async getByEmail(@Res({ passthrough: true }) res: Response, @Body() dto: { email: string }) {
+    return this.authService.getByEmail(res, dto.email);
+  }
+
+  @UsePipes(new ValidationPipe())
+  @HttpCode(200)
+  @Post('/logout')
+  async logout(@Res({ passthrough: true }) res: Response) {
+    return this.authService.logout(res);
   }
 }
