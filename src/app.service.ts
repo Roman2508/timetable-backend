@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { SettingsService } from './settings/settings.service';
+
 import { UsersService } from './users/users.service';
 import { UserRoles } from './users/entities/user.entity';
+import { SettingsService } from './settings/settings.service';
 
 @Injectable()
 export class AppService {
@@ -13,8 +14,14 @@ export class AppService {
   getHello(): string {
     return 'Hello World!';
   }
+  
   async initApplication(): Promise<boolean> {
-    await this.usersService.create({ email: 'admin@mail.com', password: '11111111', role: UserRoles.ADMIN });
+    await this.usersService.create({
+      name: 'Root Admin',
+      email: 'admin@mail.com',
+      password: '11111111',
+      role: UserRoles.ADMIN,
+    });
     await this.settingsService.create({
       callSchedule: {
         '1': {

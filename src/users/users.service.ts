@@ -6,10 +6,10 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { CreateUserDto } from './dto/create-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { GetAllUsersDto } from './dto/get-all-users.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UserEntity, UserRoles } from './entities/user.entity';
 import { GoogleAdminService } from 'src/google-admin/google-admin.service';
-import { GetAllUsersDto } from './dto/get-all-users.dto';
 
 @Injectable()
 export class UsersService {
@@ -51,17 +51,8 @@ export class UsersService {
       where: filter,
       take: dto.limit ? dto.limit : 20,
       skip: dto.offset ? dto.offset : 0,
-      relations: {
-        student: true,
-        teacher: true,
-      },
-      select: {
-        id: true,
-        role: true,
-        email: true,
-        picture: true,
-        lastLogin: true,
-      },
+      relations: { student: true, teacher: true },
+      select: { id: true, role: true, email: true, picture: true, lastLogin: true },
       order,
     });
   }
@@ -71,12 +62,7 @@ export class UsersService {
     // const isTeacher = dto.role.some((el) => el === UserRoles.TEACHER);
     // const isStudent = dto.role.some((el) => el === UserRoles.STUDENT);
 
-    return this.repository.find({
-      where: {
-        role: dto.role,
-        email: dto.email,
-      },
-    });
+    return this.repository.find({ where: { role: dto.role, email: dto.email } });
   }
 
   findByEmail(email: string) {
@@ -108,6 +94,7 @@ export class UsersService {
     let userPayload: Omit<UserEntity, 'id'> = {
       password: await hash(dto.password, salt),
       email: dto.email,
+      name: dto.name,
       role: [dto.role],
     };
 
@@ -147,10 +134,7 @@ export class UsersService {
       throw new BadRequestException('Користувача не знайдено');
     }
 
-    let updatedUser: any = { role: dto.role, id };
-
-    console.log('dto.email', dto.email);
-    console.log('existedUser.email', existedUser.email);
+    let updatedUser: any = { role: dto.role, name: dto.name, id };
 
     if (dto.email !== existedUser.email) {
       const userWithSameEmail = await this.findByEmail(dto.email);
@@ -162,13 +146,13 @@ export class UsersService {
       }
     }
 
-    let isPasswordsTheSame = true;
+    let isPasswordsSame = true;
 
     if (dto.password) {
-      isPasswordsTheSame = await compare(dto.password, existedUser.password);
+      isPasswordsSame = await compare(dto.password, existedUser.password);
     }
 
-    if (!isPasswordsTheSame) {
+    if (!isPasswordsSame) {
       const salt = await genSalt(10);
       const newPassword = await hash(dto.password, salt);
       updatedUser = { ...updatedUser, password: newPassword };

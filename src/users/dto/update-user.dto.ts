@@ -6,6 +6,9 @@ export class UpdateUserDto {
   @IsEmail()
   email: string;
 
+  @IsEmail()
+  name: string;
+
   @MinLength(8, { message: 'Мінімальна довжина паролю 8 символів' })
   @IsString()
   password?: string;

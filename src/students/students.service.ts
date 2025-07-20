@@ -42,6 +42,7 @@ export class StudentsService {
       const student = await this.repository.save(doc);
 
       await this.usersService.create({
+        name: dto.name,
         email: dto.email,
         password: dto.password,
         role: UserRoles.STUDENT,
@@ -64,6 +65,7 @@ export class StudentsService {
     const student = await this.repository.save(doc);
 
     const user = await this.usersService.create({
+      name: dto.name,
       email: dto.email,
       password: dto.password,
       role: UserRoles.STUDENT,

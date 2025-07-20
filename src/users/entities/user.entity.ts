@@ -1,6 +1,7 @@
+import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+
 import { StudentEntity } from 'src/students/entities/student.entity';
 import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum UserRoles {
   ADMIN = 'ADMIN',
@@ -18,6 +19,9 @@ export class UserEntity {
 
   @Column()
   password: string;
+
+  @Column({ default: '' })
+  name: string;
 
   @Column({ unique: true })
   email: string;

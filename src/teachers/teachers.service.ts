@@ -66,6 +66,7 @@ export class TeachersService {
     const newTeacher = await this.repository.save(doc);
 
     const user = await this.usersService.create({
+      name,
       email: dto.email,
       roleId: newTeacher.id,
       password: dto.password,
@@ -90,7 +91,10 @@ export class TeachersService {
 
     const user = await this.usersService.findByEmail(dto.email);
 
+    const name = `${dto.lastName} ${dto.firstName} ${dto.middleName}`;
+
     const userDto = {
+      name,
       role: [UserRoles.TEACHER],
       email: dto.email ? dto.email : user.email,
       password: dto.password ? dto.password : user.password,

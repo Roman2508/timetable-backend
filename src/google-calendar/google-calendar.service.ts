@@ -22,7 +22,7 @@ import { CreateGoogleCalendarEventDto } from './dto/create-google-calendar-event
 import { GoogleAuth, JSONClient } from 'google-auth-library/build/src/auth/googleauth';
 
 const TOKEN_PATH = path.join(process.cwd(), 'src/google-calendar/token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'src/google-calendar/client_secret.json');
+const CREDENTIALS_PATH = path.join(process.cwd(), 'src/google-calendar/client-secret.json');
 
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar',
