@@ -29,6 +29,10 @@ export class UserEntity {
   @Column('simple-json', { default: [] })
   role: UserRoles[];
 
+  // @ManyToMany(() => Role)
+  // @JoinTable()
+  // roles: Role[];
+
   @Column({ default: null })
   picture?: string;
 

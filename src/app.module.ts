@@ -7,10 +7,12 @@ import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
 import { UsersModule } from './users/users.module';
 import { PlansModule } from './plans/plans.module';
+import { RolesModule } from './roles/roles.module';
 import { GroupsModule } from './groups/groups.module';
 import { GradesModule } from './grades/grades.module';
 import { StreamsModule } from './streams/streams.module';
 import { UserEntity } from './users/entities/user.entity';
+import { RoleEntity } from './roles/entities/role.entity';
 import { PlanEntity } from './plans/entities/plan.entity';
 import { TeachersModule } from './teachers/teachers.module';
 import { SettingsModule } from './settings/settings.module';
@@ -23,6 +25,7 @@ import { AuditoriesModule } from './auditories/auditories.module';
 import { TeacherEntity } from './teachers/entities/teacher.entity';
 import { StudentEntity } from './students/entities/student.entity';
 import { SettingsEntity } from './settings/entities/setting.entity';
+import { PermissionEntity } from './roles/entities/permission.entity';
 import { AuditoryEntity } from './auditories/entities/auditory.entity';
 import { GoogleDriveModule } from './google-drive/google-drive.module';
 import { GoogleAdminModule } from './google-admin/google-admin.module';
@@ -63,6 +66,7 @@ import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/
       entities: [
         PlanEntity,
         UserEntity,
+        RoleEntity,
         GroupEntity,
         GradesEntity,
         StreamEntity,
@@ -71,6 +75,7 @@ import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/
         SettingsEntity,
         AuditoryEntity,
         GradeBookEntity,
+        PermissionEntity,
         PlanSubjectEntity,
         PlanCategoryEntity,
         GroupCategoryEntity,
@@ -90,6 +95,7 @@ import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/
     AuthModule,
     PlansModule,
     UsersModule,
+    RolesModule,
     GroupsModule,
     GradesModule,
     StreamsModule,

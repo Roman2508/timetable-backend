@@ -1,11 +1,11 @@
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, Post, Body, Param, Delete, UseGuards, Patch } from '@nestjs/common';
 
+import { AddSummaryDto } from './dto/add-summary.dto';
 import { GradeBookService } from './grade-book.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { CreateGradeBookDto } from './dto/create-grade-book.dto';
-import { AddSummaryDto } from './dto/add-summary.dto';
 import { DeleteSummaryDto } from './dto/delete-summary.dto';
+import { CreateGradeBookDto } from './dto/create-grade-book.dto';
 
 @Controller('grade-book')
 @ApiTags('grade-book')
