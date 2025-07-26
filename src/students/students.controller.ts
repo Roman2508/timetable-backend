@@ -2,13 +2,13 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 
 import { StudentsService } from './students.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 
 @Controller('students')
 @ApiTags('students')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}

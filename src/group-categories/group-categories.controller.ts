@@ -3,12 +3,14 @@ import { GroupCategoriesService } from './group-categories.service';
 import { CreateGroupCategoryDto } from './dto/create-group-category.dto';
 import { UpdateGroupCategoryDto } from './dto/update-group-category.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { LocalAuthGuard } from 'src/auth/guards/auth.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('group-categories')
 @ApiTags('group-categories')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+// @UseGuards(JwtAuthGuard)
+// @ApiBearerAuth()
+// @UseGuards(LocalAuthGuard)
 export class GroupCategoriesController {
   constructor(private readonly groupCategoriesService: GroupCategoriesService) {}
 

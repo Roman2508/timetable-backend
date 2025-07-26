@@ -162,7 +162,7 @@ export class TeachersService {
 
     if (user) {
       console.log({ role: UserRoles.TEACHER, teacher: { id: teacher.id } });
-      await this.usersRepository.delete({ role: UserRoles.TEACHER, teacher: { id: teacher.id } });
+      await this.usersRepository.delete({ /* role: UserRoles.TEACHER, */ teacher: { id: teacher.id } });
     }
 
     const res = await this.repository.delete(id);

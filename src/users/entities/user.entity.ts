@@ -1,7 +1,8 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { StudentEntity } from 'src/students/entities/student.entity';
 import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
+import { RoleEntity } from 'src/roles/entities/role.entity';
 
 export enum UserRoles {
   ADMIN = 'ADMIN',
@@ -26,12 +27,12 @@ export class UserEntity {
   @Column({ unique: true })
   email: string;
 
-  @Column('simple-json', { default: [] })
-  role: UserRoles[];
+  // @Column('simple-json', { default: [] })
+  // role: UserRoles[];
 
-  // @ManyToMany(() => Role)
-  // @JoinTable()
-  // roles: Role[];
+  @ManyToMany(() => RoleEntity, (role) => role.users)
+  @JoinTable()
+  roles: RoleEntity[];
 
   @Column({ default: null })
   picture?: string;

@@ -1,22 +1,13 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { PlanCategoriesService } from './plan-categories.service';
 import { CreatePlanCategoryDto } from './dto/create-plan-category.dto';
 import { UpdatePlanCategoryDto } from './dto/update-plan-category.dto';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('plan-categories')
 @ApiTags('plan-categories')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class PlanCategoriesController {
   constructor(private readonly planCategoriesService: PlanCategoriesService) {}

@@ -52,7 +52,9 @@ export class AuthService {
   async login(dto: { email: string; password: string }, res: Response): Promise<any> {
     const user = await this.validateUser(dto.email, dto.password);
 
-    if (user.role.includes(UserRoles.STUDENT) && user.student.status !== StudentStatus.STUDYING) {
+    const isStudent = user.roles.find((el) => el.key === 'student');
+
+    if (isStudent && user.student.status !== StudentStatus.STUDYING) {
       throw new UnauthorizedException('Доступ заборонений');
     }
 
@@ -74,26 +76,30 @@ export class AuthService {
     return newUser;
   }
 
-  async getMe(req: Request, res: Response) {
-    const token = req.headers.cookie;
+  // async getMe(req: Request, res: Response) {
+  //   const token = req.headers.cookie;
 
-    if (!token) {
-      throw new UnauthorizedException('No token');
-    }
+  //   if (!token) {
+  //     throw new UnauthorizedException('No token');
+  //   }
 
-    const { id } = this.jwtService.decode(token);
+  //   const { id } = this.jwtService.decode(token);
 
-    if (id) {
-      const user = await this.usersService.findById(id);
-      await this.usersService.updateLastLoginTime(id);
-      const { password, ...rest } = user;
+  //   if (id) {
+  //     const user = await this.usersService.findById(id);
+  //     await this.usersService.updateLastLoginTime(id);
+  //     const { password, ...rest } = user;
 
-      await this.issueAccessToken(user.id, res);
+  //     await this.issueAccessToken(user.id, res);
 
-      return rest;
-    }
+  //     return rest;
+  //   }
 
-    return null;
+  //   return null;
+  // }
+
+  getProfile(req: Request) {
+    return req.user;
   }
 
   async getByEmail(res: Response, email: string) {

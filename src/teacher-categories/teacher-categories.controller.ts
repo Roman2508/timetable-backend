@@ -1,14 +1,14 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { TeacherCategoriesService } from './teacher-categories.service';
 import { CreateTeacherCategoryDto } from './dto/create-teacher-category.dto';
 import { UpdateTeacherCategoryDto } from './dto/update-teacher-category.dto';
 
 @Controller('teacher-categories')
 @ApiTags('teacher-categories')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class TeacherCategoriesController {
   constructor(private readonly teacherCategoriesService: TeacherCategoriesService) {}

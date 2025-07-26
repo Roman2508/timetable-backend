@@ -1,7 +1,7 @@
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { Get, Post, Body, Patch, Param, UseGuards, Controller } from '@nestjs/common';
 
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { SetSubgroupsCountDto } from './dto/set-subgroups-count.dto';
 import { GroupLoadLessonsService } from './group-load-lessons.service';
 import { AddStudentToLessonDto } from './dto/add-student-to-lesson.dto';
@@ -17,7 +17,7 @@ import { ChangeStudentsCountByNameAndTypeDto } from './dto/change-students-count
 
 @Controller('group-load-lessons')
 @ApiTags('group-load-lessons')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class GroupLoadLessonsController {
   constructor(private readonly groupLoadLessonsService: GroupLoadLessonsService) {}

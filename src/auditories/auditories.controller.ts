@@ -2,13 +2,13 @@ import { Get, Post, Body, Patch, Param, Delete, UseGuards, Controller } from '@n
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 
 import { AuditoriesService } from './auditories.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { CreateAuditoryDto } from './dto/create-auditory.dto';
 import { UpdateAuditoryDto } from './dto/update-auditory.dto';
 
 @Controller('auditories')
 @ApiTags('auditories')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AuditoriesController {
   constructor(private readonly auditoriesService: AuditoriesService) {}

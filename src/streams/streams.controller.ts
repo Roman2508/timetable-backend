@@ -1,17 +1,8 @@
-import {
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Controller,
-} from '@nestjs/common';
+import { Get, Post, Body, Patch, Param, Delete, UseGuards, Controller } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 
 import { StreamsService } from './streams.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { CreateStreamDto } from './dto/create-stream.dto';
 import { UpdateStreamNameDto } from './dto/update-stream-name.dto';
 import { AddGroupToStreamDto } from './dto/add-group-to-stream.dto';
@@ -21,7 +12,7 @@ import { GroupLoadLessonsService } from 'src/group-load-lessons/group-load-lesso
 
 @Controller('streams')
 @ApiTags('streams')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class StreamsController {
   constructor(
@@ -56,20 +47,14 @@ export class StreamsController {
   }
 
   @Delete('group/remove/:streamId/:groupId')
-  removeGroupFromStream(
-    @Param('streamId') streamId: string,
-    @Param('groupId') groupId: string,
-  ) {
+  removeGroupFromStream(@Param('streamId') streamId: string, @Param('groupId') groupId: string) {
     return this.streamsService.removeGroupFromStream(+streamId, +groupId);
   }
 
   // Об'єднати дисципліну в потік
   @ApiBody({ type: AddLessonsToStreamDto })
   @Patch('/lesson/add/:streamId')
-  addLessonsToStream(
-    @Param('streamId') streamId: string,
-    @Body() dto: AddLessonsToStreamDto,
-  ) {
+  addLessonsToStream(@Param('streamId') streamId: string, @Body() dto: AddLessonsToStreamDto) {
     return this.groupLoadLessonsService.addLessonsToStream(+streamId, dto);
   }
 

@@ -1,6 +1,6 @@
 import { Response, Request } from 'express';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
-import { Body, Controller, Headers, HttpCode, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { Cookies } from './decorators/cookies.decorator';
@@ -25,12 +25,18 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  @ApiBody({ type: GetMeDto })
-  @UsePipes(new ValidationPipe())
+  // @ApiBody({ type: GetMeDto })
+  // @UsePipes(new ValidationPipe())
+  // @HttpCode(200)
+  // @Post('/me')
+  // async getMe(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  //   return this.authService.getMe(req, res);
+  // }
+
   @HttpCode(200)
-  @Post('/me')
-  async getMe(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    return this.authService.getMe(req, res);
+  @Get('/profile')
+  async getProfile(@Req() req: Request) {
+    return this.authService.getProfile(req);
   }
 
   @ApiBody({ type: AuthGoogleDto })

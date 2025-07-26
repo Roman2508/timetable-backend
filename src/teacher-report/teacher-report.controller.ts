@@ -15,14 +15,14 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { TeacherReportService } from './teacher-report.service';
 import { CreateTeacherReportDto } from './dto/create-teacher-report.dto';
 import { UpdateTeacherReportDto } from './dto/update-teacher-report.dto';
 
 @Controller('teacher-report')
 @ApiTags('teacher-report')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class TeacherReportController {
   constructor(private readonly teacherReportService: TeacherReportService) {}

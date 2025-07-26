@@ -1,7 +1,7 @@
 import { ApiBearerAuth, ApiBody, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Get, Post, Body, Patch, Param, Delete, UseGuards, Controller, Query } from '@nestjs/common';
 
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { CopyWeekOfScheduleDto } from './dto/copy-week-of-schedule.dto';
 import { ScheduleLessonsService } from './schedule-lessons.service';
 import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
@@ -12,7 +12,7 @@ import { FindAllLessonDatesForTheSemesterDto } from './dto/find-lesson-dates-for
 
 @Controller('schedule-lessons')
 @ApiTags('schedule-lessons')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ScheduleLessonsController {
   constructor(private readonly scheduleLessonsService: ScheduleLessonsService) {}

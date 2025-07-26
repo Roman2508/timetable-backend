@@ -1,5 +1,5 @@
 import { Get, Post, Body, Patch, Delete, UseGuards, Controller, Param } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { FindCalendarEventDto } from './dto/find-calendar-event.dto';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { GoogleCalendarService } from './google-calendar.service';
@@ -10,7 +10,7 @@ import { UpdateGoogleCalendarEventDto } from './dto/update-google-calendar-event
 
 @Controller('google-calendar')
 @ApiTags('google-calendar')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class GoogleCalendarController {
   constructor(private readonly googleCalendarService: GoogleCalendarService) {}

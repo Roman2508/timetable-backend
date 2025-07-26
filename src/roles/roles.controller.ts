@@ -4,14 +4,14 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@n
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { PermissionEntity } from './entities/permission.entity';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 // import { UpdatPermissionDto } from './dto/update-permission.dto';
 
 @Controller('roles')
 @ApiTags('roles')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}

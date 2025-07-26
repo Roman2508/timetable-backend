@@ -1,14 +1,14 @@
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { Get, Post, Body, Patch, Param, Delete, UseGuards, Controller } from '@nestjs/common';
 
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { AuditoryCategoriesService } from './auditory-categories.service';
 import { CreateAuditoryCategoryDto } from './dto/create-auditory-category.dto';
 import { UpdateAuditoryCategoryDto } from './dto/update-auditory-category.dto';
 
 @Controller('auditory-categories')
 @ApiTags('auditory-categories')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AuditoryCategoriesController {
   constructor(private readonly auditoryCategoriesService: AuditoryCategoriesService) {}

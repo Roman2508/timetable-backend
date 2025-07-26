@@ -10,6 +10,7 @@ import { GetAllUsersDto } from './dto/get-all-users.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UserEntity, UserRoles } from './entities/user.entity';
 import { GoogleAdminService } from 'src/google-admin/google-admin.service';
+import { RoleEntity } from 'src/roles/entities/role.entity';
 
 @Injectable()
 export class UsersService {
@@ -52,17 +53,18 @@ export class UsersService {
       take: dto.limit ? dto.limit : 20,
       skip: dto.offset ? dto.offset : 0,
       relations: { student: true, teacher: true },
-      select: { id: true, role: true, email: true, picture: true, lastLogin: true },
+      select: { id: true, name: true, roles: true, email: true, picture: true, lastLogin: true },
       order,
     });
   }
 
+  // FIX roleId
   get(dto: { role: UserRoles; email: string; name: string }) {
     // dto = { role, email, name }
     // const isTeacher = dto.role.some((el) => el === UserRoles.TEACHER);
     // const isStudent = dto.role.some((el) => el === UserRoles.STUDENT);
-
-    return this.repository.find({ where: { role: dto.role, email: dto.email } });
+    const roleId = 3; // fix
+    return this.repository.find({ where: { roles: { id: roleId }, email: dto.email } });
   }
 
   findByEmail(email: string) {
@@ -81,9 +83,9 @@ export class UsersService {
     const salt = await genSalt(10);
 
     // Якщо немає ІД і роль Викладач або Студент = повертаю помилку
-    if (!dto.roleId && (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT)) {
-      throw new BadRequestException('Role ID is required for roles teacher and student');
-    }
+    // if (!dto.roleId && (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT)) {
+    //   throw new BadRequestException('Role ID is required for roles teacher and student');
+    // }
 
     const existedUser = await this.findByEmail(dto.email);
 
@@ -95,7 +97,11 @@ export class UsersService {
       password: await hash(dto.password, salt),
       email: dto.email,
       name: dto.name,
-      role: [dto.role],
+      // roles: [{ id: dto.roleId }],
+
+      roles: [{ id: dto.roleId } as RoleEntity],
+
+      // role: [dto.role],
     };
 
     const picture = await this.googleAdminService.getUserPhotoByEmail(dto.email);
@@ -224,9 +230,9 @@ export class UsersService {
   // }
 
   async updateRole(dto: UpdateUserRoleDto) {
-    const user = await this.repository.findOne({ where: { id: dto.id } });
+    const user = await this.repository.findOne({ where: { id: dto.userId } });
     if (!user) throw new NotFoundException('Не знайдено');
-    return this.repository.save({ ...user, role: dto.newRoles });
+    return this.repository.save({ ...user, roles: [...user.roles, { id: dto.newRoleId }] });
   }
 
   async updatePicture() {}

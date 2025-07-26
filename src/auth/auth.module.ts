@@ -5,12 +5,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { LocalAuthGuard } from './guards/auth.guard';
 import { UsersModule } from 'src/users/users.module';
-import { JwtStrategy } from './strategies/jwt.strategy';
 import { UserEntity } from 'src/users/entities/user.entity';
 
 @Module({
-  providers: [AuthController, AuthService, JwtStrategy],
+  providers: [AuthService, LocalAuthGuard],
   controllers: [AuthController],
   imports: [
     JwtModule.registerAsync({
@@ -26,5 +26,6 @@ import { UserEntity } from 'src/users/entities/user.entity';
     UsersModule,
     TypeOrmModule.forFeature([UserEntity]),
   ],
+  exports: [LocalAuthGuard, JwtModule],
 })
 export class AuthModule {}

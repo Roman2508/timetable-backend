@@ -1,7 +1,7 @@
 import { ApiBearerAuth, ApiBody, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { PlanSubjectsService } from './plan-subjects.service';
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
 import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto';
@@ -9,7 +9,7 @@ import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto';
 
 @Controller('plan-subjects')
 @ApiTags('plan-subjects')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class PlanSubjectsController {
   constructor(private readonly planSubjectsService: PlanSubjectsService) {}

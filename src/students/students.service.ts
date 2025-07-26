@@ -142,7 +142,7 @@ export class StudentsService {
     const user = await this.usersRepository.findOne({ where: { student: { id } } });
 
     if (user) {
-      await this.usersRepository.delete({ role: UserRoles.STUDENT, student: { id: student.id } });
+      await this.usersRepository.delete({ /* role: UserRoles.STUDENT, */ student: { id: student.id } });
     }
 
     const res = await this.repository.delete(id);

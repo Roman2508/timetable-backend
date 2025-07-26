@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -14,6 +15,7 @@ import { StreamsModule } from './streams/streams.module';
 import { UserEntity } from './users/entities/user.entity';
 import { RoleEntity } from './roles/entities/role.entity';
 import { PlanEntity } from './plans/entities/plan.entity';
+import { LocalAuthGuard } from './auth/guards/auth.guard';
 import { TeachersModule } from './teachers/teachers.module';
 import { SettingsModule } from './settings/settings.module';
 import { StudentsModule } from './students/students.module';
@@ -119,6 +121,12 @@ import { IndividualTeacherWorkEntity } from './individual-teacher-work/entities/
     InstructionalMaterialsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: LocalAuthGuard,
+    },
+    AppService,
+  ],
 })
 export class AppModule {}

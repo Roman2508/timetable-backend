@@ -4,13 +4,13 @@ import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+// import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { CreateGroupSpecializationDto } from './dto/create-group-specialization.dto';
 import { UpdateGroupSpecializationDto } from './dto/update-group-specialization.dto';
 
 @Controller('groups')
 @ApiTags('groups')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
