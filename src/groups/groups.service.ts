@@ -82,16 +82,16 @@ export class GroupsService {
   async create(dto: CreateGroupDto) {
     const { category, educationPlan, ...rest } = dto;
 
-    const calendarId = await this.googleCalendarService.createCalendar({
-      owner: dto.name,
-    });
+    // const calendarId = await this.googleCalendarService.createCalendar({
+    //   owner: dto.name,
+    // });
 
     const newGroup = this.groupsRepository.create({
       ...rest,
       educationPlan: { id: educationPlan },
       category: { id: category },
-      // calendarId: 'https://calendar.google.com',
-      calendarId,
+      calendarId: 'https://calendar.google.com',
+      // calendarId,
     });
 
     const group = await this.groupsRepository.save(newGroup);
@@ -145,15 +145,16 @@ export class GroupsService {
       });
     }
 
-    // Якщо при оновленні було змінено кількість студентів
-    // if (Number(group.students) !== Number(dto.students)) {
-    //   await this.groupLoadLessonsService.changeAllStudentsCount({
-    //     id,
-    //     students: dto.students,
-    //   });
-    // }
-
     const { category, educationPlan, ...rest } = dto;
+
+    const updatedGroup = {
+      ...group,
+      ...rest,
+      category: { id: category },
+      educationPlan: { id: educationPlan },
+    };
+
+    console.log(updatedGroup);
 
     return this.groupsRepository.save({
       ...group,

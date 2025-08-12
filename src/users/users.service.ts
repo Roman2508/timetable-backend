@@ -7,10 +7,10 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetAllUsersDto } from './dto/get-all-users.dto';
+import { RoleEntity } from 'src/roles/entities/role.entity';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UserEntity, UserRoles } from './entities/user.entity';
 import { GoogleAdminService } from 'src/google-admin/google-admin.service';
-import { RoleEntity } from 'src/roles/entities/role.entity';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +20,12 @@ export class UsersService {
 
     private readonly googleAdminService: GoogleAdminService,
   ) {}
+
+  async checkIsUsersExists() {
+    const users = await this.repository.find();
+    if (users.length) return true;
+    else return false;
+  }
 
   getAll(dto: GetAllUsersDto) {
     // query може бути іменем, поштою або ролями, sort це ключ по якому сортувати, order - порядок сортування

@@ -1,10 +1,10 @@
-import { Response, Request } from 'express';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
-import { Body, Controller, Get, Headers, HttpCode, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Response, Request } from 'express'
+import { ApiBody, ApiTags } from '@nestjs/swagger'
+import { Body, Controller, Get, Headers, HttpCode, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common'
 
-import { AuthService } from './auth.service';
-import { Cookies } from './decorators/cookies.decorator';
-import { AuthDto, AuthGoogleDto, GetMeDto, LoginDto } from './dto/auth.dto';
+import { AuthService } from './auth.service'
+import { Cookies } from './decorators/cookies.decorator'
+import { AuthDto, AuthGoogleDto, GetMeDto, LoginDto } from './dto/auth.dto'
 
 @Controller('auth')
 @ApiTags('auth')
@@ -15,14 +15,14 @@ export class AuthController {
   @HttpCode(200)
   @Post('/login')
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    return this.authService.login(dto, res);
+    return this.authService.login(dto, res)
   }
 
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post('/register')
   async register(@Body() dto: AuthDto) {
-    return this.authService.register(dto);
+    return this.authService.register(dto)
   }
 
   // @ApiBody({ type: GetMeDto })
@@ -33,10 +33,16 @@ export class AuthController {
   //   return this.authService.getMe(req, res);
   // }
 
+  @Get('/refresh')
+  async refreshToken(@Req() req: Request, @Res() res: Response) {
+    const refreshToken = req.cookies[process.env.TOKEN_NAME]
+    return this.authService.refreshToken(res, refreshToken)
+  }
+
   @HttpCode(200)
   @Get('/profile')
   async getProfile(@Req() req: Request) {
-    return this.authService.getProfile(req);
+    return this.authService.getProfile(req)
   }
 
   @ApiBody({ type: AuthGoogleDto })
@@ -44,13 +50,13 @@ export class AuthController {
   @HttpCode(200)
   @Post('/google/me')
   async getByEmail(@Res({ passthrough: true }) res: Response, @Body() dto: { email: string }) {
-    return this.authService.getByEmail(res, dto.email);
+    return this.authService.getByEmail(res, dto.email)
   }
 
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post('/logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    return this.authService.logout(res);
+    return this.authService.logout(res)
   }
 }
