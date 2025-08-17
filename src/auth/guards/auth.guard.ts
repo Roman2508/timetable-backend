@@ -43,6 +43,7 @@ export class LocalAuthGuard implements CanActivate {
     // }
 
     if (!token) {
+      return false
       throw new UnauthorizedException('Відсутній токен')
     }
 

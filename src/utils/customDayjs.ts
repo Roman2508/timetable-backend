@@ -1,10 +1,12 @@
-import * as dayjs from 'dayjs';
-import * as uk from 'dayjs/locale/uk';
-import * as updateLocale from 'dayjs/plugin/updateLocale';
+import * as dayjs from 'dayjs'
+import * as uk from 'dayjs/locale/uk'
+import * as updateLocale from 'dayjs/plugin/updateLocale'
+import * as customParseFormat from 'dayjs/plugin/customParseFormat'
 
-dayjs.locale(uk);
+dayjs.locale(uk)
 
-dayjs.extend(updateLocale);
+dayjs.extend(updateLocale)
+dayjs.extend(customParseFormat)
 
 dayjs.updateLocale('uk', {
   weekdaysShort: ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота'],
@@ -22,6 +24,6 @@ dayjs.updateLocale('uk', {
     'листопада',
     'грудня',
   ],
-});
+})
 
-export const customDayjs = dayjs;
+export const customDayjs = dayjs

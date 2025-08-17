@@ -1,19 +1,19 @@
-import { Between, Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Between, Repository } from 'typeorm'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 
-import { customDayjs } from 'src/utils/customDayjs';
-import { StreamEntity } from 'src/streams/entities/stream.entity';
-import { CreateReplacementDto } from './dto/create-replacement.dto';
-import { SettingsEntity } from 'src/settings/entities/setting.entity';
-import { CopyDayOfScheduleDto } from './dto/copy-day-of-schedule.dto';
-import { CopyWeekOfScheduleDto } from './dto/copy-week-of-schedule.dto';
-import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity';
-import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto';
-import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto';
-import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
-import { FindAllLessonDatesForTheSemesterDto } from './dto/find-lesson-dates-for-the-semester.dto';
-import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
+import { customDayjs } from 'src/utils/customDayjs'
+import { StreamEntity } from 'src/streams/entities/stream.entity'
+import { CreateReplacementDto } from './dto/create-replacement.dto'
+import { SettingsEntity } from 'src/settings/entities/setting.entity'
+import { CopyDayOfScheduleDto } from './dto/copy-day-of-schedule.dto'
+import { CopyWeekOfScheduleDto } from './dto/copy-week-of-schedule.dto'
+import { ScheduleLessonsEntity } from './entities/schedule-lesson.entity'
+import { CreateScheduleLessonDto } from './dto/create-schedule-lesson.dto'
+import { UpdateScheduleLessonDto } from './dto/update-schedule-lesson.dto'
+import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service'
+import { FindAllLessonDatesForTheSemesterDto } from './dto/find-lesson-dates-for-the-semester.dto'
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity'
 
 @Injectable()
 export class ScheduleLessonsService {
@@ -46,13 +46,13 @@ export class ScheduleLessonsService {
     groupId: number,
   ) {
     // gDto === groupDto, tDto === teacherDto
-    const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName };
+    const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName }
 
-    const tDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: teacherId, type: 'teacher' });
-    await this.googleCalendarService.createCalendarEvent(tDto);
+    const tDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: teacherId, type: 'teacher' })
+    await this.googleCalendarService.createCalendarEvent(tDto)
 
-    const gDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: groupId, type: 'group' });
-    await this.googleCalendarService.createCalendarEvent(gDto);
+    const gDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: groupId, type: 'group' })
+    await this.googleCalendarService.createCalendarEvent(gDto)
   }
 
   // Update auditory in Teacher and Group events in Google Calendar
@@ -70,25 +70,25 @@ export class ScheduleLessonsService {
     teacherCalendarId: string,
   ) {
     // gDto === groupDto, tDto === teacherDto
-    const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName };
+    const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName }
 
-    const gDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: groupId, type: 'group' });
+    const gDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: groupId, type: 'group' })
     // update group event
     this.googleCalendarService.updateCalendarEvent({
       calendarId: groupCalendarId,
       summary: gDto.summary,
       description: gDto.description,
       location: auditoryName,
-    });
+    })
 
-    const tDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: teacherId, type: 'teacher' });
+    const tDto = await this.googleCalendarService.getCalendarEventDto({ ...dto, itemId: teacherId, type: 'teacher' })
     // update teacher event
     this.googleCalendarService.updateCalendarEvent({
       calendarId: teacherCalendarId,
       summary: tDto.summary,
       description: tDto.description,
       location: auditoryName,
-    });
+    })
   }
 
   // Delete Teacher and Group events in Google Calendar
@@ -105,9 +105,9 @@ export class ScheduleLessonsService {
     groupCalendarId: string,
     teacherCalendarId: string,
   ) {
-    const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName };
-    this.googleCalendarService.deleteCalendarEvent(groupCalendarId, { ...dto, itemId: groupId, type: 'group' });
-    this.googleCalendarService.deleteCalendarEvent(teacherCalendarId, { ...dto, itemId: teacherId, type: 'teacher' });
+    const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName }
+    this.googleCalendarService.deleteCalendarEvent(groupCalendarId, { ...dto, itemId: groupId, type: 'group' })
+    this.googleCalendarService.deleteCalendarEvent(teacherCalendarId, { ...dto, itemId: teacherId, type: 'teacher' })
   }
 
   async findOneByDateAndGroup(
@@ -119,14 +119,14 @@ export class ScheduleLessonsService {
     subgroupNumber?: number,
     streamId?: number,
   ) {
-    const filter: any = { date, lessonNumber, semester, typeRu, group: { id: groupId } };
+    const filter: any = { date, lessonNumber, semester, typeRu, group: { id: groupId } }
 
     if (subgroupNumber) {
-      filter.subgroupNumber = subgroupNumber;
+      filter.subgroupNumber = subgroupNumber
     }
 
     if (streamId) {
-      filter.stream = { id: streamId };
+      filter.stream = { id: streamId }
     }
 
     return this.repository.findOne({
@@ -155,11 +155,11 @@ export class ScheduleLessonsService {
         auditory: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
       },
-    });
+    })
   }
 
   async findAllLessonDatesForTheSemester(dto: FindAllLessonDatesForTheSemesterDto) {
-    const typeRu = dto.type as 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ';
+    const typeRu = dto.type as 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ'
 
     return this.repository.find({
       where: {
@@ -172,20 +172,18 @@ export class ScheduleLessonsService {
         specialization: dto.specialization ? dto.specialization : null,
       },
       select: { date: true },
-    });
+    })
   }
 
   async findByTypeIdAndSemester(type: string, id: number, semesterStart?: string, semesterEnd?: string) {
-    const start = semesterStart && customDayjs(semesterStart, 'MM.DD.YYYY').toDate();
-    const end = semesterEnd && customDayjs(semesterEnd, 'MM.DD.YYYY').toDate();
-    const date = start && end ? Between(start, end) : undefined;
+    const start = semesterStart && customDayjs(semesterStart, 'MM.DD.YYYY').toDate()
+    const end = semesterEnd && customDayjs(semesterEnd, 'MM.DD.YYYY').toDate()
+
+    const isValidDate = (d: Date) => d instanceof Date && !isNaN(d.getTime())
+    const date = start && end && isValidDate(start) && isValidDate(end) ? Between(start, end) : undefined
 
     const lessons = await this.repository.find({
-      where: {
-        [type]: { id },
-        // semester: semester ? semester : undefined,
-        date,
-      },
+      where: { [type]: { id }, date },
       relations: {
         group: true,
         teacher: true,
@@ -210,11 +208,11 @@ export class ScheduleLessonsService {
         auditory: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
       },
-    });
+    })
 
     // Якщо тип розкладу який потрібно отримати це група або аудиторія - просто повертаю список виставленого розкладу
     if (type !== 'teacher') {
-      return lessons;
+      return lessons
     }
 
     // Якщо тип розкладу викладач - повертаю ще й заміни викладача
@@ -248,41 +246,9 @@ export class ScheduleLessonsService {
         auditory: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
       },
-    });
+    })
 
-    return [...lessons, ...replacementLessons];
-
-    // return this.repository.find({
-    //   where: {
-    //     [type]: { id },
-    //     // semester: semester ? semester : undefined,
-    //     date,
-    //   },
-    //   relations: {
-    //     group: true,
-    //     teacher: true,
-    //     stream: { groups: true },
-    //     auditory: true,
-    //     replacement: true,
-    //   },
-    //   select: {
-    //     group: { id: true, name: true },
-    //     teacher: {
-    //       id: true,
-    //       firstName: true,
-    //       middleName: true,
-    //       lastName: true,
-    //     },
-    //     replacement: {
-    //       id: true,
-    //       firstName: true,
-    //       middleName: true,
-    //       lastName: true,
-    //     },
-    //     auditory: { id: true, name: true },
-    //     stream: { id: true, name: true, groups: { id: true, name: true } },
-    //   },
-    // });
+    return [...lessons, ...replacementLessons]
   }
 
   async create(dto: CreateScheduleLessonDto) {
@@ -296,10 +262,10 @@ export class ScheduleLessonsService {
         teacher: { id: dto.teacher },
         // auditory: { id: dto.auditory },
       },
-    });
+    })
 
     if (lessonsOverlay) {
-      throw new BadRequestException('Можливі накладки занять');
+      throw new BadRequestException('Можливі накладки занять')
     }
 
     const auditoryOverlay = await this.repository.findOne({
@@ -309,20 +275,20 @@ export class ScheduleLessonsService {
       },
       relations: { auditory: true },
       select: { auditory: { id: true } },
-    });
+    })
 
     if (auditoryOverlay && auditoryOverlay.auditory.id === dto.auditory) {
-      throw new BadRequestException('Помилка! Аудиторія зайнята');
+      throw new BadRequestException('Помилка! Аудиторія зайнята')
     }
 
     // Перевіряю чи правильно передані дані
     // Має бути id аудиторії і isRemote: false АБО isRemote: true без id аудиторії
     if (!dto.auditory && !dto.isRemote) {
-      throw new BadRequestException('Аудиторію не вибрано');
+      throw new BadRequestException('Аудиторію не вибрано')
     }
 
     if (dto.auditory && dto.isRemote) {
-      throw new BadRequestException('Урок який буде проводитись дистанційно не повинен займати аудиторію');
+      throw new BadRequestException('Урок який буде проводитись дистанційно не повинен займати аудиторію')
     }
 
     // Перевірити чи є потоки, якщо є - виставити для всіх груп в потоці
@@ -339,16 +305,16 @@ export class ScheduleLessonsService {
             unitedWith: { id: true, name: true, group: { id: true, name: true } },
           },
         },
-      });
+      })
 
       if (!stream) {
-        throw new NotFoundException('Помилка при створенні елемента розкладу для потоку');
+        throw new NotFoundException('Помилка при створенні елемента розкладу для потоку')
       }
 
       /*  */
       /*  */
       /*  */
-      const unitedLesson = stream.lessons.find((el) => el.id === dto.id);
+      const unitedLesson = stream.lessons.find((el) => el.id === dto.id)
       // console.log('скоріше за все (при копіюванні) проблема в unitedLesson. el.id === dto.id не співпадають');
       // console.log('stream.lessons', stream.lessons);
       // console.log('dto', dto);
@@ -356,7 +322,7 @@ export class ScheduleLessonsService {
       if (unitedLesson) {
         await Promise.all(
           unitedLesson.unitedWith.map(async (el) => {
-            const { id, group, teacher, auditory, stream, ...rest } = dto;
+            const { id, group, teacher, auditory, stream, ...rest } = dto
 
             const payload = {
               ...rest,
@@ -364,21 +330,21 @@ export class ScheduleLessonsService {
               group: { id: el.group.id },
               teacher: { id: teacher },
               stream: { id: stream },
-            };
+            }
 
-            let auditoryName = '';
-            let createdLesson = null;
+            let auditoryName = ''
+            let createdLesson = null
 
             if (!auditory) {
               // Якщо урок буде проводитись дистанційно
-              const newLesson = this.repository.create(payload);
+              const newLesson = this.repository.create(payload)
 
-              auditoryName = 'Дистанційно';
-              createdLesson = await this.repository.save(newLesson);
+              auditoryName = 'Дистанційно'
+              createdLesson = await this.repository.save(newLesson)
             } else {
               // Якщо урок буде проводитись НЕ дистанційно
-              const newLesson = this.repository.create({ ...payload, auditory: { id: auditory } });
-              await this.repository.save(newLesson);
+              const newLesson = this.repository.create({ ...payload, auditory: { id: auditory } })
+              await this.repository.save(newLesson)
 
               const lesson = await this.findOneByDateAndGroup(
                 dto.date,
@@ -386,10 +352,10 @@ export class ScheduleLessonsService {
                 dto.semester,
                 el.group.id,
                 dto.typeRu,
-              );
+              )
 
-              auditoryName = lesson.auditory.name;
-              createdLesson = lesson;
+              auditoryName = lesson.auditory.name
+              createdLesson = lesson
             }
 
             // const googleCalendarEventDto = {
@@ -424,9 +390,9 @@ export class ScheduleLessonsService {
               auditoryName,
               createdLesson.teacher.id,
               el.group.id,
-            );
+            )
 
-            return createdLesson;
+            return createdLesson
 
             /*  */
             /*  */
@@ -502,7 +468,7 @@ export class ScheduleLessonsService {
 
             // return createdLesson;
           }),
-        );
+        )
 
         const newLesson = await this.findOneByDateAndGroup(
           dto.date,
@@ -510,9 +476,9 @@ export class ScheduleLessonsService {
           dto.semester,
           dto.group,
           dto.typeRu,
-        );
+        )
 
-        return newLesson;
+        return newLesson
       }
 
       /* ?????????????????????????? */
@@ -629,7 +595,7 @@ export class ScheduleLessonsService {
     // Якщо дисципліна не об'єднана в потік
     // Якщо дисципліна не об'єднана в потік
     // Якщо дисципліна не об'єднана в потік
-    const { group, teacher, auditory, stream, id, ...rest } = dto;
+    const { group, teacher, auditory, stream, id, ...rest } = dto
 
     // ХЗ чого я так зробив. Розібратись!!!!
     // ХЗ чого я так зробив. Розібратись!!!!
@@ -645,20 +611,20 @@ export class ScheduleLessonsService {
       group: { id: group },
       teacher: { id: teacher },
       stream: { id: stream },
-    };
+    }
 
     if (auditory) {
       // Якщо урок буде проводитись НЕ дистанційно
       const newLesson = this.repository.create({
         ...payload,
         auditory: { id: auditory },
-      });
+      })
 
-      await this.repository.save(newLesson);
+      await this.repository.save(newLesson)
     } else {
       // Якщо урок буде проводитись дистанційно
-      const newLesson = this.repository.create(payload);
-      await this.repository.save(newLesson);
+      const newLesson = this.repository.create(payload)
+      await this.repository.save(newLesson)
     }
 
     const newLesson = await this.findOneByDateAndGroup(
@@ -669,20 +635,20 @@ export class ScheduleLessonsService {
       dto.typeRu,
       dto.subgroupNumber,
       dto.stream,
-    );
+    )
 
-    const auditoryName = newLesson.auditory ? newLesson.auditory.name : 'Дистанційно';
+    const auditoryName = newLesson.auditory ? newLesson.auditory.name : 'Дистанційно'
 
-    await this.createGoogleEvents(
-      newLesson.name,
-      newLesson.lessonNumber,
-      newLesson.date,
-      newLesson.group.name,
-      newLesson.subgroupNumber,
-      auditoryName,
-      newLesson.teacher.id,
-      newLesson.group.id,
-    );
+    // await this.createGoogleEvents(
+    //   newLesson.name,
+    //   newLesson.lessonNumber,
+    //   newLesson.date,
+    //   newLesson.group.name,
+    //   newLesson.subgroupNumber,
+    //   auditoryName,
+    //   newLesson.teacher.id,
+    //   newLesson.group.id,
+    // )
 
     // const createDtoPayload = {
     //   lessonName: newLesson.name,
@@ -707,34 +673,34 @@ export class ScheduleLessonsService {
     // });
     // this.googleCalendarService.createCalendarEvent(groupEventDto);
 
-    return newLesson;
+    return newLesson
   }
 
   async copyWeekOfSchedule(dto: CopyWeekOfScheduleDto) {
-    const copyFromStart = customDayjs(dto.copyFromStartDay, { format: 'MM.DD.YYYY' });
-    const copyFromEnd = customDayjs(copyFromStart).add(7, 'day');
+    const copyFromStart = customDayjs(dto.copyFromStartDay, { format: 'MM.DD.YYYY' })
+    const copyFromEnd = customDayjs(copyFromStart).add(7, 'day')
 
-    const copyToStart = customDayjs(dto.copyToStartDay, { format: 'MM.DD.YYYY' });
+    const copyToStart = customDayjs(dto.copyToStartDay, { format: 'MM.DD.YYYY' })
 
     if (!copyFromStart.isValid() || !copyToStart.isValid()) {
       // if (!copyFromStart.isValid() || !copyToStart.isValid) {
-      throw new BadRequestException('Не вірний формат дати');
+      throw new BadRequestException('Не вірний формат дати')
     }
 
-    const weekDifference = copyToStart.diff(copyFromStart, 'week');
+    const weekDifference = copyToStart.diff(copyFromStart, 'week')
 
     const lessons = await this.findByTypeIdAndSemester(
       'group',
       dto.groupId,
       copyFromStart.toString(),
       copyFromEnd.toString(),
-    );
+    )
 
     if (!lessons.length) {
-      return [];
+      return []
     }
 
-    const createdLessons = [];
+    const createdLessons = []
 
     await Promise.all(
       lessons.map(async (lesson) => {
@@ -749,11 +715,11 @@ export class ScheduleLessonsService {
             specialization: lesson.specialization,
             stream: lesson.stream ? { id: lesson.stream.id } : null,
           },
-        });
+        })
 
-        const date = customDayjs(lesson.date, { format: 'MM.DD.YYYY' }).add(weekDifference, 'week').toDate();
+        const date = customDayjs(lesson.date, { format: 'MM.DD.YYYY' }).add(weekDifference, 'week').toDate()
 
-        const { group, teacher, auditory, stream, ...rest } = lesson;
+        const { group, teacher, auditory, stream, ...rest } = lesson
 
         const newLesson = await this.create({
           ...rest,
@@ -763,44 +729,44 @@ export class ScheduleLessonsService {
           teacher: teacher.id,
           auditory: auditory.id,
           date,
-        });
+        })
 
-        createdLessons.push(newLesson);
+        createdLessons.push(newLesson)
       }),
-    );
+    )
 
-    return createdLessons;
+    return createdLessons
   }
 
   async copyDayOfSchedule(dto: CopyDayOfScheduleDto) {
-    const copyFromStart = customDayjs(dto.copyFromDay, { format: 'YYYY.MM.DD' });
+    const copyFromStart = customDayjs(dto.copyFromDay, { format: 'YYYY.MM.DD' })
 
-    const copyTo = customDayjs(dto.copyToDay, { format: 'MM.DD.YYYY' });
+    const copyTo = customDayjs(dto.copyToDay, { format: 'MM.DD.YYYY' })
 
     if (!copyFromStart.isValid() || !copyTo.isValid) {
-      throw new BadRequestException('Не вірний формат дати');
+      throw new BadRequestException('Не вірний формат дати')
     }
 
-    const daysDifference = copyTo.diff(copyFromStart, 'day');
+    const daysDifference = copyTo.diff(copyFromStart, 'day')
 
     const lessons = await this.findByTypeIdAndSemester(
       'group',
       dto.groupId,
       copyFromStart.toString(),
       copyFromStart.toString(),
-    );
+    )
 
     if (!lessons.length) {
-      return [];
+      return []
     }
 
-    const createdLessons = [];
+    const createdLessons = []
 
     await Promise.all(
       lessons.map(async (lesson) => {
-        const date = customDayjs(lesson.date, { format: 'MM.DD.YYYY' }).add(daysDifference, 'day').toDate();
+        const date = customDayjs(lesson.date, { format: 'MM.DD.YYYY' }).add(daysDifference, 'day').toDate()
 
-        const { group, teacher, auditory, stream, ...rest } = lesson;
+        const { group, teacher, auditory, stream, ...rest } = lesson
 
         const newLesson = await this.create({
           ...rest,
@@ -809,57 +775,57 @@ export class ScheduleLessonsService {
           teacher: teacher.id,
           auditory: auditory.id,
           date,
-        });
+        })
 
-        createdLessons.push(newLesson);
+        createdLessons.push(newLesson)
       }),
-    );
+    )
 
-    return createdLessons;
+    return createdLessons
   }
 
   async createReplacement(dto: CreateReplacementDto) {
-    const lesson = await this.repository.findOne({ where: { id: dto.lessonId } });
-    if (!lesson) throw new NotFoundException('Не знайдено');
-    await this.repository.save({ ...lesson, replacement: { id: dto.teacherId } });
+    const lesson = await this.repository.findOne({ where: { id: dto.lessonId } })
+    if (!lesson) throw new NotFoundException('Не знайдено')
+    await this.repository.save({ ...lesson, replacement: { id: dto.teacherId } })
 
     const updatedLesson = await this.repository.findOne({
       where: { id: dto.lessonId },
       relations: { replacement: true },
       select: { replacement: { id: true, firstName: true, lastName: true, middleName: true } },
-    });
+    })
 
-    const replacementTeacher = updatedLesson.replacement;
+    const replacementTeacher = updatedLesson.replacement
 
-    return { id: dto.lessonId, teacher: replacementTeacher };
+    return { id: dto.lessonId, teacher: replacementTeacher }
   }
 
   async deleteReplacement(id: number) {
-    const lesson = await this.repository.findOne({ where: { id } });
-    if (!lesson) throw new NotFoundException('Не знайдено');
-    await this.repository.save({ ...lesson, replacement: null });
-    return id;
+    const lesson = await this.repository.findOne({ where: { id } })
+    if (!lesson) throw new NotFoundException('Не знайдено')
+    await this.repository.save({ ...lesson, replacement: null })
+    return id
   }
 
   async findAll(semester: number, type: string, id: number) {
     // dto: {type: 'group' | 'teacher' | 'auditory', id: ід групи, викладача або аудиторії, semester: номер семестру }
 
-    const settings = await this.settingsRepository.findOne({
-      where: { id: 1 },
-    });
-    if (!settings) throw new NotFoundException('Налаштування не знайдено');
+    const settings = await this.settingsRepository.findOne({ where: { id: 1 } })
+
+    if (!settings) throw new NotFoundException('Налаштування не знайдено')
 
     if (type === 'group' || type === 'teacher' || type === 'auditory') {
       // semester = 1 | 2
-      const { firstSemesterStart, secondSemesterStart, firstSemesterEnd, secondSemesterEnd } = settings;
+      const { firstSemesterStart, secondSemesterStart, firstSemesterEnd, secondSemesterEnd } = settings
 
-      const semesterStart = semester === 1 ? firstSemesterStart : secondSemesterStart;
-      const semesterEnd = semester === 1 ? firstSemesterEnd : secondSemesterEnd;
+      const semesterStart = semester === 1 ? firstSemesterStart : secondSemesterStart
+      const semesterEnd = semester === 1 ? firstSemesterEnd : secondSemesterEnd
 
-      const data = await this.findByTypeIdAndSemester(type, id, semesterStart, semesterEnd);
-
-      return data;
+      const data = await this.findByTypeIdAndSemester(type, id, semesterStart, semesterEnd)
+      console.log('data', data)
+      return data
     }
+    return null
   }
 
   // Оновити аудиторію для виставленого елемента розкладу
@@ -884,19 +850,19 @@ export class ScheduleLessonsService {
         group: { id: true, name: true, calendarId: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
       },
-    });
+    })
 
     // Якщо група об`єднана в потік потрібно оновити аудиторію для всіх груп потоку
 
-    if (!lesson) throw new NotFoundException('Не знайдено');
+    if (!lesson) throw new NotFoundException('Не знайдено')
 
     // Перевіряю чи правильно передані дані
     // Має бути id аудиторії і isRemote: false АБО isRemote: true без id аудиторії
     if (!dto.auditoryId && !dto.isRemote) {
-      throw new BadRequestException('Аудиторію не вибрано');
+      throw new BadRequestException('Аудиторію не вибрано')
     }
     if (dto.auditoryId && dto.isRemote) {
-      throw new BadRequestException('Урок який буде проводитись дистанційно не повинен займати аудиторію');
+      throw new BadRequestException('Урок який буде проводитись дистанційно не повинен займати аудиторію')
     }
 
     // const updateGoogleCalendarEventDto = {
@@ -913,7 +879,7 @@ export class ScheduleLessonsService {
       const currentsLessonDate = {
         date: lesson.date,
         lessonNumber: lesson.lessonNumber,
-      };
+      }
 
       const streamLessonsInCurrentDate = await this.repository.find({
         where: {
@@ -938,7 +904,7 @@ export class ScheduleLessonsService {
           group: { id: true, name: true, calendarId: true },
           teacher: { id: true, calendarId: true },
         },
-      });
+      })
 
       Promise.all(
         streamLessonsInCurrentDate.map(async (el) => {
@@ -953,7 +919,7 @@ export class ScheduleLessonsService {
             el.group.id,
             el.group.calendarId,
             el.teacher.calendarId,
-          );
+          )
 
           // const updateGroupEventDto = await this.googleCalendarService.getCalendarEventDto({
           //   ...updateGoogleCalendarEventDto,
@@ -982,7 +948,7 @@ export class ScheduleLessonsService {
           //   location: dto.auditoryName ? dto.auditoryName : 'Дистанційно',
           // });
         }),
-      );
+      )
 
       // Якщо передано id аудиторії і isRemote = false - встановлюю аудиторію для всіх груп в потоці
       if (dto.auditoryId && !dto.isRemote) {
@@ -992,9 +958,9 @@ export class ScheduleLessonsService {
               ...el,
               isRemote: false,
               auditory: { id: dto.auditoryId },
-            });
+            })
           }),
-        );
+        )
         //
       } else {
         Promise.all(
@@ -1003,9 +969,9 @@ export class ScheduleLessonsService {
               ...el,
               isRemote: true,
               auditory: null,
-            });
+            })
           }),
-        );
+        )
       }
 
       if (dto.auditoryId) {
@@ -1017,19 +983,19 @@ export class ScheduleLessonsService {
             name: dto.auditoryName,
             seatsNumber: dto.seatsNumber,
           },
-        };
+        }
         //
       } else {
         return {
           id,
           auditory: null,
           isRemote: dto.isRemote,
-        };
+        }
       }
     }
 
     // Якщо група не об'єднана в потік
-    const { auditory, isRemote, stream, ...rest } = lesson;
+    const { auditory, isRemote, stream, ...rest } = lesson
 
     // const updateGroupEventDto = await this.googleCalendarService.getCalendarEventDto({
     //   ...updateGoogleCalendarEventDto,
@@ -1070,7 +1036,7 @@ export class ScheduleLessonsService {
       lesson.group.id,
       lesson.group.calendarId,
       lesson.teacher.calendarId,
-    );
+    )
 
     // Якщо дисципліна читається аудиторно
     if (dto.auditoryId) {
@@ -1082,46 +1048,46 @@ export class ScheduleLessonsService {
           name: dto.auditoryName,
           seatsNumber: dto.seatsNumber,
         },
-      });
+      })
     } else {
       // Якщо дисципліна читається дистанційно
       return this.repository.save({
         ...rest,
         isRemote: dto.isRemote,
         auditory: null,
-      });
+      })
     }
   }
 
   async getAuditoryOverlay(_date: string, lessonNumber: number, auditoryId: number) {
     if (!customDayjs(_date).isValid()) {
-      throw new BadRequestException('Не вірний формат дати');
+      throw new BadRequestException('Не вірний формат дати')
     }
 
-    const date = customDayjs(_date, 'YYYY.MM.DD').format('YYYY-MM-DD 00:00:00');
+    const date = customDayjs(_date, 'YYYY.MM.DD').format('YYYY-MM-DD 00:00:00')
 
     const lessons = await this.repository.find({
       // @ts-ignore
       where: { date, lessonNumber },
       relations: { auditory: true },
       select: { auditory: { id: true, name: true } },
-    });
+    })
 
-    const auditories = lessons.map((el) => el.auditory);
+    const auditories = lessons.map((el) => el.auditory)
 
     return auditories.filter((el) => {
       // !el === дистанційно
-      if (!el) return true;
-      return el.id !== auditoryId;
-    });
+      if (!el) return true
+      return el.id !== auditoryId
+    })
   }
 
   async getTeacherOverlay(_date: string, lessonNumber: number) {
     if (!customDayjs(_date).isValid()) {
-      throw new BadRequestException('Не вірний формат дати');
+      throw new BadRequestException('Не вірний формат дати')
     }
 
-    const date = customDayjs(_date, 'YYYY.MM.DD').format('YYYY-MM-DD 00:00:00');
+    const date = customDayjs(_date, 'YYYY.MM.DD').format('YYYY-MM-DD 00:00:00')
 
     const lessons = await this.repository.find({
       // @ts-ignore
@@ -1131,12 +1097,12 @@ export class ScheduleLessonsService {
         teacher: { id: true, firstName: true, lastName: true, middleName: true },
         replacement: { id: true, firstName: true, lastName: true, middleName: true },
       },
-    });
+    })
 
-    const busyTeachers = lessons.map((el) => el.teacher);
-    const busyReplacementTeachers = lessons.map((el) => el.replacement).filter((el) => !!el);
+    const busyTeachers = lessons.map((el) => el.teacher)
+    const busyReplacementTeachers = lessons.map((el) => el.replacement).filter((el) => !!el)
 
-    return [...busyTeachers, ...busyReplacementTeachers];
+    return [...busyTeachers, ...busyReplacementTeachers]
   }
 
   async remove(id: number) {
@@ -1154,16 +1120,16 @@ export class ScheduleLessonsService {
         auditory: { id: true, name: true },
         stream: { id: true, name: true, groups: { id: true, name: true } },
       },
-    });
+    })
 
-    if (!lesson) throw new NotFoundException('Не знайдено');
+    if (!lesson) throw new NotFoundException('Не знайдено')
 
     // Якщо група об'єднана в потік і кількість груп в потоці більше 1
     if (lesson.stream && lesson.stream.groups.length > 1) {
       const currentsLessonDate = {
         date: lesson.date,
         lessonNumber: lesson.lessonNumber,
-      };
+      }
 
       const streamLessonsInCurrentDate = await this.repository.find({
         where: {
@@ -1181,7 +1147,7 @@ export class ScheduleLessonsService {
           group: { id: true, name: true, calendarId: true },
           teacher: { id: true, calendarId: true },
         },
-      });
+      })
 
       // const deleteGoogleCalendarEventDto = {
       //   lessonName: lesson.name,
@@ -1206,7 +1172,7 @@ export class ScheduleLessonsService {
             el.group.id,
             el.group.calendarId,
             el.teacher.calendarId,
-          );
+          )
 
           // this.googleCalendarService.deleteCalendarEvent(el.group.calendarId, {
           //   ...deleteGoogleCalendarEventDto,
@@ -1222,15 +1188,15 @@ export class ScheduleLessonsService {
           //   type: 'teacher',
           // });
 
-          const res = await this.repository.delete({ id: el.id });
+          const res = await this.repository.delete({ id: el.id })
 
           if (res.affected === 0) {
-            throw new NotFoundException('Не знайдено');
+            throw new NotFoundException('Не знайдено')
           }
         }),
-      );
+      )
 
-      return id;
+      return id
     }
 
     // Якщо дисипліна не об'єднана в потік
@@ -1268,14 +1234,14 @@ export class ScheduleLessonsService {
       lesson.group.id,
       lesson.group.calendarId,
       lesson.teacher.calendarId,
-    );
+    )
 
-    const res = await this.repository.delete({ id });
+    const res = await this.repository.delete({ id })
 
     if (res.affected === 0) {
-      throw new NotFoundException('Не знайдено');
+      throw new NotFoundException('Не знайдено')
     }
 
-    return id;
+    return id
   }
 }

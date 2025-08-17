@@ -1,10 +1,10 @@
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Repository } from 'typeorm'
+import { InjectRepository } from '@nestjs/typeorm'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 
-import { AuditoryCategoryEntity } from './entities/auditory-category.entity';
-import { CreateAuditoryCategoryDto } from './dto/create-auditory-category.dto';
-import { UpdateAuditoryCategoryDto } from './dto/update-auditory-category.dto';
+import { AuditoryCategoryEntity } from './entities/auditory-category.entity'
+import { CreateAuditoryCategoryDto } from './dto/create-auditory-category.dto'
+import { UpdateAuditoryCategoryDto } from './dto/update-auditory-category.dto'
 
 @Injectable()
 export class AuditoryCategoriesService {
@@ -28,57 +28,58 @@ export class AuditoryCategoriesService {
           category: { id: true, name: true },
         },
       },
-    });
+    })
   }
 
   create(dto: CreateAuditoryCategoryDto) {
+    console.log(dto)
     const newCategory = this.repository.create({
       name: dto.name,
       shortName: dto.shortName,
       auditories: [],
-    });
+    })
 
-    return this.repository.save(newCategory);
+    return this.repository.save(newCategory)
   }
 
   async update(id: number, dto: UpdateAuditoryCategoryDto) {
     const category = await this.repository.findOne({
       where: { id },
       relations: { auditories: true },
-    });
+    })
 
     if (!category) {
-      throw new NotFoundException('Не знайдено');
+      throw new NotFoundException('Не знайдено')
     }
 
-    await this.repository.save({ ...category, name: dto.name, shortName: dto.shortName });
+    await this.repository.save({ ...category, name: dto.name, shortName: dto.shortName })
 
     return this.repository.findOne({
       where: { id },
       relations: { auditories: { category: true } },
-    });
+    })
   }
 
   async remove(id: number) {
     const category = await this.repository.findOne({
       where: { id },
       relations: { auditories: true },
-    });
+    })
 
     if (!category) {
-      throw new NotFoundException('Не знайдено');
+      throw new NotFoundException('Не знайдено')
     }
 
     if (category.auditories.length > 0) {
-      throw new BadRequestException('Не можна видалити категорію в якій є аудиторії');
+      throw new BadRequestException('Не можна видалити категорію в якій є аудиторії')
     }
 
-    const res = await this.repository.delete(id);
+    const res = await this.repository.delete(id)
 
     if (res.affected === 0) {
-      throw new NotFoundException('Не знайдено');
+      throw new NotFoundException('Не знайдено')
     }
 
-    return id;
+    return id
   }
 }
