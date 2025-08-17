@@ -1,26 +1,26 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger'
 
-import { TeachersStatus } from '../entities/teacher.entity';
+import { TeachersStatus } from '../entities/teacher.entity'
 
 export class CreateTeacherDto {
   @ApiProperty()
-  category: number;
+  category: number
 
   @ApiProperty()
-  firstName: string;
+  firstName: string
 
   @ApiProperty()
-  middleName: string;
+  middleName: string
 
   @ApiProperty()
-  lastName: string;
+  lastName: string
 
   @ApiProperty()
-  status: TeachersStatus;
+  status: TeachersStatus
 
   @ApiProperty()
-  email: string;
+  email: string
 
   @ApiProperty()
-  password: string;
+  password: string
 }

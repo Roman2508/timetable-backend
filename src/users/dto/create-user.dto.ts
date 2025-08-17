@@ -1,22 +1,23 @@
-import { IsEmail, IsNumber, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNumber, IsOptional, IsString, MinLength } from 'class-validator'
 
-import { UserRoles } from '../entities/user.entity';
+import { UserRoles } from '../entities/user.entity'
+import { RoleEntity } from 'src/roles/entities/role.entity'
 
 export class CreateUserDto {
   @IsEmail()
-  email: string;
+  email: string
 
   @MinLength(8, { message: 'Мінімальна довжина паролю 8 символів' })
   @IsString()
-  password: string;
+  password: string
 
   @IsString()
-  name: string;
+  name: string
 
   @IsString()
-  role: UserRoles;
+  role: RoleEntity
 
   @IsOptional()
   @IsNumber()
-  roleId?: number;
+  roleId?: number
 }

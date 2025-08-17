@@ -27,9 +27,6 @@ export class UserEntity {
   @Column({ unique: true })
   email: string;
 
-  // @Column('simple-json', { default: [] })
-  // role: UserRoles[];
-
   @ManyToMany(() => RoleEntity, (role) => role.users)
   @JoinTable()
   roles: RoleEntity[];

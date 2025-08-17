@@ -33,8 +33,8 @@ export class AuthController {
   //   return this.authService.getMe(req, res);
   // }
 
-  @Get('/refresh')
-  async refreshToken(@Req() req: Request, @Res() res: Response) {
+  @Post('/refresh')
+  async refreshToken(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies[process.env.TOKEN_NAME]
     return this.authService.refreshToken(res, refreshToken)
   }

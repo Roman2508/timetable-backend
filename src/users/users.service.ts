@@ -1,16 +1,16 @@
-import { ILike, Repository } from 'typeorm';
-import { compare, genSalt, hash } from 'bcryptjs';
-import { InjectRepository } from '@nestjs/typeorm';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ILike, Repository } from 'typeorm'
+import { compare, genSalt, hash } from 'bcryptjs'
+import { InjectRepository } from '@nestjs/typeorm'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 
-import { CreateUserDto } from './dto/create-user.dto';
-import { DeleteUserDto } from './dto/delete-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { GetAllUsersDto } from './dto/get-all-users.dto';
-import { RoleEntity } from 'src/roles/entities/role.entity';
-import { UpdateUserRoleDto } from './dto/update-user-role.dto';
-import { UserEntity, UserRoles } from './entities/user.entity';
-import { GoogleAdminService } from 'src/google-admin/google-admin.service';
+import { CreateUserDto } from './dto/create-user.dto'
+import { DeleteUserDto } from './dto/delete-user.dto'
+import { UpdateUserDto } from './dto/update-user.dto'
+import { GetAllUsersDto } from './dto/get-all-users.dto'
+import { RoleEntity } from 'src/roles/entities/role.entity'
+import { UpdateUserRoleDto } from './dto/update-user-role.dto'
+import { UserEntity, UserRoles } from './entities/user.entity'
+import { GoogleAdminService } from 'src/google-admin/google-admin.service'
 
 @Injectable()
 export class UsersService {
@@ -22,21 +22,21 @@ export class UsersService {
   ) {}
 
   async checkIsUsersExists() {
-    const users = await this.repository.find();
-    if (users.length) return true;
-    else return false;
+    const users = await this.repository.find()
+    if (users.length) return true
+    else return false
   }
 
   getAll(dto: GetAllUsersDto) {
     // query може бути іменем, поштою або ролями, sort це ключ по якому сортувати, order - порядок сортування
     // dto: {query: string, page: number, limit: number, sort: string, order: 'asc' | 'desc'}
 
-    const filter = {} as any;
-    const order = {} as any;
+    const filter = {} as any
+    const order = {} as any
 
     if (dto.query) {
-      filter.email = ILike(`%${dto.query}%`);
-      filter.role = ILike(`%${dto.query}%`);
+      filter.email = ILike(`%${dto.query}%`)
+      filter.role = ILike(`%${dto.query}%`)
 
       // if(role === UserRoles.TEACHER ) {}
       // if(role === UserRoles.STUDENT) {}
@@ -44,9 +44,9 @@ export class UsersService {
 
     if (dto.sortBy && (dto.order === 'ASC' || dto.order === 'DESC')) {
       if (dto.sortBy === 'email') {
-        order.price = dto.order;
+        order.price = dto.order
       } else if (dto.sortBy === 'role') {
-        order.role = 'DESC';
+        order.role = 'DESC'
       } else {
         // order.createdAt = 'DESC';
       }
@@ -61,7 +61,7 @@ export class UsersService {
       relations: { student: true, teacher: true },
       select: { id: true, name: true, roles: true, email: true, picture: true, lastLogin: true },
       order,
-    });
+    })
   }
 
   // FIX roleId
@@ -69,130 +69,126 @@ export class UsersService {
     // dto = { role, email, name }
     // const isTeacher = dto.role.some((el) => el === UserRoles.TEACHER);
     // const isStudent = dto.role.some((el) => el === UserRoles.STUDENT);
-    const roleId = 3; // fix
-    return this.repository.find({ where: { roles: { id: roleId }, email: dto.email } });
+    const roleId = 3 // fix
+    return this.repository.find({ where: { roles: { id: roleId }, email: dto.email } })
   }
 
   findByEmail(email: string) {
-    return this.repository.findOne({ where: { email }, relations: { teacher: true, student: true } });
+    return this.repository.findOne({ where: { email }, relations: { teacher: true, student: true } })
   }
 
   findById(id: number) {
-    return this.repository.findOne({ where: { id }, relations: { teacher: true, student: true } });
+    return this.repository.findOne({ where: { id }, relations: { teacher: true, student: true } })
   }
 
   findByRoleId(id: number, role: UserRoles) {
-    return this.repository.findOne({ where: { [role]: { id } }, relations: { teacher: true, student: true } });
+    return this.repository.findOne({ where: { [role]: { id } }, relations: { teacher: true, student: true } })
   }
 
   async create(dto: CreateUserDto) {
-    const salt = await genSalt(10);
+    const salt = await genSalt(10)
 
     // Якщо немає ІД і роль Викладач або Студент = повертаю помилку
     // if (!dto.roleId && (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT)) {
     //   throw new BadRequestException('Role ID is required for roles teacher and student');
     // }
 
-    const existedUser = await this.findByEmail(dto.email);
+    const existedUser = await this.findByEmail(dto.email)
 
     if (existedUser) {
-      throw new BadRequestException('Користувач з таким адресом ел.пошти вже існує');
+      throw new BadRequestException('Користувач з таким адресом ел.пошти вже існує')
     }
 
     let userPayload: Omit<UserEntity, 'id'> = {
-      password: await hash(dto.password, salt),
-      email: dto.email,
       name: dto.name,
-      // roles: [{ id: dto.roleId }],
+      email: dto.email,
+      password: await hash(dto.password, salt),
+      roles: [{ id: dto.role.id } as RoleEntity],
+    }
 
-      roles: [{ id: dto.roleId } as RoleEntity],
-
-      // role: [dto.role],
-    };
-
-    const picture = await this.googleAdminService.getUserPhotoByEmail(dto.email);
+    const picture = await this.googleAdminService.getUserPhotoByEmail(dto.email)
 
     if (picture) {
-      userPayload = { ...userPayload, picture };
+      userPayload = { ...userPayload, picture }
     }
 
-    if (dto.role === UserRoles.TEACHER && dto.roleId) {
+    if (dto.role.key === 'teacher' && dto.roleId) {
       // @ts-ignore
-      userPayload = { ...userPayload, teacher: { id: dto.roleId } };
+      userPayload = { ...userPayload, teacher: { id: dto.roleId } }
     }
 
-    if (dto.role === UserRoles.STUDENT && dto.roleId) {
+    if (dto.role.key === 'student' && dto.roleId) {
       // @ts-ignore
-      userPayload = { ...userPayload, student: { id: dto.roleId } };
+      userPayload = { ...userPayload, student: { id: dto.roleId } }
     }
 
-    const newUser = this.repository.create(userPayload);
+    const newUser = this.repository.create(userPayload)
 
-    await this.repository.save(newUser);
+    await this.repository.save(newUser)
 
     const user = await this.repository.findOne({
       where: { email: newUser.email },
       relations: { student: true, teacher: true },
-    });
+    })
 
-    const { password: pass, ...result } = user;
+    const { password: _, ...result } = user
 
-    return result;
+    return result
   }
 
   async update(id: number, dto: UpdateUserDto) {
-    const existedUser = await this.findById(id);
+    const existedUser = await this.findById(id)
     if (!existedUser) {
-      throw new BadRequestException('Користувача не знайдено');
+      throw new BadRequestException('Користувача не знайдено')
     }
 
-    let updatedUser: any = { role: dto.role, name: dto.name, id };
+    let updatedUser: any = { role: dto.role, name: dto.name, id }
 
     if (dto.email !== existedUser.email) {
-      const userWithSameEmail = await this.findByEmail(dto.email);
+      const userWithSameEmail = await this.findByEmail(dto.email)
 
       if (!userWithSameEmail) {
-        updatedUser = { ...updatedUser, email: dto.email };
+        updatedUser = { ...updatedUser, email: dto.email }
       } else {
-        throw new BadRequestException('Користувач з таким email вже зареєстрований');
+        throw new BadRequestException('Користувач з таким email вже зареєстрований')
       }
     }
 
-    let isPasswordsSame = true;
+    let isPasswordsSame = true
 
     if (dto.password) {
-      isPasswordsSame = await compare(dto.password, existedUser.password);
+      isPasswordsSame = await compare(dto.password, existedUser.password)
     }
 
     if (!isPasswordsSame) {
-      const salt = await genSalt(10);
-      const newPassword = await hash(dto.password, salt);
-      updatedUser = { ...updatedUser, password: newPassword };
+      const salt = await genSalt(10)
+      const newPassword = await hash(dto.password, salt)
+      updatedUser = { ...updatedUser, password: newPassword }
     }
-    return this.repository.save(updatedUser);
+    return this.repository.save(updatedUser)
   }
 
   async updateLastLoginTime(id: number) {
-    const user = await this.findById(id);
+    const user = await this.findById(id)
 
-    const now = new Date();
+    const now = new Date()
 
     // Форматирование даты
-    const year = now.getUTCFullYear();
-    const month = String(now.getUTCMonth() + 1).padStart(2, '0'); // Месяцы от 0 до 11
-    const day = String(now.getUTCDate()).padStart(2, '0');
+    const year = now.getUTCFullYear()
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0') // Месяцы от 0 до 11
+    const day = String(now.getUTCDate()).padStart(2, '0')
 
     // Форматирование времени
-    const hours = String(now.getUTCHours()).padStart(2, '0');
-    const minutes = String(now.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(now.getUTCSeconds()).padStart(2, '0');
-    const milliseconds = String(now.getUTCMilliseconds()).padStart(3, '0');
+    const hours = String(now.getUTCHours()).padStart(2, '0')
+    const minutes = String(now.getUTCMinutes()).padStart(2, '0')
+    const seconds = String(now.getUTCSeconds()).padStart(2, '0')
+    const milliseconds = String(now.getUTCMilliseconds()).padStart(3, '0')
 
     // Составляем строку
-    const microseconds = milliseconds + '000'; // Добавляем 3 нуля для миллисекунд -> микросекунд
-    const currentTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${microseconds}+00`;
+    const microseconds = milliseconds + '000' // Добавляем 3 нуля для миллисекунд -> микросекунд
+    const currentTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${microseconds}+00`
 
-    return this.repository.save({ ...user, lastLogin: currentTime });
+    return this.repository.save({ ...user, lastLogin: currentTime })
   }
 
   // async update(dto: UpdateUserDto) {
@@ -236,9 +232,9 @@ export class UsersService {
   // }
 
   async updateRole(dto: UpdateUserRoleDto) {
-    const user = await this.repository.findOne({ where: { id: dto.userId } });
-    if (!user) throw new NotFoundException('Не знайдено');
-    return this.repository.save({ ...user, roles: [...user.roles, { id: dto.newRoleId }] });
+    const user = await this.repository.findOne({ where: { id: dto.userId } })
+    if (!user) throw new NotFoundException('Не знайдено')
+    return this.repository.save({ ...user, roles: [...user.roles, { id: dto.newRoleId }] })
   }
 
   async updatePicture() {}
@@ -246,13 +242,13 @@ export class UsersService {
   // Цей метод для видалення користувачів з ролями admin, head_of_department, guest
   // Для видалення студентів та викладачів у відповідних сервісах є свої методи
   async delete(dto: DeleteUserDto) {
-    const res = await this.repository.delete(dto.id);
+    const res = await this.repository.delete(dto.id)
 
     if (res.affected === 0) {
-      throw new NotFoundException('Не знайдено');
+      throw new NotFoundException('Не знайдено')
     }
 
-    return dto.id;
+    return dto.id
 
     // if (dto.role === UserRoles.TEACHER || dto.role === UserRoles.STUDENT) {
     //   const roleKey = dto.role.toLowerCase();

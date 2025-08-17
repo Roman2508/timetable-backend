@@ -7,6 +7,7 @@ import { AuthDto } from './dto/auth.dto'
 import { UsersService } from './../users/users.service'
 import { StudentStatus } from 'src/students/entities/student.entity'
 import { UserEntity, UserRoles } from 'src/users/entities/user.entity'
+import { RoleEntity } from 'src/roles/entities/role.entity'
 
 @Injectable()
 export class AuthService {
@@ -17,7 +18,7 @@ export class AuthService {
 
   async issueAccessToken(_user: UserEntity, res: Response) {
     const { password, ...user } = _user
-    const accessToken = await this.jwtService.signAsync({ user }, { expiresIn: '15m' })
+    const accessToken = await this.jwtService.signAsync({ user }, { expiresIn: '60m' })
     const refreshToken = await this.jwtService.signAsync({ user }, { expiresIn: '30d' })
 
     res.cookie(process.env.TOKEN_NAME, refreshToken, {
@@ -36,12 +37,12 @@ export class AuthService {
       if (!refreshToken) throw new UnauthorizedException('Ви не авторизовані')
 
       const payload = await this.jwtService.verifyAsync(refreshToken)
-      const user = await this.usersService.findById(payload.id)
+      const user = await this.usersService.findById(payload.user.id)
 
       if (!user) throw new BadRequestException('Такого користувача не знайдено')
 
       const { accessToken } = await this.issueAccessToken(user, res)
-
+      console.log('accessToken')
       return { accessToken }
     } catch {
       throw new UnauthorizedException('refresh token не валідний або закінчився термін його дії')
@@ -91,31 +92,9 @@ export class AuthService {
       throw new BadRequestException('Такий email вже зареєстрований')
     }
 
-    const newUser = await this.usersService.create({ ...dto })
+    const newUser = await this.usersService.create({ ...dto, role: { id: dto.role.id } as RoleEntity })
     return newUser
   }
-
-  // async getMe(req: Request, res: Response) {
-  //   const token = req.headers.cookie;
-
-  //   if (!token) {
-  //     throw new UnauthorizedException('No token');
-  //   }
-
-  //   const { id } = this.jwtService.decode(token);
-
-  //   if (id) {
-  //     const user = await this.usersService.findById(id);
-  //     await this.usersService.updateLastLoginTime(id);
-  //     const { password, ...rest } = user;
-
-  //     await this.issueAccessToken(user.id, res);
-
-  //     return rest;
-  //   }
-
-  //   return null;
-  // }
 
   getProfile(req: Request) {
     return req.user

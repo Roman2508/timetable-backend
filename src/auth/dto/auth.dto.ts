@@ -1,51 +1,52 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger'
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator'
+import { RoleEntity } from 'src/roles/entities/role.entity'
 
-import { UserRoles } from 'src/users/entities/user.entity';
+import { UserRoles } from 'src/users/entities/user.entity'
 
 export class AuthDto {
   @ApiProperty()
   @IsEmail()
-  email: string;
+  email: string
 
   @ApiProperty()
   @IsString()
-  name: string;
+  name: string
 
   @ApiProperty()
   @MinLength(6, { message: 'Мінімальна довжина паролю 6 символів' })
   @IsString()
-  password: string;
+  password: string
 
   @ApiProperty()
   @IsOptional()
   @IsString()
-  role: UserRoles;
+  role: RoleEntity
 
   @IsOptional()
   @IsString()
-  roleId?: number;
+  roleId?: number
 }
 
 export class LoginDto {
   @ApiProperty()
   @IsEmail()
-  email: string;
+  email: string
 
   @ApiProperty()
   @MinLength(6, { message: 'Мінімальна довжина паролю 6 символів' })
   @IsString()
-  password: string;
+  password: string
 }
 
 export class GetMeDto {
   @ApiProperty()
   @IsString()
-  token: string;
+  token: string
 }
 
 export class AuthGoogleDto {
   @ApiProperty()
   @IsEmail()
-  email: string;
+  email: string
 }

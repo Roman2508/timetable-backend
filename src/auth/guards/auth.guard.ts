@@ -1,22 +1,13 @@
+import type { Request } from 'express'
 import { JwtService } from '@nestjs/jwt'
-import type { Request, Response } from 'express'
-import {
-  BadRequestException,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common'
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common'
 
 import { UsersService } from 'src/users/users.service'
-import * as cookie from 'cookie'
 
 const PUBLIC_PATHS = [
   { method: 'POST', path: '/auth/login' },
-  { method: 'GET', path: '/auth/refresh' },
+  { method: 'POST', path: '/auth/refresh' },
   { method: 'POST', path: '/auth/logout' },
-  // добавь сюда другие публичные маршруты
 ]
 
 function isPublicRoute(req: Request) {
@@ -27,14 +18,14 @@ function isPublicRoute(req: Request) {
 @Injectable()
 export class LocalAuthGuard implements CanActivate {
   constructor(
-    private readonly usersService: UsersService,
+    private usersService: UsersService,
     private jwtService: JwtService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest() as Request
 
-    console.log(request.headers['authorization'])
+    // console.log('method:', request.method, 'path:', request.path)
 
     if (isPublicRoute(request)) return true
 
@@ -44,11 +35,12 @@ export class LocalAuthGuard implements CanActivate {
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1]
-    } else {
-      // fallback: допустим, у тебя ещё есть старый cookie.token — временная совместимость
-      const cookies = cookie.parse(request.headers.cookie || '')
-      token = cookies[process.env.TOKEN_NAME]
     }
+    // else {
+    //   // fallback: допустим, у тебя ещё есть старый cookie.token — временная совместимость
+    //   const cookies = cookie.parse(request.headers.cookie || '')
+    //   token = cookies[process.env.TOKEN_NAME]
+    // }
 
     if (!token) {
       throw new UnauthorizedException('Відсутній токен')
@@ -68,65 +60,20 @@ export class LocalAuthGuard implements CanActivate {
     }
   }
 
-  // async canActivate(context: ExecutionContext): Promise<boolean> {
-  //   const request = context.switchToHttp().getRequest() as Request
-  //   const response = context.switchToHttp().getResponse() as Response
+  // canActivate(context: ExecutionContext): boolean {
+  //   const req = context.switchToHttp().getRequest<Request>()
+  //   const refreshToken = req.cookies?.refreshToken
 
-  //   if (request.method === 'POST' && request.path === '/auth/login') return true
-
-  //   if (request.path === '/init-application') {
-  //     const isUsersExists = await this.usersService.checkIsUsersExists()
-
-  //     if (isUsersExists) throw new ForbiddenException('Доступ заборонений')
-
-  //     return true
+  //   if (!refreshToken) {
+  //     throw new UnauthorizedException('No refresh token')
   //   }
 
-  //   const cookies = request.headers.cookie ? cookie.parse(request.headers.cookie) : {}
-  //   const token = cookies[process.env.TOKEN_NAME]
-
-  //   // const token = request.cookies.token;
-
-  //   if (!token) throw new UnauthorizedException('Ви не авторизовані')
-
-  //   let tokenPayload
   //   try {
-  //     tokenPayload = await this.jwtService.verifyAsync(token)
+  //     const payload = this.jwtService.verify(refreshToken, { secret: process.env.JWT_REFRESH_SECRET })
+  //     req.user = { ...payload, refreshToken }
+  //     return true
   //   } catch {
-  //     throw new UnauthorizedException('Токен не валідний або закінчився термін його дії')
+  //     throw new UnauthorizedException('Invalid refresh token')
   //   }
-
-  //   const { id } = tokenPayload
-
-  //   if (!id) throw new UnauthorizedException('Ви не авторизовані')
-
-  //   const user = await this.usersService.findById(id)
-
-  //   if (!user) {
-  //     response.clearCookie(process.env.TOKEN_NAME, {
-  //       httpOnly: true,
-  //       secure: false,
-  //       sameSite: 'lax',
-  //       path: '/',
-  //     })
-
-  //     throw new UnauthorizedException('Ви не авторизовані')
-  //   }
-
-  //   await this.usersService.updateLastLoginTime(id)
-
-  //   const accessToken = await this.jwtService.signAsync({ id }, { expiresIn: '30d' })
-
-  //   response.cookie(process.env.TOKEN_NAME, accessToken, {
-  //     httpOnly: true,
-  //     secure: false,
-  //     sameSite: 'lax',
-  //     path: '/',
-  //     maxAge: +process.env.TOKEN_MAX_AGE,
-  //   })
-
-  //   request.user = user
-
-  //   return true
   // }
 }

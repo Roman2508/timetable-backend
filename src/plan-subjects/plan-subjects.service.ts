@@ -1,12 +1,12 @@
-import { In, IsNull, Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { In, IsNull, Repository } from 'typeorm'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 
-import { PlanSubjectEntity } from './entities/plan-subject.entity';
-import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
-import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto';
-import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto';
-import { GroupLoadLessonsService } from 'src/group-load-lessons/group-load-lessons.service';
+import { PlanSubjectEntity } from './entities/plan-subject.entity'
+import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto'
+import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto'
+import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto'
+import { GroupLoadLessonsService } from 'src/group-load-lessons/group-load-lessons.service'
 
 @Injectable()
 export class PlanSubjectsService {
@@ -22,11 +22,11 @@ export class PlanSubjectsService {
     // Шукаю чи є в плані дисципліни з таким ім'ям
     const planSubjects = await this.repository.find({
       where: { name: dto.name, plan: { id: dto.planId } },
-    });
+    })
 
     // Якщо є - повертаю помилку
     if (planSubjects.length) {
-      throw new BadRequestException('Назви дисциплін повинні бути унікальними');
+      throw new BadRequestException('Назви дисциплін повинні бути унікальними')
     }
 
     // Якщо нема створюю нову дисципліну
@@ -34,48 +34,50 @@ export class PlanSubjectsService {
       name: dto.name,
       plan: { id: dto.planId },
       cmk: { id: dto.cmk },
-    };
+    }
 
-    const newSubject = this.repository.create(payload);
+    const newSubject = this.repository.create(payload)
 
-    return this.repository.save(newSubject);
+    await this.repository.save(newSubject)
+
+    return this.repository.findOne({ where: { id: newSubject.id }, relations: { cmk: true } })
   }
 
   async findAll(id: number, semestersString?: string) {
-    let semesterNumbersArray;
+    let semesterNumbersArray
 
     if (!semestersString) {
-      semesterNumbersArray = [1, 2, 3, 4, 5, 6, 7, 8];
+      semesterNumbersArray = [1, 2, 3, 4, 5, 6, 7, 8]
     } else {
-      const semesters = semestersString.split(',');
-      semesterNumbersArray = semesters.map((el) => +el);
+      const semesters = semestersString.split(',')
+      semesterNumbersArray = semesters.map((el) => +el)
     }
 
     const withoutSemester = await this.repository.find({
       where: { plan: { id }, semesterNumber: IsNull() },
       relations: { cmk: true, plan: true },
-    });
+    })
 
     const withSemester = await this.repository.find({
       where: { plan: { id }, semesterNumber: In(semesterNumbersArray) },
       relations: { cmk: true, plan: true },
-    });
+    })
 
-    return [...withSemester, ...withoutSemester];
+    return [...withSemester, ...withoutSemester]
   }
 
   async updateName(dto: UpdatePlanSubjectNameDto) {
     // find all subjects by plan id
     const subject = await this.repository.find({
       where: { plan: { id: dto.planId }, name: dto.oldName },
-    });
+    })
 
     if (!subject.length) {
-      throw new NotFoundException('Дисципліну не знайдено');
+      throw new NotFoundException('Дисципліну не знайдено')
     }
 
     // select all ids in updating subjects
-    const subjectsIds = subject.map((el) => el.id);
+    const subjectsIds = subject.map((el) => el.id)
 
     // update all subjects by id
     await this.repository
@@ -83,13 +85,13 @@ export class PlanSubjectsService {
       .update(PlanSubjectEntity)
       .set({ name: dto.newName, cmk: { id: dto.cmk } })
       .whereInIds(subjectsIds)
-      .execute();
+      .execute()
 
     const updatedSubjects = subjectsIds.map((el) => ({
       id: el,
       name: dto.newName,
       cmk: { id: dto.cmk },
-    }));
+    }))
 
     subjectsIds.map(async (id) => {
       await this.groupLoadLessonsService.updateName({
@@ -97,28 +99,28 @@ export class PlanSubjectsService {
         newName: dto.newName,
         planSubjectId: id,
         cmk: dto.cmk,
-      });
-    });
+      })
+    })
 
-    return updatedSubjects;
+    return updatedSubjects
   }
 
   // Створення або оновлення семестру для дисципліни
   async updateHours(_: number, dto: UpdatePlanSubjectHoursDto) {
     const existedLessonWithoutSemester = await this.repository.findOne({
       where: { plan: { id: dto.planId }, name: dto.name, semesterNumber: IsNull() },
-    });
+    })
 
     // Якщо створена дисципліни в плані має лише ім'я та ЦК (без семестру) - оновлюю цю дисципліну
     // (при додаванні нової дисципліни до плану семестр одразу не вказується, лише ім'я та ЦК)
     if (existedLessonWithoutSemester) {
-      const updatedSubjects = { ...existedLessonWithoutSemester, ...dto, cmk: { id: dto.cmk } };
+      const updatedSubjects = { ...existedLessonWithoutSemester, ...dto, cmk: { id: dto.cmk } }
       await this.groupLoadLessonsService.updateHours({
         /* @ts-ignore */
         planSubject: updatedSubjects,
         planId: dto.planId,
-      });
-      return await this.repository.save(updatedSubjects);
+      })
+      return await this.repository.save(updatedSubjects)
     }
 
     const subject = await this.repository.findOne({
@@ -129,7 +131,7 @@ export class PlanSubjectsService {
         name: dto.name,
         semesterNumber: dto.semesterNumber,
       },
-    });
+    })
 
     // Якщо дисципліни немає - її треба створити
     if (!subject) {
@@ -137,42 +139,42 @@ export class PlanSubjectsService {
         ...dto,
         cmk: { id: dto.cmk },
         plan: { id: dto.planId },
-      });
+      })
 
-      const newSubject = await this.repository.save(subjectDto);
+      const newSubject = await this.repository.save(subjectDto)
 
       await this.groupLoadLessonsService.updateHours({
         planSubject: newSubject,
         planId: dto.planId,
-      });
+      })
 
-      return newSubject;
+      return newSubject
     } else {
       // Якщо дисципліна є - треба оновити
 
-      const updatedSubjects = { ...subject, ...dto, cmk: { id: dto.cmk } };
+      const updatedSubjects = { ...subject, ...dto, cmk: { id: dto.cmk } }
 
       await this.groupLoadLessonsService.updateHours({
         /* @ts-ignore */
         planSubject: updatedSubjects,
         planId: dto.planId,
-      });
+      })
 
-      return this.repository.save(updatedSubjects);
+      return this.repository.save(updatedSubjects)
     }
   }
 
   async remove(id: number) {
-    const res = await this.repository.delete(id);
+    const res = await this.repository.delete(id)
 
     if (res.affected === 0) {
-      throw new NotFoundException('Групу не знайдено');
+      throw new NotFoundException('Групу не знайдено')
     }
 
     // Якщо я видаляю з плану дисципліну або семестр - видаляються також і всі group-load-lessons,
     // які були створені на основі цієї дисципліни
-    await this.groupLoadLessonsService.removeByPlanId(id);
+    await this.groupLoadLessonsService.removeByPlanId(id)
 
-    return id;
+    return id
   }
 }

@@ -25,6 +25,11 @@ export class RolesController {
     return this.rolesService.getFull(+id);
   }
 
+  @Get('byKey/:key')
+  getByKey(@Param('key') key: string) {
+    return this.rolesService.getByKey(key);
+  }
+
   @Post()
   createRole(@Body() dto: CreateRoleDto) {
     return this.rolesService.createRole(dto);
