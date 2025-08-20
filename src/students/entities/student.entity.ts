@@ -1,7 +1,7 @@
-import { Column, Entity, ManyToOne, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, ManyToMany, PrimaryGeneratedColumn } from 'typeorm'
 
-import { GroupEntity } from 'src/groups/entities/group.entity';
-import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
+import { GroupEntity } from 'src/groups/entities/group.entity'
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity'
 
 export enum StudentStatus {
   STUDYING = 'Навчається',
@@ -12,30 +12,26 @@ export enum StudentStatus {
 @Entity('students')
 export class StudentEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column()
-  name: string;
+  name: string
 
   @Column()
-  login: string;
+  login: string
 
   @Column()
-  password: string;
+  password: string
 
   @Column({ unique: true })
-  email: string;
+  email: string
 
-  @Column({
-    type: 'enum',
-    enum: StudentStatus,
-    default: StudentStatus.STUDYING,
-  })
-  status: StudentStatus;
+  @Column({ type: 'enum', enum: StudentStatus, default: StudentStatus.STUDYING })
+  status: StudentStatus
 
-  @ManyToOne(() => GroupEntity, (group) => group.students)
-  group: GroupEntity;
+  @ManyToOne(() => GroupEntity, (group) => group.students, { onDelete: 'CASCADE' })
+  group: GroupEntity
 
   @ManyToMany(() => GroupLoadLessonEntity, (lesson) => lesson.students)
-  lessons: GroupLoadLessonEntity[];
+  lessons: GroupLoadLessonEntity[]
 }

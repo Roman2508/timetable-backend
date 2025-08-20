@@ -39,9 +39,11 @@ export class StudentsService {
 
     const studentRole = await this.rolesService.getByKey('student')
 
+    const isGroupId = !isNaN(+dto.group)
+
     // Можна передавати ID групи або ім'я циклової та групу в такому форматі: CategoryName/GroupName
-    if (typeof dto.group === 'number') {
-      const doc = this.repository.create({ ...dto, group: { id: dto.group } })
+    if (isGroupId) {
+      const doc = this.repository.create({ ...dto, group: { id: +dto.group } as GroupEntity })
 
       const student = await this.repository.save(doc)
 
@@ -56,7 +58,7 @@ export class StudentsService {
       return student
     }
 
-    const groupData = dto.group.split('/')
+    const groupData = (dto.group as string).split('/')
     const categoryName = groupData[0]
     const groupName = groupData[1]
 
@@ -64,7 +66,7 @@ export class StudentsService {
 
     if (!group) throw new BadRequestException('Не вірно вказано групу')
 
-    const doc = this.repository.create({ ...dto, group: { id: group.id } })
+    const doc = this.repository.create({ ...dto, group: { id: group.id } as GroupEntity })
 
     const student = await this.repository.save(doc)
 

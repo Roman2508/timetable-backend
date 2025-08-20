@@ -5,9 +5,9 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 
 import { AuthDto } from './dto/auth.dto'
 import { UsersService } from './../users/users.service'
-import { StudentStatus } from 'src/students/entities/student.entity'
-import { UserEntity, UserRoles } from 'src/users/entities/user.entity'
 import { RoleEntity } from 'src/roles/entities/role.entity'
+import { UserEntity } from 'src/users/entities/user.entity'
+import { StudentStatus } from 'src/students/entities/student.entity'
 
 @Injectable()
 export class AuthService {
@@ -42,7 +42,9 @@ export class AuthService {
       if (!user) throw new BadRequestException('Такого користувача не знайдено')
 
       const { accessToken } = await this.issueAccessToken(user, res)
-      console.log('accessToken')
+
+      await this.usersService.updateLastLoginTime(user.id)
+
       return { accessToken }
     } catch {
       throw new UnauthorizedException('refresh token не валідний або закінчився термін його дії')
