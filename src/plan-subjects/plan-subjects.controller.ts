@@ -1,11 +1,11 @@
-import { ApiBearerAuth, ApiBody, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiQuery, ApiTags } from '@nestjs/swagger'
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common'
 
 // import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
-import { PlanSubjectsService } from './plan-subjects.service';
-import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto';
-import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto';
-import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto';
+import { PlanSubjectsService } from './plan-subjects.service'
+import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto'
+import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto'
+import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto'
 
 @Controller('plan-subjects')
 @ApiTags('plan-subjects')
@@ -17,30 +17,30 @@ export class PlanSubjectsController {
   @Get('/:id')
   @ApiQuery({ name: 'semesters', type: String, required: false })
   findAll(@Param('id') id: string, @Query('semesters') semesters?: string) {
-    return this.planSubjectsService.findAll(+id, semesters);
+    return this.planSubjectsService.findAll(+id, semesters)
   }
 
   @ApiBody({ type: CreatePlanSubjectDto })
   @Post()
   create(@Body() dto: CreatePlanSubjectDto) {
-    return this.planSubjectsService.create(dto);
+    return this.planSubjectsService.create(dto)
   }
 
   @ApiBody({ type: UpdatePlanSubjectNameDto })
   @Patch('name')
   updateName(@Body() dto: UpdatePlanSubjectNameDto) {
-    return this.planSubjectsService.updateName(dto);
+    return this.planSubjectsService.updateName(dto)
   }
 
   @ApiBody({ type: UpdatePlanSubjectHoursDto })
-  @Patch('hours/:id')
-  updateHours(@Param('id') id: string, @Body() dto: UpdatePlanSubjectHoursDto) {
-    return this.planSubjectsService.updateHours(+id, dto);
+  @Patch('hours')
+  updateHours(@Body() dto: UpdatePlanSubjectHoursDto) {
+    return this.planSubjectsService.updateHours(dto)
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    this.planSubjectsService.remove(+id);
-    return id;
+    this.planSubjectsService.remove(+id)
+    return id
   }
 }

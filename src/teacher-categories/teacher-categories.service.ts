@@ -37,6 +37,13 @@ export class TeacherCategoriesService {
     })
   }
 
+  findById(id: number) {
+    return this.repository.findOne({
+      where: { id },
+      select: { id: true, name: true, shortName: true },
+    })
+  }
+
   create(dto: CreateTeacherCategoryDto) {
     const newCategory = this.repository.create({ ...dto, teachers: [] })
     return this.repository.save(newCategory)

@@ -7,6 +7,7 @@ import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto'
 import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto'
 import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto'
 import { GroupLoadLessonsService } from 'src/group-load-lessons/group-load-lessons.service'
+import { TeacherCategoriesService } from 'src/teacher-categories/teacher-categories.service'
 
 @Injectable()
 export class PlanSubjectsService {
@@ -15,6 +16,7 @@ export class PlanSubjectsService {
     private repository: Repository<PlanSubjectEntity>,
 
     private groupLoadLessonsService: GroupLoadLessonsService,
+    private teachersCategoriesService: TeacherCategoriesService,
   ) {}
 
   // Створення нової дисципліни в плані (лише ім'я та ЦК)
@@ -102,11 +104,15 @@ export class PlanSubjectsService {
       })
     })
 
-    return updatedSubjects
+    const cmk = await this.teachersCategoriesService.findById(dto.cmk)
+
+    if (!cmk) return updatedSubjects
+
+    return updatedSubjects.map((el) => ({ ...el, cmk }))
   }
 
   // Створення або оновлення семестру для дисципліни
-  async updateHours(_: number, dto: UpdatePlanSubjectHoursDto) {
+  async updateHours(dto: UpdatePlanSubjectHoursDto) {
     const existedLessonWithoutSemester = await this.repository.findOne({
       where: { plan: { id: dto.planId }, name: dto.name, semesterNumber: IsNull() },
     })
@@ -147,21 +153,18 @@ export class PlanSubjectsService {
         planSubject: newSubject,
         planId: dto.planId,
       })
-
       return newSubject
-    } else {
-      // Якщо дисципліна є - треба оновити
-
-      const updatedSubjects = { ...subject, ...dto, cmk: { id: dto.cmk } }
-
-      await this.groupLoadLessonsService.updateHours({
-        /* @ts-ignore */
-        planSubject: updatedSubjects,
-        planId: dto.planId,
-      })
-
-      return this.repository.save(updatedSubjects)
     }
+
+    // Якщо дисципліна є - треба оновити
+    const updatedSubjects = { ...subject, ...dto, cmk: { id: dto.cmk } }
+
+    await this.groupLoadLessonsService.updateHours({
+      /* @ts-ignore */
+      planSubject: updatedSubjects,
+      planId: dto.planId,
+    })
+    return this.repository.save(updatedSubjects)
   }
 
   async remove(id: number) {
