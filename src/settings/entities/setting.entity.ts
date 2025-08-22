@@ -1,11 +1,11 @@
-import { Column, Entity, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, PrimaryGeneratedColumn } from 'typeorm'
 
 export class LessonCall {
   @Column({ default: '08:30' })
-  start: string;
+  start: string
 
   @Column({ default: '09:50' })
-  end: string;
+  end: string
 }
 
 export class Lesson {
@@ -35,51 +35,54 @@ export class Lesson {
 
   @Column((type) => LessonCall)
   @JoinColumn({ name: '7' })
-  ['7']: LessonCall;
+  ['7']: LessonCall
 }
 
 export class Colors {
   @Column({ default: '#ffffff' })
-  lectures: string;
+  lectures: string
 
   @Column({ default: '#ffffff' })
-  practical: string;
+  practical: string
 
   @Column({ default: '#ffffff' })
-  laboratory: string;
+  laboratory: string
 
   @Column({ default: '#ffffff' })
-  seminars: string;
+  seminars: string
 
   @Column({ default: '#ffffff' })
-  exams: string;
+  exams: string
 
   @Column({ default: '#ffffff' })
-  examsConsulation: string;
+  examsConsulation: string
 }
 
 @Entity('settings')
 export class SettingsEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column()
-  firstSemesterStart: string;
+  firstSemesterStart: string
 
   @Column()
-  firstSemesterEnd: string;
+  firstSemesterEnd: string
 
   @Column()
-  secondSemesterStart: string;
+  secondSemesterStart: string
 
   @Column()
-  secondSemesterEnd: string;
+  secondSemesterEnd: string
+
+  @Column({ default: 7 })
+  workDaysPerWeek: number
 
   @Column((type) => Lesson, { array: true })
   @JoinColumn({ name: 'callSchedule' })
-  callSchedule: Lesson;
+  callSchedule: Lesson
 
   @Column((type) => Colors, { array: true })
   @JoinColumn({ name: 'colors' })
-  colors: Colors;
+  colors: Colors
 }

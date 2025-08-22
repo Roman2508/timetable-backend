@@ -58,7 +58,7 @@ export class UsersService {
       where: filter,
       take: dto.limit ? dto.limit : 20,
       skip: dto.offset ? dto.offset : 0,
-      relations: { student: true, teacher: true },
+      relations: { student: true, teacher: true, roles: true },
       select: { id: true, name: true, roles: true, email: true, picture: true, lastLogin: true },
       order,
     })
