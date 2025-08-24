@@ -103,7 +103,7 @@ export class TeachersService {
 
     const userDto = {
       name,
-      role: [UserRoles.TEACHER],
+      roles: [UserRoles.TEACHER],
       email: dto.email ? dto.email : user.email,
       password: dto.password ? dto.password : user.password,
     }

@@ -142,7 +142,11 @@ export class UsersService {
       throw new BadRequestException('Користувача не знайдено')
     }
 
-    let updatedUser: any = { role: dto.role, name: dto.name, id }
+    let updatedUser: any = {
+      id,
+      name: dto.name,
+      roles: dto.roles.map((id) => ({ id })),
+    }
 
     if (dto.email !== existedUser.email) {
       const userWithSameEmail = await this.findByEmail(dto.email)
@@ -165,7 +169,13 @@ export class UsersService {
       const newPassword = await hash(dto.password, salt)
       updatedUser = { ...updatedUser, password: newPassword }
     }
-    return this.repository.save(updatedUser)
+
+    await this.repository.save(updatedUser)
+
+    const user = await this.repository.findOne({ where: { id }, relations: { roles: true } })
+    const { password, ...rest } = user
+
+    return rest
   }
 
   async updateLastLoginTime(id: number) {

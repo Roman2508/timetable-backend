@@ -14,5 +14,5 @@ export class UpdateUserDto {
   password?: string;
 
   @IsString()
-  role: UserRoles[];
+  roles: UserRoles[];
 }
