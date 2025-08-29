@@ -18,8 +18,10 @@ export class RolesService {
     private permissionRepository: Repository<PermissionEntity>,
   ) {}
 
-  getAll() {
-    return this.roleRepository.find()
+  async getAll() {
+    const roles = await this.roleRepository.find({ select: { users: true } })
+    const rolesList = roles.map((el) => ({ ...el, users: el.users ? el.users.length : 0 }))
+    return rolesList
   }
 
   getFull(id: number) {
