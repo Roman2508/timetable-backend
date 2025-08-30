@@ -30,8 +30,8 @@ export class RolesService {
       relations: { permissions: true },
       select: {
         id: true,
-        name: true,
         key: true,
+        name: true,
         permissions: { id: true, page: true, action: true },
       },
     })
@@ -58,8 +58,9 @@ export class RolesService {
       throw new BadRequestException("Роль з таким ім'ям вже існує")
     }
 
-    const newRole = this.roleRepository.create(dto)
-    return this.roleRepository.save(newRole)
+    const doc = this.roleRepository.create(dto)
+    const newRole = await this.roleRepository.save(doc)
+    return { ...newRole, users: 0 }
   }
 
   async updateRole(id: number, dto: UpdateRoleDto) {
@@ -84,18 +85,9 @@ export class RolesService {
   /* permissions */
 
   async createPermission(dto: CreatePermissionDto) {
-    const newPermission = this.permissionRepository.create({ ...dto, roles: [{ id: dto.roleId }] })
+    const newPermission = this.permissionRepository.create({ ...dto, roles: { id: dto.roleId } })
     return this.permissionRepository.save(newPermission)
   }
-
-  //   async updatePermission(id: number, dto: UpdatPermissionDto) {
-  //     const permission = await this.permissionRepository.findOne({ where: { id } });
-  //     if (!permission) {
-  //       throw new NotFoundException('Permission not found');
-  //     }
-
-  //     return this.permissionRepository.save({ ...permission, ...dto });
-  //   }
 
   async deletePermission(id: number) {
     const res = await this.permissionRepository.delete(id)

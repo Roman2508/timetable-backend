@@ -50,11 +50,6 @@ export class RolesController {
     return this.rolesService.createPermission(dto);
   }
 
-  // @Patch('permission/:id')
-  // updatePermission(@Param('id') id: string, @Body() dto: UpdatPermissionDto) {
-  //   return this.rolesService.updatePermission(+id, dto);
-  // }
-
   @Delete('permission/:id')
   deletePermission(@Param('id') id: string) {
     return this.rolesService.deletePermission(+id);

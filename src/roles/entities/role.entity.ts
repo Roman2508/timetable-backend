@@ -1,23 +1,23 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany } from 'typeorm'
 
-import { PermissionEntity } from './permission.entity';
-import { UserEntity } from 'src/users/entities/user.entity';
+import { PermissionEntity } from './permission.entity'
+import { UserEntity } from 'src/users/entities/user.entity'
 
-@Entity()
+@Entity('roles')
 export class RoleEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
-  @Column({ unique: true })
-  name: string;
+  @Column()
+  name: string
 
-  @Column({ unique: true })
-  key: string;
+  @Column()
+  key: string
 
-  @ManyToMany(() => PermissionEntity, (permission) => permission.roles, { cascade: true })
+  @OneToMany(() => PermissionEntity, (permission) => permission.roles, { cascade: true })
   @JoinTable()
-  permissions: PermissionEntity[];
+  permissions: PermissionEntity[]
 
   @ManyToMany(() => UserEntity, (user) => user.roles)
-  users: UserEntity[];
+  users: UserEntity[]
 }
