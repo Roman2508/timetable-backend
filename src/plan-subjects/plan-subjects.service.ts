@@ -121,12 +121,13 @@ export class PlanSubjectsService {
     // (при додаванні нової дисципліни до плану семестр одразу не вказується, лише ім'я та ЦК)
     if (existedLessonWithoutSemester) {
       const updatedSubjects = { ...existedLessonWithoutSemester, ...dto, cmk: { id: dto.cmk } }
+      const savedSubject = await this.repository.save(updatedSubjects)
       await this.groupLoadLessonsService.updateHours({
         /* @ts-ignore */
-        planSubject: updatedSubjects,
+        planSubject: savedSubject,
         planId: dto.planId,
       })
-      return await this.repository.save(updatedSubjects)
+      return savedSubject
     }
 
     const subject = await this.repository.findOne({

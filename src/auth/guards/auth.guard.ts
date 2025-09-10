@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   { method: 'POST', path: '/auth/login' },
   { method: 'POST', path: '/auth/refresh' },
   { method: 'POST', path: '/auth/logout' },
+  { method: 'GET', path: '/init-application' },
 ]
 
 function isPublicRoute(req: Request) {

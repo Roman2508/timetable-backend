@@ -38,6 +38,7 @@ export class AuthService {
 
       const payload = await this.jwtService.verifyAsync(refreshToken)
       const user = await this.usersService.findById(payload.user.id)
+      console.log('user', user)
 
       if (!user) throw new BadRequestException('Такого користувача не знайдено')
 
