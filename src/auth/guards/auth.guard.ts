@@ -58,7 +58,9 @@ export class LocalAuthGuard implements CanActivate {
 
       return true
     } catch (err) {
-      throw new UnauthorizedException('Access token не валідний або закінчився термін його дії')
+      const errorMessage = 'Термін дії вашої сесії закінчився'
+      // const errorMessage = 'Access token не валідний або закінчився термін його дії'
+      throw new UnauthorizedException(errorMessage)
     }
   }
 
