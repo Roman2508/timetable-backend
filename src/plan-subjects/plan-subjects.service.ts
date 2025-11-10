@@ -1,4 +1,4 @@
-import { In, IsNull, Repository } from 'typeorm'
+import { Equal, In, IsNull, Repository } from 'typeorm'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 
@@ -61,7 +61,7 @@ export class PlanSubjectsService {
     })
 
     const withSemester = await this.repository.find({
-      where: { plan: { id }, semesterNumber: In(semesterNumbersArray) },
+      where: { plan: id as any, semesterNumber: In(semesterNumbersArray) },
       relations: { cmk: true, plan: true },
     })
 
@@ -120,14 +120,20 @@ export class PlanSubjectsService {
     // Якщо створена дисципліни в плані має лише ім'я та ЦК (без семестру) - оновлюю цю дисципліну
     // (при додаванні нової дисципліни до плану семестр одразу не вказується, лише ім'я та ЦК)
     if (existedLessonWithoutSemester) {
-      const updatedSubjects = { ...existedLessonWithoutSemester, ...dto, cmk: { id: dto.cmk } }
-      const savedSubject = await this.repository.save(updatedSubjects)
+      const { planId, ...subjectData } = dto
+      const subject = {
+        ...existedLessonWithoutSemester,
+        ...subjectData,
+        id: existedLessonWithoutSemester.id,
+        cmk: { id: subjectData.cmk },
+      }
+      const savedSubject = await this.repository.update({ id: existedLessonWithoutSemester.id }, subject)
+
       await this.groupLoadLessonsService.updateHours({
-        /* @ts-ignore */
-        planSubject: savedSubject,
+        planSubject: savedSubject as any,
         planId: dto.planId,
       })
-      return savedSubject
+      return this.repository.findOne({ where: { id: existedLessonWithoutSemester.id }, relations: { cmk: true } })
     }
 
     const subject = await this.repository.findOne({
