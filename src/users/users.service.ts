@@ -74,15 +74,24 @@ export class UsersService {
   }
 
   findByEmail(email: string) {
-    return this.repository.findOne({ where: { email }, relations: { teacher: true, student: true } })
+    return this.repository.findOne({
+      where: { email },
+      relations: { teacher: true, student: true, roles: { permissions: true } },
+    })
   }
 
   findById(id: number) {
-    return this.repository.findOne({ where: { id }, relations: { teacher: true, student: true } })
+    return this.repository.findOne({
+      where: { id },
+      relations: { teacher: true, student: true, roles: { permissions: true } },
+    })
   }
 
   findByRoleId(id: number, role: UserRoles) {
-    return this.repository.findOne({ where: { [role]: { id } }, relations: { teacher: true, student: true } })
+    return this.repository.findOne({
+      where: { [role]: { id } },
+      relations: { teacher: true, student: true, roles: { permissions: true } },
+    })
   }
 
   async create(dto: CreateUserDto) {
@@ -128,7 +137,7 @@ export class UsersService {
 
     const user = await this.repository.findOne({
       where: { email: newUser.email },
-      relations: { student: true, teacher: true },
+      relations: { student: true, teacher: true, roles: { permissions: true } },
     })
 
     const { password: _, ...result } = user
