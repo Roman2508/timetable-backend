@@ -1,13 +1,14 @@
-import { DeepPartial, Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { DeepPartial, Repository } from 'typeorm'
+import { InjectRepository } from '@nestjs/typeorm'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 
-import { GradeBookEntity, GradeBookSummaryTypes } from './entities/grade-book.entity';
-import { CreateGradeBookDto } from './dto/create-grade-book.dto';
-import { AddSummaryDto } from './dto/add-summary.dto';
-import { DeleteSummaryDto } from './dto/delete-summary.dto';
-import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
-import { GradesEntity } from 'src/grades/entities/grade.entity';
+import { AddSummaryDto } from './dto/add-summary.dto'
+import { DeleteSummaryDto } from './dto/delete-summary.dto'
+import { GradeBookEntity } from './entities/grade-book.entity'
+import { GradesEntity } from 'src/grades/entities/grade.entity'
+import { CreateGradeBookDto } from './dto/create-grade-book.dto'
+import { GradeBookSummary } from '../../../frontend/src/store/gradeBook/grade-book-types'
+import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity'
 
 @Injectable()
 export class GradeBookService {
@@ -27,11 +28,11 @@ export class GradeBookService {
   // 1 дисципліна та 1 вид навантаження (ЛК, ПЗ, ЛАБ і т.д.) === 1 журнал
   // Тобто якщо 1 дисципліна навчального плану має лекції і пз то для неї створюється 2 журнала
   async createAll(dto: CreateGradeBookDto) {
-    const allLessons = dto.groupLoadLessons ? dto.groupLoadLessons : [];
+    const allLessons = dto.groupLoadLessons ? dto.groupLoadLessons : []
 
     const lessons = allLessons.filter(
       (el) => el.typeRu === 'ЛК' || el.typeRu === 'ПЗ' || el.typeRu === 'ЛАБ' || el.typeRu === 'СЕМ',
-    );
+    )
 
     const gradeBooks = Promise.all(
       lessons.map(async (el: DeepPartial<GroupLoadLessonEntity>) => {
@@ -40,52 +41,52 @@ export class GradeBookService {
           lesson: { id: el.id },
           semester: el.semester,
           typeRu: el.typeRu,
-        };
+        }
 
-        const newObj = this.repository.create(gradeBookPayload);
-        const newGradeBook = await this.repository.save(newObj);
-        return newGradeBook;
+        const newObj = this.repository.create(gradeBookPayload)
+        const newGradeBook = await this.repository.save(newObj)
+        return newGradeBook
       }),
-    );
+    )
 
-    return gradeBooks;
+    return gradeBooks
   }
 
   async addSummary(id: number, dto: AddSummaryDto) {
-    const gradeBook = await this.repository.findOne({ where: { id } });
+    const gradeBook = await this.repository.findOne({ where: { id } })
 
-    if (dto.type === GradeBookSummaryTypes.LESSON_AVERAGE || dto.type === GradeBookSummaryTypes.LESSON_SUM) {
+    if (dto.type === GradeBookSummary.LESSON_AVERAGE || dto.type === GradeBookSummary.LESSON_SUM) {
       const isPossibleToAdd = gradeBook.summary.some(
         (el) =>
-          el.type === GradeBookSummaryTypes.LESSON_AVERAGE ||
-          el.type === GradeBookSummaryTypes.LESSON_SUM ||
-          el.type === GradeBookSummaryTypes.EXAM,
-      );
-      if (isPossibleToAdd) throw new BadRequestException('Неможливо повторно додати підсумок з дисципліни');
+          el.type === GradeBookSummary.LESSON_AVERAGE ||
+          el.type === GradeBookSummary.LESSON_SUM ||
+          el.type === GradeBookSummary.EXAM,
+      )
+      if (isPossibleToAdd) throw new BadRequestException('Неможливо повторно додати підсумок з дисципліни')
 
-      const summary = [...gradeBook.summary, dto];
-      return this.repository.save({ id, summary });
+      const summary = [...gradeBook.summary, dto]
+      return this.repository.save({ id, summary })
     }
 
-    const summary = [...gradeBook.summary, dto];
-    return this.repository.save({ id, summary });
+    const summary = [...gradeBook.summary, dto]
+    return this.repository.save({ id, summary })
   }
 
   async deleteSummary(id: number, dto: DeleteSummaryDto) {
-    const gradeBook = await this.repository.findOne({ where: { id }, relations: { grades: true } });
-    const summary = gradeBook.summary.filter((el) => el.afterLesson !== dto.afterLesson || el.type !== dto.type);
-    await this.repository.save({ id, summary });
+    const gradeBook = await this.repository.findOne({ where: { id }, relations: { grades: true } })
+    const summary = gradeBook.summary.filter((el) => el.afterLesson !== dto.afterLesson || el.type !== dto.type)
+    await this.repository.save({ id, summary })
 
     await Promise.allSettled(
       gradeBook.grades.map(async (grade) => {
         const grades = grade.grades.filter(
           (el) => el.lessonNumber !== dto.afterLesson - 1 || el.summaryType !== dto.type,
-        );
-        await this.gradesRepository.save({ id: grade.id, grades });
+        )
+        await this.gradesRepository.save({ id: grade.id, grades })
       }),
-    );
+    )
 
-    return { id, summary: [dto] };
+    return { id, summary: [dto] }
   }
 
   findOne(semester: number, group: number, lesson: number, type: string) {
@@ -116,23 +117,23 @@ export class GradeBookService {
         },
         grades: { id: true, grades: true, student: { id: true, name: true }, gradeBook: { id: true } },
       },
-    });
+    })
   }
 
   async deleteAll(groupId: number) {
     await this.repository.delete({
       group: { id: groupId },
-    });
-    return true;
+    })
+    return true
   }
 
   async remove(id: number) {
-    const res = await this.repository.delete(id);
+    const res = await this.repository.delete(id)
 
     if (res.affected === 0) {
-      throw new NotFoundException('Не знайдено');
+      throw new NotFoundException('Не знайдено')
     }
 
-    return id;
+    return id
   }
 }
