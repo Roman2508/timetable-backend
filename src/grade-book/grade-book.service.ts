@@ -4,10 +4,9 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 import { AddSummaryDto } from './dto/add-summary.dto'
 import { DeleteSummaryDto } from './dto/delete-summary.dto'
-import { GradeBookEntity } from './entities/grade-book.entity'
+import { GradeBookEntity, GradeBookSummaryTypes } from './entities/grade-book.entity'
 import { GradesEntity } from 'src/grades/entities/grade.entity'
 import { CreateGradeBookDto } from './dto/create-grade-book.dto'
-import { GradeBookSummary } from '../../../frontend/src/store/gradeBook/grade-book-types'
 import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity'
 
 @Injectable()
@@ -55,12 +54,12 @@ export class GradeBookService {
   async addSummary(id: number, dto: AddSummaryDto) {
     const gradeBook = await this.repository.findOne({ where: { id } })
 
-    if (dto.type === GradeBookSummary.LESSON_AVERAGE || dto.type === GradeBookSummary.LESSON_SUM) {
+    if (dto.type === GradeBookSummaryTypes.LESSON_AVERAGE || dto.type === GradeBookSummaryTypes.LESSON_SUM) {
       const isPossibleToAdd = gradeBook.summary.some(
         (el) =>
-          el.type === GradeBookSummary.LESSON_AVERAGE ||
-          el.type === GradeBookSummary.LESSON_SUM ||
-          el.type === GradeBookSummary.EXAM,
+          el.type === GradeBookSummaryTypes.LESSON_AVERAGE ||
+          el.type === GradeBookSummaryTypes.LESSON_SUM ||
+          el.type === GradeBookSummaryTypes.EXAM,
       )
       if (isPossibleToAdd) throw new BadRequestException('Неможливо повторно додати підсумок з дисципліни')
 
