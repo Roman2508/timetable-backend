@@ -57,7 +57,7 @@ export class SummaryItem {
   @Column({
     type: 'enum',
     enum: GradeBookSummaryTypes,
-    default: GradeBookSummary.MODULE_AVERAGE,
+    default: GradeBookSummaryTypes.MODULE_AVERAGE,
     nullable: false,
   })
   type: string;
