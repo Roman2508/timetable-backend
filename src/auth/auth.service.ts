@@ -1,6 +1,7 @@
 import { compare } from 'bcryptjs'
 import { JwtService } from '@nestjs/jwt'
 import { Response, Request } from 'express'
+import { OAuth2Client } from 'google-auth-library'
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 
 import { AuthDto } from './dto/auth.dto'
@@ -23,8 +24,10 @@ export class AuthService {
 
     res.cookie(process.env.TOKEN_NAME, refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      // secure: false,
+      // sameSite: 'lax',
+      secure: process.env.NODE_ENV !== 'development',
+      sameSite: process.env.NODE_ENV !== 'development' ? 'strict' : 'lax',
       path: '/',
       maxAge: !isNaN(+process.env.TOKEN_MAX_AGE) ? +process.env.TOKEN_MAX_AGE : 1000 * 60 * 60 * 24 * 30,
     })
@@ -104,22 +107,35 @@ export class AuthService {
   }
 
   // google-login
-  async getByEmail(res: Response, email: string) {
-    const user = await this.usersService.findByEmail(email)
+  async getByEmail(res: Response, dto: { email?: string; token: string }) {
+    const client = new OAuth2Client(process.env.GOOGLE_AUTH_CLIENT_ID)
+    const ticket = await client.verifyIdToken({
+      idToken: dto.token,
+      audience: process.env.GOOGLE_AUTH_CLIENT_ID,
+    })
+    const payload = ticket.getPayload()
 
-    if (!user) throw new NotFoundException('Такого користувача не існує')
+    if (!payload || !payload.email) {
+      throw new UnauthorizedException('Не вдалося перевірити Google токен')
+    }
 
-    await this.issueAccessToken(user, res)
+    const user = await this.usersService.findByEmail(payload.email)
+    if (!user) throw new NotFoundException('Користувача з таким email не знайдено в системі')
 
-    const { password, ...rest } = user
-    return rest
+    const { accessToken } = await this.issueAccessToken(user, res)
+    console.log('Google Auth success for user:', user.email)
+
+    const { password, ...userData } = user
+    return { user: userData, accessToken }
   }
 
   async logout(res: Response): Promise<boolean> {
     res.clearCookie(process.env.TOKEN_NAME, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      // secure: false,
+      // sameSite: 'lax',
+      secure: process.env.NODE_ENV !== 'development',
+      sameSite: process.env.NODE_ENV !== 'development' ? 'strict' : 'lax',
       path: '/',
     })
 

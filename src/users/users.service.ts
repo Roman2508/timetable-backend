@@ -44,7 +44,7 @@ export class UsersService {
 
     if (dto.sortBy && (dto.order === 'ASC' || dto.order === 'DESC')) {
       if (dto.sortBy === 'email') {
-        order.price = dto.order
+        order.email = dto.order
       } else if (dto.sortBy === 'role') {
         order.role = 'DESC'
       } else {
@@ -188,26 +188,7 @@ export class UsersService {
   }
 
   async updateLastLoginTime(id: number) {
-    const user = await this.findById(id)
-
-    const now = new Date()
-
-    // Форматирование даты
-    const year = now.getUTCFullYear()
-    const month = String(now.getUTCMonth() + 1).padStart(2, '0') // Месяцы от 0 до 11
-    const day = String(now.getUTCDate()).padStart(2, '0')
-
-    // Форматирование времени
-    const hours = String(now.getUTCHours()).padStart(2, '0')
-    const minutes = String(now.getUTCMinutes()).padStart(2, '0')
-    const seconds = String(now.getUTCSeconds()).padStart(2, '0')
-    const milliseconds = String(now.getUTCMilliseconds()).padStart(3, '0')
-
-    // Составляем строку
-    const microseconds = milliseconds + '000' // Добавляем 3 нуля для миллисекунд -> микросекунд
-    const currentTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${microseconds}+00`
-
-    return this.repository.save({ ...user, lastLogin: currentTime })
+    return this.repository.update(id, { lastLogin: new Date().toISOString() })
   }
 
   // async update(dto: UpdateUserDto) {

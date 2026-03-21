@@ -2,7 +2,6 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColum
 
 import { GroupEntity } from 'src/groups/entities/group.entity';
 import { GradesEntity } from 'src/grades/entities/grade.entity';
-import { GradeBookSummary } from '../../../../frontend/src/store/gradeBook/grade-book-types';
 import { GroupLoadLessonEntity } from 'src/group-load-lessons/entities/group-load-lesson.entity';
 
 export enum LessonsTypeRu {

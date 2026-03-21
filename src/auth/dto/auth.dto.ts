@@ -48,5 +48,10 @@ export class GetMeDto {
 export class AuthGoogleDto {
   @ApiProperty()
   @IsEmail()
+  @IsOptional()
   email: string
+
+  @ApiProperty()
+  @IsString()
+  token: string
 }

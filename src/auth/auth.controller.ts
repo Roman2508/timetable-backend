@@ -49,8 +49,9 @@ export class AuthController {
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post('/google/me')
-  async getByEmail(@Res({ passthrough: true }) res: Response, @Body() dto: { email: string }) {
-    return this.authService.getByEmail(res, dto.email)
+  async getByEmail(@Res({ passthrough: true }) res: Response, @Body() dto: AuthGoogleDto) {
+    console.log('Controller: /auth/google/me received request', dto)
+    return this.authService.getByEmail(res, dto)
   }
 
   @UsePipes(new ValidationPipe())
