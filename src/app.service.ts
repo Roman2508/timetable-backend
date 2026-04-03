@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 
 import { UsersService } from './users/users.service'
 import { UserRoles } from './users/entities/user.entity'
-import { SettingsService } from './settings/settings.service'
+import { SettingsService } from './modules/settings/settings.service'
 import { RolesService } from './roles/roles.service'
 
 @Injectable()

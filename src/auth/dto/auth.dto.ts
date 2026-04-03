@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator'
-import { RoleEntity } from 'src/roles/entities/role.entity'
 
-import { UserRoles } from 'src/users/entities/user.entity'
+import { RoleEntity } from 'src/roles/entities/role.entity'
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator'
 
 export class AuthDto {
   @ApiProperty()

@@ -8,7 +8,7 @@ import { AuthDto } from './dto/auth.dto'
 import { UsersService } from './../users/users.service'
 import { RoleEntity } from 'src/roles/entities/role.entity'
 import { UserEntity } from 'src/users/entities/user.entity'
-import { StudentStatus } from 'src/students/entities/student.entity'
+import { StudentStatus } from 'src/modules/core/students/entities/student.entity'
 
 @Injectable()
 export class AuthService {

@@ -10,7 +10,7 @@ import { GetAllUsersDto } from './dto/get-all-users.dto'
 import { RoleEntity } from 'src/roles/entities/role.entity'
 import { UpdateUserRoleDto } from './dto/update-user-role.dto'
 import { UserEntity, UserRoles } from './entities/user.entity'
-import { GoogleAdminService } from 'src/google-admin/google-admin.service'
+import { GoogleAdminService } from 'src/integrations/google-admin/google-admin.service'
 
 @Injectable()
 export class UsersService {

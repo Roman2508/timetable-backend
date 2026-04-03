@@ -1,0 +1,6 @@
+this module will include all the features of lms:
+- courses categories
+- courses
+- tasks
+- tests
+- bank of tests

@@ -1,8 +1,8 @@
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm'
 
-import { StudentEntity } from 'src/students/entities/student.entity';
-import { TeacherEntity } from 'src/teachers/entities/teacher.entity';
-import { RoleEntity } from 'src/roles/entities/role.entity';
+import { RoleEntity } from 'src/roles/entities/role.entity'
+import { TeacherEntity } from 'src/modules/core/teachers/entities/teacher.entity'
+import { StudentEntity } from 'src/modules/core/students/entities/student.entity'
 
 export enum UserRoles {
   ADMIN = 'ADMIN',
@@ -16,35 +16,35 @@ export enum UserRoles {
 @Entity('user')
 export class UserEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column()
-  password: string;
+  password: string
 
   @Column({ default: '' })
-  name: string;
+  name: string
 
   @Column({ unique: true })
-  email: string;
+  email: string
 
   @ManyToMany(() => RoleEntity, (role) => role.users)
   @JoinTable()
-  roles: RoleEntity[];
+  roles: RoleEntity[]
 
   @Column({ default: null })
-  picture?: string;
+  picture?: string
 
   @Column({ default: '' })
-  lastLogin?: string;
+  lastLogin?: string
 
   @Column({ default: () => 'CURRENT_TIMESTAMP' })
-  createdAt?: string;
+  createdAt?: string
 
   @OneToOne(() => TeacherEntity, (teacher) => teacher.id, { cascade: true, nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'teacher' })
-  teacher?: TeacherEntity;
+  teacher?: TeacherEntity
 
   @OneToOne(() => StudentEntity, (student) => student.id, { cascade: true, nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'student' })
-  student?: StudentEntity;
+  student?: StudentEntity
 }

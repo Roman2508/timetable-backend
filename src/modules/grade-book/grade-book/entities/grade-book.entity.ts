@@ -1,0 +1,66 @@
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
+
+import { GroupEntity } from 'src/modules/core/groups/entities/group.entity'
+import { GradesEntity } from 'src/modules/grade-book/grades/entities/grade.entity'
+import { GroupLoadLessonEntity } from 'src/modules/schedule/group-load-lessons/entities/group-load-lesson.entity'
+
+export enum LessonsTypeRu {
+  LECTURES = 'ЛК',
+  PRACTICAL = 'ПЗ',
+  LABORATORY = 'ЛАБ',
+  SEMINARS = 'СЕМ',
+  EXAMS = 'ЕКЗ',
+}
+
+export enum GradeBookSummaryTypes {
+  MODULE_AVERAGE = 'MODULE_AVERAGE',
+  MODULE_SUM = 'MODULE_SUM',
+  LESSON_AVERAGE = 'LESSON_AVERAGE',
+  LESSON_SUM = 'LESSON_SUM',
+  MODULE_TEST = 'MODULE_TEST',
+  ADDITIONAL_RATE = 'ADDITIONAL_RATE',
+  CURRENT_RATE = 'CURRENT_RATE',
+  EXAM = 'EXAM',
+}
+
+@Entity('grade-book')
+export class GradeBookEntity {
+  @PrimaryGeneratedColumn()
+  id: number
+
+  @ManyToOne(() => GroupLoadLessonEntity, (lesson) => lesson.id, { onDelete: 'CASCADE' })
+  lesson: GroupLoadLessonEntity
+
+  @ManyToOne(() => GroupEntity, (group) => group.id, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'group' })
+  group: GroupEntity
+
+  @Column({
+    type: 'enum',
+    enum: LessonsTypeRu,
+    nullable: false,
+  })
+  typeRu: string
+
+  @Column({ nullable: false })
+  semester: number
+
+  @OneToMany(() => GradesEntity, (grades) => grades.gradeBook)
+  grades: GradesEntity[]
+
+  @Column('simple-json', { default: [] })
+  summary: SummaryItem[]
+}
+
+export class SummaryItem {
+  @Column({
+    type: 'enum',
+    enum: GradeBookSummaryTypes,
+    default: GradeBookSummaryTypes.MODULE_AVERAGE,
+    nullable: false,
+  })
+  type: string
+
+  @Column()
+  afterLesson: number
+}

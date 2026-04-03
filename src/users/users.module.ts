@@ -4,7 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { UsersService } from './users.service'
 import { UserEntity } from './entities/user.entity'
 import { UsersController } from './users.controller'
-import { GoogleAdminModule } from 'src/google-admin/google-admin.module'
+import { GoogleAdminModule } from 'src/integrations/google-admin/google-admin.module'
 
 @Module({
   controllers: [UsersController],
