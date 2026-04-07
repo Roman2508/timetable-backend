@@ -6,7 +6,10 @@ import { UsersService } from 'src/users/users.service'
 
 const PUBLIC_PATHS = [
   { method: 'POST', path: '/auth/login' },
+  { method: 'POST', path: '/auth/register' },
   { method: 'POST', path: '/auth/refresh' },
+  { method: 'POST', path: '/auth/google/me' },
+  { method: 'POST', path: '/auth/google/redirect' },
   { method: 'POST', path: '/auth/logout' },
   { method: 'GET', path: '/init-application' },
 ]

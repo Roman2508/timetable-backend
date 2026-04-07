@@ -1,6 +1,6 @@
 import { Response, Request } from 'express'
 import { ApiBody, ApiTags } from '@nestjs/swagger'
-import { Body, Controller, Get, Headers, HttpCode, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common'
+import { Body, Controller, Get, Headers, HttpCode, Post, Query, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common'
 
 import { AuthService } from './auth.service'
 import { Cookies } from './decorators/cookies.decorator'
@@ -52,6 +52,26 @@ export class AuthController {
   async getByEmail(@Res({ passthrough: true }) res: Response, @Body() dto: AuthGoogleDto) {
     console.log('Controller: /auth/google/me received request', dto)
     return this.authService.getByEmail(res, dto)
+  }
+
+  /**
+   * Google Identity Services redirect mode returns the credential via form_post.
+   * Vite dev server can't handle POST to SPA routes, so we accept the POST here and redirect back to frontend.
+   */
+  @HttpCode(302)
+  @Post('/google/redirect')
+  async googleRedirect(@Res() res: Response, @Body() body: any) {
+    const credential: string | undefined = body?.credential
+    const safeRedirect =
+      typeof process.env.FRONTEND_URL === 'string' && process.env.FRONTEND_URL.startsWith('http')
+        ? `${process.env.FRONTEND_URL}/`
+        : 'http://localhost:5173/'
+
+    if (!credential) {
+      return res.redirect(`${safeRedirect}?google_error=missing_credential`)
+    }
+
+    return res.redirect(`${safeRedirect}?credential=${encodeURIComponent(credential)}`)
   }
 
   @UsePipes(new ValidationPipe())
