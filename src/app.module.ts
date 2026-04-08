@@ -95,7 +95,7 @@ import { migrations } from './migrations'
       migrations: migrations,
       extra: { max: 20, min: 2 },
       maxQueryExecutionTime: 1000,
-      logging: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
+      // logging: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
     }),
     AuthModule,
     PlansModule,

@@ -5,7 +5,8 @@ import { register } from 'tsconfig-paths'
 register({ baseUrl: './', paths: { 'src/*': ['src/*'] } })
 
 dotenv.config()
-
+// Використовується для міграцій
+// TODO: В майбутньому бажано зробити спільний конфіг БД для nest-js та міграцій typeorm (зараз є окремо конфігурація в app.module.ts та database.config.ts)
 export default new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST,
