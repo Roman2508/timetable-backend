@@ -19,6 +19,16 @@ export class PlanSubjectEntity {
   @Column()
   name: string
 
+  @Column({ default: false })
+  isElective: boolean
+
+  @Column({ type: 'text', nullable: true })
+  electiveDescription?: string | null
+
+  // Optional: can be used to store a dedicated Google Drive folder id for this subject
+  @Column({ type: 'text', nullable: true })
+  electiveDriveFolderId?: string | null
+
   @Column({ default: 0 })
   totalHours: number
 

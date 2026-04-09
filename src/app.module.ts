@@ -36,6 +36,7 @@ import { PlanSubjectsModule } from './modules/plans/plan-subjects/plan-subjects.
 import { TeacherReportModule } from './modules/reports/teacher-report/teacher-report.module'
 import { GoogleCalendarModule } from './integrations/google-calendar/google-calendar.module'
 import { PlanSubjectEntity } from './modules/plans/plan-subjects/entities/plan-subject.entity'
+import { PlanSubjectAttachmentEntity } from './modules/plans/plan-subjects/entities/plan-subject-attachment.entity'
 import { GroupCategoriesModule } from './modules/core/group-categories/group-categories.module'
 import { ScheduleLessonsModule } from './modules/schedule/schedule-lessons/schedule-lessons.module'
 import { TeacherReportEntity } from './modules/reports/teacher-report/entities/teacher-report.entity'
@@ -49,11 +50,14 @@ import { GroupLoadLessonEntity } from './modules/schedule/group-load-lessons/ent
 import { AuditoryCategoryEntity } from './modules/core/auditory-categories/entities/auditory-category.entity'
 import { IndividualTeacherWorkModule } from './modules/reports/individual-teacher-work/individual-teacher-work.module'
 import { InstructionalMaterialsModule } from './modules/reports/instructional-materials/instructional-materials.module'
+import { ElectivesModule } from './modules/electives/electives.module'
 import { InstructionalMaterialEnity } from './modules/reports/instructional-materials/entities/instructional-material.entity'
 import { IndividualTeacherWorkEntity } from './modules/reports/individual-teacher-work/entities/individual-teacher-work.entity'
 import { PlanCategoryEntity } from './modules/plans/plan-categories/entities/plan-category.entity'
 import { PlanCategoriesModule } from './modules/plans/plan-categories/plan-categories.module'
 import { migrations } from './migrations'
+import { ElectiveSessionEntity } from './modules/electives/entities/elective-session.entity'
+import { ElectiveStudentChoiceEntity } from './modules/electives/entities/elective-student-choice.entity'
 
 @Module({
   imports: [
@@ -80,6 +84,7 @@ import { migrations } from './migrations'
         GradeBookEntity,
         PermissionEntity,
         PlanSubjectEntity,
+        PlanSubjectAttachmentEntity,
         PlanCategoryEntity,
         GroupCategoryEntity,
         TeacherReportEntity,
@@ -89,6 +94,8 @@ import { migrations } from './migrations'
         AuditoryCategoryEntity,
         InstructionalMaterialEnity,
         IndividualTeacherWorkEntity,
+        ElectiveSessionEntity,
+        ElectiveStudentChoiceEntity,
       ],
       synchronize: false,
       migrationsRun: true,
@@ -122,6 +129,7 @@ import { migrations } from './migrations'
     AuditoryCategoriesModule,
     IndividualTeacherWorkModule,
     InstructionalMaterialsModule,
+    ElectivesModule,
   ],
   controllers: [AppController],
   providers: [

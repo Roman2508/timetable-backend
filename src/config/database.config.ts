@@ -15,7 +15,10 @@ export default new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   entities: ['src/**/*.entity.ts'],
-  migrations: ['src/migrations/*.ts'],
+  // Важливо: у `src/migrations/index.ts` експортується масив `migrations`,
+  // а TypeORM під час сканування директорії "розгортає" масиви експортів,
+  // що призводить до дублювання міграцій. Тому скануємо лише файли з таймстемпом.
+  migrations: ['src/migrations/[0-9]*.ts'],
   synchronize: false,
   ssl: { rejectUnauthorized: false },
 })

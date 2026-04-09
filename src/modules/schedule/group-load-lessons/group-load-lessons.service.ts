@@ -216,13 +216,16 @@ export class GroupLoadLessonsService {
         select: { cmk: { id: true } },
       })
 
+      // Вибіркові дисципліни не конвертуємо в навантаження до фіналізації ElectiveSession
+      const nonElectivePlanSubjects = selectedPlanSubjects.filter((s) => !s.isElective)
+
       // В плані відсутні дисципліни
-      if (!selectedPlanSubjects.length) {
+      if (!nonElectivePlanSubjects.length) {
         return []
       }
 
       const newLessons = this.convertPlanSubjectsToGroupLoadLessons(
-        selectedPlanSubjects,
+        nonElectivePlanSubjects,
         dto.groupId,
         dto.educationPlanId,
         // dto.students,
@@ -443,6 +446,11 @@ export class GroupLoadLessonsService {
   // Коли створив перший семестр для конкретної дисципліни - треба створити для цієї дисципліни group-load-lessons
   // Коли оновлюється кількість годин в якомусь семестрі - змінюю години цієї дисципліни для всіх group-load-lessons
   async updateHours(dto: UpdateGroupLoadLessonHoursDto) {
+    if (dto.planSubject?.isElective) {
+      // Elective subjects are materialized into group-load-lessons only after ElectiveSession finalization
+      return
+    }
+
     const oldLessonsHours = await this.groupLoadLessonsRepository.find({
       where: { planSubjectId: { id: dto.planSubject.id } },
       relations: { group: true, plan: true },

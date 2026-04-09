@@ -3,11 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 
 import { PlanSubjectEntity } from './entities/plan-subject.entity'
+import { PlanSubjectAttachmentEntity } from './entities/plan-subject-attachment.entity'
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto'
 import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto'
 import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto'
 import { GroupLoadLessonsService } from 'src/modules/schedule/group-load-lessons/group-load-lessons.service'
 import { TeacherCategoriesService } from 'src/modules/core/teacher-categories/teacher-categories.service'
+import { GoogleDriveService } from 'src/integrations/google-drive/google-drive.service'
 
 @Injectable()
 export class PlanSubjectsService {
@@ -15,8 +17,13 @@ export class PlanSubjectsService {
     @InjectRepository(PlanSubjectEntity)
     private repository: Repository<PlanSubjectEntity>,
 
+    @InjectRepository(PlanSubjectAttachmentEntity)
+    private attachmentsRepository: Repository<PlanSubjectAttachmentEntity>,
+
     private groupLoadLessonsService: GroupLoadLessonsService,
     private teachersCategoriesService: TeacherCategoriesService,
+
+    private googleDriveService: GoogleDriveService,
   ) {}
 
   // Створення нової дисципліни в плані (лише ім'я та ЦК)
@@ -129,10 +136,13 @@ export class PlanSubjectsService {
       }
       const savedSubject = await this.repository.update({ id: existedLessonWithoutSemester.id }, subject)
 
-      await this.groupLoadLessonsService.updateHours({
-        planSubject: savedSubject as any,
-        planId: dto.planId,
-      })
+      // For elective subjects, group-load-lessons are created only after ElectiveSession finalization
+      if (!subject.isElective) {
+        await this.groupLoadLessonsService.updateHours({
+          planSubject: savedSubject as any,
+          planId: dto.planId,
+        })
+      }
       return this.repository.findOne({ where: { id: existedLessonWithoutSemester.id }, relations: { cmk: true } })
     }
 
@@ -156,21 +166,25 @@ export class PlanSubjectsService {
 
       const newSubject = await this.repository.save(subjectDto)
 
-      await this.groupLoadLessonsService.updateHours({
-        planSubject: newSubject,
-        planId: dto.planId,
-      })
+      if (!newSubject.isElective) {
+        await this.groupLoadLessonsService.updateHours({
+          planSubject: newSubject,
+          planId: dto.planId,
+        })
+      }
       return newSubject
     }
 
     // Якщо дисципліна є - треба оновити
     const updatedSubjects = { ...subject, ...dto, cmk: { id: dto.cmk } }
 
-    await this.groupLoadLessonsService.updateHours({
-      /* @ts-ignore */
-      planSubject: updatedSubjects,
-      planId: dto.planId,
-    })
+    if (!updatedSubjects.isElective) {
+      await this.groupLoadLessonsService.updateHours({
+        /* @ts-ignore */
+        planSubject: updatedSubjects,
+        planId: dto.planId,
+      })
+    }
     return this.repository.save(updatedSubjects)
   }
 
@@ -186,5 +200,59 @@ export class PlanSubjectsService {
     await this.groupLoadLessonsService.removeByPlanId(id)
 
     return id
+  }
+
+  async patchElectiveMeta(id: number, dto: { isElective?: boolean; electiveDescription?: string | null }) {
+    const subject = await this.repository.findOne({ where: { id } })
+    if (!subject) throw new NotFoundException('Дисципліну не знайдено')
+
+    if (typeof dto.isElective === 'boolean') subject.isElective = dto.isElective
+    if (dto.electiveDescription !== undefined) subject.electiveDescription = dto.electiveDescription
+
+    return this.repository.save(subject)
+  }
+
+  async listAttachments(planSubjectId: number) {
+    return this.attachmentsRepository.find({
+      where: { planSubject: { id: planSubjectId } as any },
+      relations: { planSubject: true },
+      select: { id: true, driveFileId: true, name: true, mimeType: true, createdAt: true } as any,
+      order: { id: 'DESC' as any },
+    })
+  }
+
+  async uploadAttachment(planSubjectId: number, file: any) {
+    const subject = await this.repository.findOne({ where: { id: planSubjectId } })
+    if (!subject) throw new NotFoundException('Дисципліну не знайдено')
+
+    let folderId = subject.electiveDriveFolderId
+    if (!folderId) {
+      // create subject folder once (under configured parent in GoogleDriveService)
+      folderId = await this.googleDriveService.createFolder({ name: subject.name } as any)
+      if (!folderId) throw new BadRequestException('Не вдалося створити папку Google Drive')
+      subject.electiveDriveFolderId = folderId
+      await this.repository.save(subject)
+    }
+
+    const created = await this.googleDriveService.createFile(file, folderId)
+    const doc = this.attachmentsRepository.create({
+      planSubject: { id: planSubjectId } as any,
+      driveFileId: created.id,
+      name: created.name,
+      mimeType: created.mimeType,
+    })
+    return this.attachmentsRepository.save(doc)
+  }
+
+  async deleteAttachment(planSubjectId: number, attachmentId: number) {
+    const attachment = await this.attachmentsRepository.findOne({
+      where: { id: attachmentId, planSubject: { id: planSubjectId } as any } as any,
+      relations: { planSubject: true },
+    })
+    if (!attachment) throw new NotFoundException('Файл не знайдено')
+
+    await this.googleDriveService.deleteFile(attachment.driveFileId)
+    await this.attachmentsRepository.delete({ id: attachmentId } as any)
+    return attachmentId
   }
 }
