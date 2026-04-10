@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 
 import { ElectiveSessionEntity, ElectiveSessionStatus } from './entities/elective-session.entity'
 import { ElectiveStudentChoiceEntity } from './entities/elective-student-choice.entity'
@@ -53,14 +53,127 @@ export class ElectivesService {
     return res
   }
 
+  private async getSessionEntity(id: number) {
+    const entity = await this.sessionsRepo.findOne({ where: { id } })
+    if (!entity) throw new NotFoundException('РЎРµСЃС–СЋ РЅРµ Р·РЅР°Р№РґРµРЅРѕ')
+    return entity
+  }
+
+  private async buildSessionDetails(session: ElectiveSessionEntity) {
+    const students = await this.studentsRepo.find({
+      where: { id: In(session.studentIds ?? []) },
+      relations: { group: { category: true } as any },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        group: {
+          id: true,
+          name: true,
+          courseNumber: true,
+          yearOfAdmission: true,
+          formOfEducation: true,
+          category: { id: true, name: true },
+        },
+      } as any,
+    })
+
+    const submittedChoices = session.studentIds?.length
+      ? await this.choicesRepo.find({
+          where: {
+            session: { id: session.id },
+            student: { id: In(session.studentIds) },
+            status: 'SUBMITTED' as any,
+          },
+          relations: { student: true },
+          select: {
+            submittedAt: true,
+            status: true,
+            student: { id: true },
+          } as any,
+        })
+      : []
+
+    const submissionByStudentId = new Map<number, { submittedAt?: Date | null }>()
+    for (const choice of submittedChoices) {
+      if (choice.student?.id) {
+        submissionByStudentId.set(choice.student.id, { submittedAt: choice.submittedAt })
+      }
+    }
+
+    const groupsMap = new Map<number, any>()
+    for (const student of students) {
+      if (!student.group?.id) continue
+
+      const existingGroup = groupsMap.get(student.group.id)
+      if (existingGroup) {
+        existingGroup.studentCount += 1
+        continue
+      }
+
+      groupsMap.set(student.group.id, {
+        id: student.group.id,
+        name: student.group.name,
+        categoryName: student.group.category?.name ?? null,
+        courseNumber: student.group.courseNumber ?? null,
+        yearOfAdmission: student.group.yearOfAdmission ?? null,
+        formOfEducation: student.group.formOfEducation ?? null,
+        studentCount: 1,
+      })
+    }
+
+    const studentDetails = students
+      .map((student) => {
+        const submission = submissionByStudentId.get(student.id)
+
+        return {
+          id: student.id,
+          name: student.name,
+          status: student.status,
+          group: student.group
+            ? {
+                id: student.group.id,
+                name: student.group.name,
+              }
+            : null,
+          hasSubmitted: Boolean(submission),
+          submittedAt: submission?.submittedAt ?? null,
+        }
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'uk'))
+
+    const submitted = studentDetails.filter((student) => student.hasSubmitted).length
+
+    return {
+      ...session,
+      groups: Array.from(groupsMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'uk')),
+      students: studentDetails,
+      submissionStats: {
+        total: studentDetails.length,
+        submitted,
+        pending: studentDetails.length - submitted,
+      },
+    }
+  }
+
   async createSession(dto: CreateElectiveSessionDto, createdByUserId: number) {
     const closesAt = new Date(dto.closesAt)
     if (Number.isNaN(closesAt.getTime())) throw new BadRequestException('Невірний closesAt')
+    if (!dto.studentIds?.length) throw new BadRequestException('Потрібно обрати хоча б одного студента')
+    if (!dto.planSubjectIds?.length) throw new BadRequestException('Потрібно обрати хоча б одну вибіркову дисципліну')
+
+    const studentIds = Array.from(new Set((dto.studentIds ?? []).map(Number).filter(Boolean)))
+    const planSubjectIds = Array.from(new Set((dto.planSubjectIds ?? []).map(Number).filter(Boolean)))
 
     // Validate students exist
-    const studentsCount = await this.studentsRepo.count({ where: { id: dto.studentIds as any } })
-    if (studentsCount !== dto.studentIds.length) {
+    const studentsCount = await this.studentsRepo.count({ where: { id: In(studentIds) } })
+    if (studentsCount !== studentIds.length) {
       throw new BadRequestException('Список студентів містить неіснуючі id')
+    }
+
+    const planSubjectsCount = await this.planSubjectsRepo.count({ where: { id: In(planSubjectIds), isElective: true } as any })
+    if (planSubjectsCount !== planSubjectIds.length) {
+      throw new BadRequestException('Список вибіркових дисциплін містить невалідні id')
     }
 
     const session = this.sessionsRepo.create({
@@ -70,8 +183,8 @@ export class ElectivesService {
       minStudentsThreshold: dto.minStudentsThreshold ?? 10,
       maxElectivesPerSemester: dto.maxElectivesPerSemester ?? {},
       scopeNote: dto.scopeNote ?? null,
-      studentIds: dto.studentIds,
-      planSubjectIds: dto.planSubjectIds,
+      studentIds,
+      planSubjectIds,
       status: 'DRAFT',
     })
 
@@ -79,9 +192,9 @@ export class ElectivesService {
   }
 
   async getSession(id: number) {
-    const session = await this.sessionsRepo.findOne({ where: { id } })
+    const session = await this.getSessionEntity(id)
     if (!session) throw new NotFoundException('Сесію не знайдено')
-    return session
+    return this.buildSessionDetails(session)
   }
 
   async listSessions() {
@@ -89,41 +202,42 @@ export class ElectivesService {
   }
 
   async listActiveSessionsForStudent(studentId: number) {
-    // Using ANY on int[]; TypeORM doesn't support nicely, so raw query
-    return this.sessionsRepo.query(
-      `SELECT * FROM elective_sessions WHERE status = 'OPEN' AND $1 = ANY("studentIds") ORDER BY "createdAt" DESC`,
-      [studentId],
-    )
+    const sessions = await this.sessionsRepo.find({
+      where: { status: 'OPEN' },
+      order: { createdAt: 'DESC' as any },
+    })
+
+    return sessions.filter((session) => session.studentIds.includes(studentId))
   }
 
   async getOptions(sessionId: number, studentId: number) {
-    const session = await this.getSession(sessionId)
+    const session = await this.getSessionEntity(sessionId)
     if (session.status !== 'OPEN') throw new BadRequestException('Сесія не відкрита')
     if (!session.studentIds.includes(studentId)) throw new BadRequestException('Вибір недоступний для цього студента')
 
     const subjects = await this.planSubjectsRepo.find({
-      where: { id: session.planSubjectIds as any },
+      where: { id: In(session.planSubjectIds) },
       relations: { cmk: true, plan: true },
     })
     return { session, subjects }
   }
 
   async openSession(id: number) {
-    const session = await this.getSession(id)
+    const session = await this.getSessionEntity(id)
     if (session.status !== 'DRAFT') throw new BadRequestException('Можна відкрити тільки DRAFT сесію')
     session.status = 'OPEN'
     return this.sessionsRepo.save(session)
   }
 
   async closeSession(id: number) {
-    const session = await this.getSession(id)
+    const session = await this.getSessionEntity(id)
     if (session.status !== 'OPEN') throw new BadRequestException('Можна закрити тільки OPEN сесію')
     session.status = 'CLOSED'
     return this.sessionsRepo.save(session)
   }
 
   async patchChoice(sessionId: number, studentId: number, prioritiesBySemester: Record<string, number[]>) {
-    const session = await this.getSession(sessionId)
+    const session = await this.getSessionEntity(sessionId)
     if (session.status !== 'OPEN') throw new BadRequestException('Сесія не відкрита')
     if (!session.studentIds.includes(studentId)) throw new BadRequestException('Вибір недоступний для цього студента')
 
@@ -158,14 +272,14 @@ export class ElectivesService {
   }
 
   async deleteSession(id: number) {
-    const session = await this.getSession(id)
+    const session = await this.getSessionEntity(id)
     if (session.status === 'FINALIZED') throw new BadRequestException('Не можна видалити FINALIZED сесію')
     await this.sessionsRepo.delete({ id })
     return id
   }
 
   async resetOverrides(sessionId: number, studentId?: number) {
-    const session = await this.getSession(sessionId)
+    const session = await this.getSessionEntity(sessionId)
     if (!session.assignments) return session
     const assignments = { ...(session.assignments as any) }
     if (studentId) {
@@ -180,7 +294,7 @@ export class ElectivesService {
   }
 
   async manualOverride(sessionId: number, studentId: number, semesters: Record<string, number[]>) {
-    const session = await this.getSession(sessionId)
+    const session = await this.getSessionEntity(sessionId)
     if (session.status === 'FINALIZED') throw new BadRequestException('Сесія вже фіналізована')
 
     const assignments = (session.assignments && typeof session.assignments === 'object' ? session.assignments : {}) as any
@@ -198,7 +312,7 @@ export class ElectivesService {
   }
 
   async getResults(sessionId: number) {
-    const session = await this.getSession(sessionId)
+    const session = await this.getSessionEntity(sessionId)
     const choices = await this.choicesRepo.find({
       where: { session: { id: sessionId } },
       relations: { student: { group: true } as any, session: true },
@@ -210,7 +324,25 @@ export class ElectivesService {
         student: { id: true, name: true, group: { id: true, name: true } },
       } as any,
     })
-    return { session, choices, resultsSnapshot: session.resultsSnapshot, assignments: session.assignments }
+    const subjects = await this.planSubjectsRepo.find({
+      where: { id: In(session.planSubjectIds ?? []) },
+      relations: { cmk: true },
+      select: {
+        id: true,
+        name: true,
+        semesterNumber: true,
+        electiveDescription: true,
+        cmk: { id: true, name: true, shortName: true },
+      } as any,
+    })
+
+    return {
+      session,
+      choices,
+      subjects,
+      resultsSnapshot: session.resultsSnapshot,
+      assignments: session.assignments,
+    }
   }
 
   private computeAllowedSubjectsBySemester(planSubjects: PlanSubjectEntity[]) {
@@ -231,13 +363,13 @@ export class ElectivesService {
   }
 
   async distributeChosen(sessionId: number) {
-    const session = await this.getSession(sessionId)
+    const session = await this.getSessionEntity(sessionId)
     if (session.status !== 'CLOSED') throw new BadRequestException('Розподіл доступний лише для CLOSED сесії')
 
     const manualStudentIds = this.getManualStudentIdsFromAssignments(session.assignments)
 
     const planSubjects = await this.planSubjectsRepo.find({
-      where: { id: session.planSubjectIds as any },
+      where: { id: In(session.planSubjectIds) },
       select: { id: true, semesterNumber: true, isElective: true },
     })
     const allowedBySemester = this.computeAllowedSubjectsBySemester(planSubjects)
@@ -348,7 +480,7 @@ export class ElectivesService {
   }
 
   async distributeNonChoosers(sessionId: number) {
-    const session = await this.getSession(sessionId)
+    const session = await this.getSessionEntity(sessionId)
     if (session.status !== 'CLOSED') throw new BadRequestException('Розподіл доступний лише для CLOSED сесії')
 
     const manualStudentIds = this.getManualStudentIdsFromAssignments(session.assignments)
@@ -364,7 +496,7 @@ export class ElectivesService {
     const noSubmission = session.studentIds.filter((id) => !submittedStudentIds.has(id))
 
     const planSubjects = await this.planSubjectsRepo.find({
-      where: { id: session.planSubjectIds as any },
+      where: { id: In(session.planSubjectIds) },
       select: { id: true, semesterNumber: true },
     })
     const allowedBySemester = this.computeAllowedSubjectsBySemester(planSubjects)
@@ -417,13 +549,13 @@ export class ElectivesService {
   }
 
   async finalize(sessionId: number) {
-    const session = await this.getSession(sessionId)
+    const session = await this.getSessionEntity(sessionId)
     if (session.status !== 'CLOSED') throw new BadRequestException('Фіналізація доступна лише для CLOSED сесії')
     if (!session.assignments) throw new BadRequestException('Немає розподілу для фіналізації')
 
     // Load students with groups and education plan
     const students = await this.studentsRepo.find({
-      where: { id: session.studentIds as any },
+      where: { id: In(session.studentIds) },
       relations: { group: { educationPlan: true } as any },
       select: { id: true, group: { id: true, educationPlan: { id: true } } } as any,
     })
@@ -456,7 +588,7 @@ export class ElectivesService {
       if (!planId) continue
 
       const planSubjects = await this.planSubjectsRepo.find({
-        where: { id: subjectIds as any, plan: { id: planId } as any, isElective: true as any },
+        where: { id: In(subjectIds), plan: { id: planId } as any, isElective: true as any },
         relations: { cmk: true },
         select: { cmk: { id: true } } as any,
       })
@@ -480,7 +612,7 @@ export class ElectivesService {
       }
     }
 
-    // Fill student_lessons (join table) for assigned subjects
+    // Fill student_lessons via TypeORM relation API
     for (const [sidStr, entry] of Object.entries(assignments)) {
       const sid = Number(sidStr)
       const grp = studentToGroup.get(sid)
@@ -494,17 +626,22 @@ export class ElectivesService {
       if (!subjectIds.length) continue
 
       const lessons = await this.groupLoadLessonsRepo.find({
-        where: { group: { id: grp.groupId } as any, planSubjectId: { id: subjectIds as any } as any } as any,
-        select: { id: true } as any,
+        where: { group: { id: grp.groupId } as any, planSubjectId: { id: In(subjectIds) } as any } as any,
+        relations: { students: true },
+        select: { id: true, students: { id: true } } as any,
       })
       if (!lessons.length) continue
 
-      const values = lessons.map((l) => `(${l.id}, ${sid})`).join(',')
-      await this.groupLoadLessonsRepo.query(`
-        INSERT INTO student_lessons (lesson_id, student_id)
-        VALUES ${values}
-        ON CONFLICT DO NOTHING
-      `)
+      for (const lesson of lessons) {
+        const isAlreadyAssigned = lesson.students?.some((student) => student.id === sid)
+        if (isAlreadyAssigned) continue
+
+        await this.groupLoadLessonsRepo
+          .createQueryBuilder()
+          .relation(GroupLoadLessonEntity, 'students')
+          .of(lesson.id)
+          .add(sid)
+      }
     }
 
     session.status = 'FINALIZED'

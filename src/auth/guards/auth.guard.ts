@@ -53,7 +53,10 @@ export class LocalAuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token)
-      const user = await this.usersService.findById(payload.id)
+      const userId = payload?.user?.id ?? payload?.id
+      if (!userId) throw new UnauthorizedException('РќРµРІР°Р»С–РґРЅРёР№ payload С‚РѕРєРµРЅР°')
+
+      const user = await this.usersService.findById(userId)
 
       if (!user) throw new UnauthorizedException('Такого користувача не знайдено')
 
