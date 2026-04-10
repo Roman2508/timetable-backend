@@ -15,7 +15,7 @@ export class GroupCategoriesService {
 
   async findAll() {
     return this.repository.find({
-      relations: { groups: { category: true, students: true } },
+      relations: { groups: { category: true, students: true, educationPlan: true } },
 
       // loadRelationIds: { relations: ['groups.students'] },
       select: {
@@ -29,6 +29,7 @@ export class GroupCategoriesService {
           yearOfAdmission: true,
           formOfEducation: true,
           category: { id: true, name: true },
+          educationPlan: { id: true, name: true },
         },
       },
     })

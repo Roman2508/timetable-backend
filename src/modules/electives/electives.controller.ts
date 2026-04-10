@@ -16,6 +16,13 @@ export class ElectivesController {
   // Admin endpoints (RBAC enforcement can be added later)
   @UseGuards(RolesKeyGuard)
   @Roles('admin')
+  @Get('sessions')
+  async listSessions() {
+    return this.electivesService.listSessions()
+  }
+
+  @UseGuards(RolesKeyGuard)
+  @Roles('admin')
   @Post('sessions')
   async createSession(@Body() dto: CreateElectiveSessionDto, @Req() req: Request) {
     // @ts-ignore

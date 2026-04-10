@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreatePlanSubjectDto {
   @ApiProperty()
@@ -16,4 +16,9 @@ export class CreatePlanSubjectDto {
   @IsNotEmpty({ message: 'ID навчального плану - обов`язкове поле' })
   @IsNumber()
   planId: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isElective?: boolean;
 }

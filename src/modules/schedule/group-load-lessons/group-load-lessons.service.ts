@@ -576,6 +576,37 @@ export class GroupLoadLessonsService {
     return true
   }
 
+  /**
+   * When a plan-subject is toggled to elective after workload was already generated,
+   * we need to remove the previously generated group-load-lessons and their join-table links
+   * so the subject truly disappears from "general workload".
+   */
+  async removeByPlanSubjectIds(planSubjectIds: number[]) {
+    const ids = (planSubjectIds ?? []).filter((n) => Number.isFinite(n) && n > 0)
+    if (!ids.length) return true
+
+    const lessons: Array<{ id: number }> = await this.groupLoadLessonsRepository.find({
+      where: { planSubjectId: { id: ids as any } as any } as any,
+      select: { id: true } as any,
+    })
+
+    const lessonIds = lessons.map((l) => l.id).filter((n) => Number.isFinite(n) && n > 0)
+    if (lessonIds.length) {
+      // Clear M2M join tables referencing group-load-lessons (defensive; depending on FK config they may not cascade)
+      await this.groupLoadLessonsRepository.query(`DELETE FROM student_lessons WHERE lesson_id = ANY($1)`, [lessonIds])
+      await this.groupLoadLessonsRepository.query(
+        `DELETE FROM lessons_united WHERE lesson_id = ANY($1) OR united_lesson_id = ANY($1)`,
+        [lessonIds],
+      )
+    }
+
+    await this.groupLoadLessonsRepository.delete({
+      planSubjectId: { id: ids as any } as any,
+    })
+
+    return true
+  }
+
   // Студенти, які ходять на дисципліну (для students/accounts )
   // Повертається дисципліна включно з студентами
   async getLessonStudents(

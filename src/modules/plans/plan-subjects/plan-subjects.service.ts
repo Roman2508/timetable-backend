@@ -43,6 +43,7 @@ export class PlanSubjectsService {
       name: dto.name,
       plan: { id: dto.planId },
       cmk: { id: dto.cmk },
+      isElective: dto.isElective ?? false,
     }
 
     const newSubject = this.repository.create(payload)
@@ -75,6 +76,15 @@ export class PlanSubjectsService {
     return [...withSemester, ...withoutSemester]
   }
 
+  async findOneByRowId(rowId: number) {
+    const subject = await this.repository.findOne({
+      where: { id: rowId },
+      relations: { plan: true, cmk: true },
+    })
+    if (!subject) throw new NotFoundException('Дисципліну не знайдено')
+    return subject
+  }
+
   async updateName(dto: UpdatePlanSubjectNameDto) {
     // find all subjects by plan id
     const subject = await this.repository.find({
@@ -88,19 +98,36 @@ export class PlanSubjectsService {
     // select all ids in updating subjects
     const subjectsIds = subject.map((el) => el.id)
 
+    const updateSet: { name: string; cmk: { id: number }; isElective?: boolean } = {
+      name: dto.newName,
+      cmk: { id: dto.cmk },
+    }
+    if (typeof dto.isElective === 'boolean') {
+      updateSet.isElective = dto.isElective
+    }
+
     // update all subjects by id
     await this.repository
       .createQueryBuilder('updateSubjects')
       .update(PlanSubjectEntity)
-      .set({ name: dto.newName, cmk: { id: dto.cmk } })
+      .set(updateSet as any)
       .whereInIds(subjectsIds)
       .execute()
+
+    const resolvedElective =
+      typeof dto.isElective === 'boolean' ? dto.isElective : Boolean(subject[0]?.isElective)
 
     const updatedSubjects = subjectsIds.map((el) => ({
       id: el,
       name: dto.newName,
       cmk: { id: dto.cmk },
+      isElective: resolvedElective,
     }))
+
+    // If the subject becomes elective, remove previously generated workload
+    if (typeof dto.isElective === 'boolean' && dto.isElective === true) {
+      await this.groupLoadLessonsService.removeByPlanSubjectIds(subjectsIds)
+    }
 
     subjectsIds.map(async (id) => {
       await this.groupLoadLessonsService.updateName({
@@ -158,10 +185,19 @@ export class PlanSubjectsService {
 
     // Якщо дисципліни немає - її треба створити
     if (!subject) {
+      const { planId, ...rest } = dto
+      const sibling = await this.repository.findOne({
+        where: { plan: { id: planId }, name: dto.name },
+        order: { id: 'ASC' },
+      })
+      const isElective =
+        typeof dto.isElective === 'boolean' ? dto.isElective : Boolean(sibling?.isElective)
+
       const subjectDto = this.repository.create({
-        ...dto,
+        ...rest,
         cmk: { id: dto.cmk },
-        plan: { id: dto.planId },
+        plan: { id: planId },
+        isElective,
       })
 
       const newSubject = await this.repository.save(subjectDto)
@@ -202,11 +238,10 @@ export class PlanSubjectsService {
     return id
   }
 
-  async patchElectiveMeta(id: number, dto: { isElective?: boolean; electiveDescription?: string | null }) {
+  async patchElectiveMeta(id: number, dto: { electiveDescription?: string | null }) {
     const subject = await this.repository.findOne({ where: { id } })
     if (!subject) throw new NotFoundException('Дисципліну не знайдено')
 
-    if (typeof dto.isElective === 'boolean') subject.isElective = dto.isElective
     if (dto.electiveDescription !== undefined) subject.electiveDescription = dto.electiveDescription
 
     return this.repository.save(subject)

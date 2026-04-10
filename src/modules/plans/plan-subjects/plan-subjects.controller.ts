@@ -32,6 +32,13 @@ import { RolesKeyGuard } from 'src/auth/guards/roles-key.guard'
 export class PlanSubjectsController {
   constructor(private readonly planSubjectsService: PlanSubjectsService) {}
 
+  @UseGuards(RolesKeyGuard)
+  @Roles('teacher', 'admin')
+  @Get('by-row/:rowId')
+  findOneByRow(@Param('rowId') rowId: string) {
+    return this.planSubjectsService.findOneByRowId(+rowId)
+  }
+
   @Get('/:id')
   @ApiQuery({ name: 'semesters', type: String, required: false })
   findAll(@Param('id') id: string, @Query('semesters') semesters?: string) {
@@ -66,7 +73,7 @@ export class PlanSubjectsController {
   @UseGuards(RolesKeyGuard)
   @Roles('teacher', 'admin')
   @Patch(':id/elective')
-  patchElective(@Param('id') id: string, @Body() dto: { isElective?: boolean; electiveDescription?: string | null }) {
+  patchElective(@Param('id') id: string, @Body() dto: { electiveDescription?: string | null }) {
     return this.planSubjectsService.patchElectiveMeta(+id, dto)
   }
 

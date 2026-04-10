@@ -84,6 +84,10 @@ export class ElectivesService {
     return session
   }
 
+  async listSessions() {
+    return this.sessionsRepo.find({ order: { createdAt: 'DESC' as any } })
+  }
+
   async listActiveSessionsForStudent(studentId: number) {
     // Using ANY on int[]; TypeORM doesn't support nicely, so raw query
     return this.sessionsRepo.query(
