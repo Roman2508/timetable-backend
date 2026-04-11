@@ -99,6 +99,24 @@ export class ElectivesController {
 
   @UseGuards(RolesKeyGuard)
   @Roles('admin')
+  @Patch('sessions/:id/choice/:studentId')
+  async patchChoiceByAdmin(
+    @Param('id') id: string,
+    @Param('studentId') studentId: string,
+    @Body() dto: PatchElectiveSessionChoiceDto,
+  ) {
+    return this.electivesService.patchChoiceByAdmin(+id, +studentId, dto.prioritiesBySemester)
+  }
+
+  @UseGuards(RolesKeyGuard)
+  @Roles('admin')
+  @Delete('sessions/:id/choice/:studentId')
+  async clearStudentChoice(@Param('id') id: string, @Param('studentId') studentId: string) {
+    return this.electivesService.clearStudentChoice(+id, +studentId)
+  }
+
+  @UseGuards(RolesKeyGuard)
+  @Roles('admin')
   @Delete('sessions/:id')
   async deleteSession(@Param('id') id: string) {
     return this.electivesService.deleteSession(+id)

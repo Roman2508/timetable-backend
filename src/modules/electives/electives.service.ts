@@ -59,6 +59,60 @@ export class ElectivesService {
     return entity
   }
 
+  private async validatePrioritiesBySemester(session: ElectiveSessionEntity, prioritiesBySemester: Record<string, number[]>) {
+    const planSubjects = await this.planSubjectsRepo.find({
+      where: { id: In(session.planSubjectIds) },
+      select: { id: true, semesterNumber: true, isElective: true },
+    })
+    const allowedBySemester = this.computeAllowedSubjectsBySemester(planSubjects)
+
+    for (const [semester, allowedIds] of allowedBySemester.entries()) {
+      const ids = prioritiesBySemester?.[semester] ?? []
+      const uniq = new Set(ids)
+
+      if (!ids.length) throw new BadRequestException(`Не заповнено пріоритети в семестрі ${semester}`)
+      if (uniq.size !== ids.length) throw new BadRequestException(`Дублікати в семестрі ${semester}`)
+      if (ids.length !== allowedIds.length) {
+        throw new BadRequestException(`У семестрі ${semester} потрібно проставити пріоритет для кожної дисципліни`)
+      }
+
+      for (const id of ids) {
+        if (!allowedIds.includes(id)) throw new BadRequestException(`У семестрі ${semester} є дисципліни поза allow-list`)
+      }
+
+      for (const allowedId of allowedIds) {
+        if (!uniq.has(allowedId)) {
+          throw new BadRequestException(`У семестрі ${semester} потрібно проставити повний порядок пріоритетів`)
+        }
+      }
+    }
+
+    for (const semester of Object.keys(prioritiesBySemester ?? {})) {
+      if (!allowedBySemester.has(semester)) {
+        throw new BadRequestException(`Семестр ${semester} не входить до цієї сесії`)
+      }
+    }
+  }
+
+  private async upsertStudentChoice(sessionId: number, studentId: number, prioritiesBySemester: Record<string, number[]>) {
+    const existing = await this.choicesRepo.findOne({
+      where: { session: { id: sessionId }, student: { id: studentId } },
+      relations: { session: true, student: true },
+    })
+
+    const payload = existing
+      ? { ...existing, prioritiesBySemester, submittedAt: new Date(), status: 'SUBMITTED' as const }
+      : this.choicesRepo.create({
+          session: { id: sessionId } as any,
+          student: { id: studentId } as any,
+          prioritiesBySemester,
+          submittedAt: new Date(),
+          status: 'SUBMITTED',
+        })
+
+    return this.choicesRepo.save(payload as any)
+  }
+
   private async buildSessionDetails(session: ElectiveSessionEntity) {
     const students = await this.studentsRepo.find({
       where: { id: In(session.studentIds ?? []) },
@@ -203,28 +257,104 @@ export class ElectivesService {
 
   async listActiveSessionsForStudent(studentId: number) {
     const sessions = await this.sessionsRepo.find({
-      where: { status: 'OPEN' },
       order: { createdAt: 'DESC' as any },
     })
 
-    return sessions.filter((session) => session.studentIds.includes(studentId))
+    const relevantSessions = sessions.filter((session) => session.studentIds.includes(studentId))
+
+    if (!relevantSessions.length) return []
+
+    const submittedChoices = await this.choicesRepo.find({
+      where: {
+        session: { id: In(relevantSessions.map((session) => session.id)) },
+        student: { id: studentId },
+        status: 'SUBMITTED' as any,
+      },
+      relations: { session: true },
+      select: {
+        submittedAt: true,
+        status: true,
+        session: { id: true },
+      } as any,
+    })
+
+    const choicesBySessionId = new Map<number, { submittedAt?: Date | null; status?: string }>()
+    for (const choice of submittedChoices) {
+      if (choice.session?.id) {
+        choicesBySessionId.set(choice.session.id, {
+          submittedAt: choice.submittedAt,
+          status: choice.status,
+        })
+      }
+    }
+
+    return relevantSessions
+      .filter((session) => session.status === 'OPEN' || choicesBySessionId.has(session.id))
+      .map((session) => {
+        const choice = choicesBySessionId.get(session.id)
+
+        return {
+          ...session,
+          hasSubmitted: Boolean(choice),
+          submittedAt: choice?.submittedAt ?? null,
+          choiceStatus: choice?.status ?? null,
+          isAvailable: session.status === 'OPEN',
+        }
+      })
   }
 
   async getOptions(sessionId: number, studentId: number) {
     const session = await this.getSessionEntity(sessionId)
-    if (session.status !== 'OPEN') throw new BadRequestException('Сесія не відкрита')
     if (!session.studentIds.includes(studentId)) throw new BadRequestException('Вибір недоступний для цього студента')
+
+    const currentChoice = await this.choicesRepo.findOne({
+      where: {
+        session: { id: sessionId },
+        student: { id: studentId },
+        status: 'SUBMITTED' as any,
+      },
+      relations: { session: true, student: true },
+      select: {
+        id: true,
+        submittedAt: true,
+        status: true,
+        prioritiesBySemester: true,
+      } as any,
+    })
+
+    if (session.status !== 'OPEN' && !currentChoice) {
+      throw new BadRequestException('Сесія недоступна для перегляду')
+    }
 
     const subjects = await this.planSubjectsRepo.find({
       where: { id: In(session.planSubjectIds) },
       relations: { cmk: true, plan: true },
     })
-    return { session, subjects }
+
+    return {
+      session,
+      subjects,
+      currentChoice: currentChoice
+        ? {
+            id: currentChoice.id,
+            submittedAt: currentChoice.submittedAt ?? null,
+            status: currentChoice.status,
+            prioritiesBySemester: currentChoice.prioritiesBySemester ?? {},
+          }
+        : null,
+    }
   }
 
   async openSession(id: number) {
     const session = await this.getSessionEntity(id)
-    if (session.status !== 'DRAFT') throw new BadRequestException('Можна відкрити тільки DRAFT сесію')
+    if (!['DRAFT', 'CLOSED'].includes(session.status))
+      throw new BadRequestException('Можна відкрити тільки DRAFT або CLOSED сесію')
+
+    if (session.status === 'CLOSED') {
+      session.assignments = null
+      session.resultsSnapshot = null
+    }
+
     session.status = 'OPEN'
     return this.sessionsRepo.save(session)
   }
@@ -240,35 +370,52 @@ export class ElectivesService {
     const session = await this.getSessionEntity(sessionId)
     if (session.status !== 'OPEN') throw new BadRequestException('Сесія не відкрита')
     if (!session.studentIds.includes(studentId)) throw new BadRequestException('Вибір недоступний для цього студента')
-
-    // validate subject ids are allowed
-    for (const [semester, ids] of Object.entries(prioritiesBySemester ?? {})) {
-      const uniq = new Set(ids)
-      if (uniq.size !== ids.length) throw new BadRequestException(`Дублікати в семестрі ${semester}`)
-      for (const id of ids) {
-        if (!session.planSubjectIds.includes(id)) throw new BadRequestException('Є дисципліни поза allow-list')
-      }
-    }
+    await this.validatePrioritiesBySemester(session, prioritiesBySemester)
 
     const student = await this.studentsRepo.findOne({ where: { id: studentId }, select: { id: true } })
     if (!student) throw new BadRequestException('Студента не знайдено')
 
-    const existing = await this.choicesRepo.findOne({
+    return this.upsertStudentChoice(sessionId, studentId, prioritiesBySemester)
+  }
+
+  async patchChoiceByAdmin(sessionId: number, studentId: number, prioritiesBySemester: Record<string, number[]>) {
+    const session = await this.getSessionEntity(sessionId)
+    if (session.status === 'FINALIZED') throw new BadRequestException('Сесія вже фіналізована')
+    if (!session.studentIds.includes(studentId)) throw new BadRequestException('Вибір недоступний для цього студента')
+
+    await this.validatePrioritiesBySemester(session, prioritiesBySemester)
+
+    const student = await this.studentsRepo.findOne({ where: { id: studentId }, select: { id: true } })
+    if (!student) throw new BadRequestException('Студента не знайдено')
+
+    return this.upsertStudentChoice(sessionId, studentId, prioritiesBySemester)
+  }
+
+  async clearStudentChoice(sessionId: number, studentId: number) {
+    const session = await this.getSessionEntity(sessionId)
+    if (session.status === 'FINALIZED') throw new BadRequestException('Не можна очистити вибір у FINALIZED сесії')
+    if (!session.studentIds.includes(studentId)) throw new BadRequestException('Студент не належить до цієї сесії')
+
+    const existingChoice = await this.choicesRepo.findOne({
       where: { session: { id: sessionId }, student: { id: studentId } },
       relations: { session: true, student: true },
     })
 
-    const payload = existing
-      ? { ...existing, prioritiesBySemester, submittedAt: new Date(), status: 'SUBMITTED' as const }
-      : this.choicesRepo.create({
-          session: { id: sessionId } as any,
-          student: { id: studentId } as any,
-          prioritiesBySemester,
-          submittedAt: new Date(),
-          status: 'SUBMITTED',
-        })
+    if (existingChoice) {
+      await this.choicesRepo.remove(existingChoice)
+    }
 
-    return this.choicesRepo.save(payload as any)
+    if (session.assignments && typeof session.assignments === 'object') {
+      const assignments = { ...(session.assignments as any) }
+      delete assignments[String(studentId)]
+      session.assignments = Object.keys(assignments).length ? assignments : null
+    }
+
+    if (session.status === 'CLOSED') {
+      session.resultsSnapshot = null
+    }
+
+    return this.sessionsRepo.save(session)
   }
 
   async deleteSession(id: number) {
