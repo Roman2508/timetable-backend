@@ -7,6 +7,7 @@ import { StudentEntity } from '../core/students/entities/student.entity'
 import { ElectiveSessionEntity } from './entities/elective-session.entity'
 import { ElectiveStudentChoiceEntity } from './entities/elective-student-choice.entity'
 import { GroupEntity } from '../core/groups/entities/group.entity'
+import { StreamEntity } from '../core/streams/entities/stream.entity'
 import { PlanSubjectEntity } from '../plans/plan-subjects/entities/plan-subject.entity'
 import { GroupLoadLessonEntity } from '../schedule/group-load-lessons/entities/group-load-lesson.entity'
 import { GroupLoadLessonsModule } from '../schedule/group-load-lessons/group-load-lessons.module'
@@ -18,6 +19,7 @@ import { GroupLoadLessonsModule } from '../schedule/group-load-lessons/group-loa
       ElectiveStudentChoiceEntity,
       StudentEntity,
       GroupEntity,
+      StreamEntity,
       PlanSubjectEntity,
       GroupLoadLessonEntity,
     ]),

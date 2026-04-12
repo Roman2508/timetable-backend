@@ -2,14 +2,93 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
 
-import { ElectiveSessionEntity, ElectiveSessionStatus } from './entities/elective-session.entity'
-import { ElectiveStudentChoiceEntity } from './entities/elective-student-choice.entity'
 import { CreateElectiveSessionDto } from './dto/create-elective-session.dto'
-import { StudentEntity } from '../core/students/entities/student.entity'
+import {
+  ElectiveSessionDistributionMode,
+  ElectiveSessionEntity,
+} from './entities/elective-session.entity'
+import { ElectiveStudentChoiceEntity } from './entities/elective-student-choice.entity'
 import { GroupEntity } from '../core/groups/entities/group.entity'
+import { StreamEntity } from '../core/streams/entities/stream.entity'
+import { StudentEntity } from '../core/students/entities/student.entity'
 import { PlanSubjectEntity } from '../plans/plan-subjects/entities/plan-subject.entity'
 import { GroupLoadLessonEntity } from '../schedule/group-load-lessons/entities/group-load-lesson.entity'
 import { GroupLoadLessonsService } from '../schedule/group-load-lessons/group-load-lessons.service'
+
+type SessionAssignmentSource = 'AUTO' | 'MANUAL'
+
+type SessionAssignments = Record<
+  string,
+  {
+    semesters?: Record<
+      string,
+      {
+        planSubjectIds: number[]
+        source: SessionAssignmentSource
+      }
+    >
+  }
+>
+
+type StudentContext = {
+  studentId: number
+  groupId: number
+  planId: number
+}
+
+type GroupBlock = {
+  groupId: number
+  studentIds: number[]
+}
+
+type OfferingCandidate = {
+  blocks: GroupBlock[]
+  totalStudents: number
+}
+
+type OfferingSnapshot = {
+  key: string
+  semester: string
+  planSubjectId: number
+  mode: ElectiveSessionDistributionMode
+  subgroupNumber: number | null
+  groupIds: number[]
+  studentIds: number[]
+  groupStudentIds: Record<string, number[]>
+  groupStudentCounts: Record<string, number>
+  totalStudents: number
+}
+
+type SubjectEvaluation = {
+  offerings: OfferingSnapshot[]
+  failingGroupIds: number[]
+  groupCounts: Record<string, number>
+  mixedEligibleGroupIds: number[]
+}
+
+type SemesterSnapshot = {
+  threshold: number
+  counts: Record<string, number>
+  failing: number[]
+  offerings: OfferingSnapshot[]
+  subjectStats: Record<
+    string,
+    {
+      totalAssigned: number
+      groupCounts: Record<string, number>
+      failingGroupIds: number[]
+      mixedEligibleGroupIds: number[]
+      offeringKeys: string[]
+    }
+  >
+  distributionMode: ElectiveSessionDistributionMode
+  maxStudentsPerOffering: number
+  minSharedGroupSize: number
+}
+
+const MIN_SESSION_THRESHOLD = 15
+const DEFAULT_MAX_STUDENTS_PER_OFFERING = 30
+const DEFAULT_MIN_SHARED_GROUP_SIZE = 5
 
 @Injectable()
 export class ElectivesService {
@@ -32,34 +111,557 @@ export class ElectivesService {
     @InjectRepository(GroupLoadLessonEntity)
     private groupLoadLessonsRepo: Repository<GroupLoadLessonEntity>,
 
+    @InjectRepository(StreamEntity)
+    private streamsRepo: Repository<StreamEntity>,
+
     private groupLoadLessonsService: GroupLoadLessonsService,
   ) {}
 
-  private getManualStudentIdsFromAssignments(assignments: any | undefined): Set<number> {
+  private cloneAssignments(assignments: unknown): SessionAssignments {
+    if (!assignments || typeof assignments !== 'object') return {}
+    return JSON.parse(JSON.stringify(assignments)) as SessionAssignments
+  }
+
+  private normalizeIdList(ids: number[] | undefined | null) {
+    return Array.from(new Set((ids ?? []).map(Number).filter(Boolean)))
+  }
+
+  private getManualStudentIdsFromAssignments(assignments: unknown): Set<number> {
     const res = new Set<number>()
     if (!assignments || typeof assignments !== 'object') return res
-    for (const [studentIdStr, entry] of Object.entries(assignments)) {
+
+    for (const [studentIdStr, entry] of Object.entries(assignments as Record<string, any>)) {
       const studentId = Number(studentIdStr)
-      if (!studentId || typeof entry !== 'object' || !entry) continue
-      const semesters = (entry as any).semesters
-      if (!semesters || typeof semesters !== 'object') continue
-      for (const semEntry of Object.values(semesters)) {
-        if ((semEntry as any)?.source === 'MANUAL') {
+      const semesters = entry?.semesters
+      if (!studentId || !semesters || typeof semesters !== 'object') continue
+
+      for (const semesterEntry of Object.values(semesters as Record<string, any>)) {
+        if (semesterEntry?.source === 'MANUAL') {
           res.add(studentId)
           break
         }
       }
     }
+
     return res
+  }
+
+  private getAssignmentsForStudent(assignments: SessionAssignments, studentId: number) {
+    const key = String(studentId)
+    if (!assignments[key]) assignments[key] = { semesters: {} }
+    if (!assignments[key].semesters) assignments[key].semesters = {}
+    return assignments[key]
+  }
+
+  private setStudentSemesterAssignment(
+    assignments: SessionAssignments,
+    studentId: number,
+    semesterKey: string,
+    planSubjectIds: number[],
+    source: SessionAssignmentSource,
+  ) {
+    const studentAssignments = this.getAssignmentsForStudent(assignments, studentId)
+
+    if (!planSubjectIds.length) {
+      delete studentAssignments.semesters?.[semesterKey]
+
+      if (!Object.keys(studentAssignments.semesters ?? {}).length) {
+        delete assignments[String(studentId)]
+      }
+
+      return
+    }
+
+    studentAssignments.semesters![semesterKey] = {
+      planSubjectIds: [...planSubjectIds],
+      source,
+    }
   }
 
   private async getSessionEntity(id: number) {
     const entity = await this.sessionsRepo.findOne({ where: { id } })
-    if (!entity) throw new NotFoundException('РЎРµСЃС–СЋ РЅРµ Р·РЅР°Р№РґРµРЅРѕ')
+    if (!entity) throw new NotFoundException('Сесію не знайдено')
     return entity
   }
 
-  private async validatePrioritiesBySemester(session: ElectiveSessionEntity, prioritiesBySemester: Record<string, number[]>) {
+  private async getStudentContexts(studentIds: number[]) {
+    const normalizedIds = this.normalizeIdList(studentIds)
+    if (!normalizedIds.length) return new Map<number, StudentContext>()
+
+    const students = await this.studentsRepo.find({
+      where: { id: In(normalizedIds) },
+      relations: { group: { educationPlan: true } as any },
+      select: {
+        id: true,
+        group: {
+          id: true,
+          educationPlan: { id: true },
+        },
+      } as any,
+    })
+
+    if (students.length !== normalizedIds.length) {
+      throw new BadRequestException('У сесії є невалідні студенти')
+    }
+
+    const result = new Map<number, StudentContext>()
+
+    for (const student of students) {
+      const groupId = student.group?.id
+      const planId = student.group?.educationPlan?.id
+
+      if (!groupId || !planId) {
+        throw new BadRequestException('Для частини студентів не вказано групу або навчальний план')
+      }
+
+      result.set(student.id, {
+        studentId: student.id,
+        groupId,
+        planId,
+      })
+    }
+
+    return result
+  }
+
+  private async getSelectedPlanSubjects(session: ElectiveSessionEntity) {
+    return this.planSubjectsRepo.find({
+      where: { id: In(session.planSubjectIds ?? []) },
+      relations: { cmk: true, plan: true },
+    })
+  }
+
+  private computeAllowedSubjectsBySemester(planSubjects: PlanSubjectEntity[]) {
+    const map = new Map<string, number[]>()
+
+    for (const planSubject of planSubjects) {
+      const semester = Number(planSubject.semesterNumber ?? 0)
+      if (!semester) continue
+
+      const key = String(semester)
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(planSubject.id)
+    }
+
+    for (const [semester, ids] of map.entries()) {
+      map.set(semester, ids.sort((a, b) => a - b))
+    }
+
+    return map
+  }
+
+  private getNForSemester(session: ElectiveSessionEntity, semesterKey: string) {
+    const n = session.maxElectivesPerSemester?.[semesterKey]
+    return typeof n === "number" && n >= 0 ? n : 0
+  }
+
+  private getSessionThreshold(session: ElectiveSessionEntity) {
+    return Math.max(MIN_SESSION_THRESHOLD, Number(session.minStudentsThreshold ?? MIN_SESSION_THRESHOLD))
+  }
+
+  private getSessionMaxStudentsPerOffering(session: ElectiveSessionEntity) {
+    const value = Number(session.maxStudentsPerOffering ?? DEFAULT_MAX_STUDENTS_PER_OFFERING)
+    return value >= MIN_SESSION_THRESHOLD ? value : DEFAULT_MAX_STUDENTS_PER_OFFERING
+  }
+
+  private getSessionMinSharedGroupSize(session: ElectiveSessionEntity) {
+    const value = Number(session.minSharedGroupSize ?? DEFAULT_MIN_SHARED_GROUP_SIZE)
+    return value >= 1 ? value : DEFAULT_MIN_SHARED_GROUP_SIZE
+  }
+
+  private buildOfferingSnapshot(
+    subjectId: number,
+    semesterKey: string,
+    subgroupNumber: number | null,
+    mode: ElectiveSessionDistributionMode,
+    cohort: OfferingCandidate,
+  ): OfferingSnapshot {
+    const groupStudentIds = Object.fromEntries(cohort.blocks.map((block) => [String(block.groupId), [...block.studentIds]]))
+    const groupIds = cohort.blocks.map((block) => block.groupId)
+    const studentIds = cohort.blocks.flatMap((block) => block.studentIds)
+
+    return {
+      key: `${semesterKey}:${subjectId}:${subgroupNumber ?? 'main'}:${groupIds.join('-')}`,
+      semester: semesterKey,
+      planSubjectId: subjectId,
+      mode,
+      subgroupNumber,
+      groupIds,
+      studentIds,
+      groupStudentIds,
+      groupStudentCounts: Object.fromEntries(Object.entries(groupStudentIds).map(([groupId, ids]) => [groupId, ids.length])),
+      totalStudents: studentIds.length,
+    }
+  }
+
+  private splitIntoBalancedCohorts(studentIds: number[], minStudents: number, maxStudents: number) {
+    if (!studentIds.length) return [] as number[][]
+    if (studentIds.length < minStudents) return null
+
+    const cohortsCount = Math.ceil(studentIds.length / maxStudents)
+    if (studentIds.length / cohortsCount < minStudents) return null
+
+    const sortedStudentIds = [...studentIds].sort((a, b) => a - b)
+    const baseSize = Math.floor(sortedStudentIds.length / cohortsCount)
+    const remainder = sortedStudentIds.length % cohortsCount
+
+    const cohorts: number[][] = []
+    let cursor = 0
+
+    for (let index = 0; index < cohortsCount; index += 1) {
+      const size = baseSize + (index < remainder ? 1 : 0)
+      const chunk = sortedStudentIds.slice(cursor, cursor + size)
+
+      if (chunk.length < minStudents || chunk.length > maxStudents) {
+        return null
+      }
+
+      cohorts.push(chunk)
+      cursor += size
+    }
+
+    return cohorts
+  }
+
+  private buildOfferingsForByGroupMode(
+    session: ElectiveSessionEntity,
+    semesterKey: string,
+    subjectId: number,
+    groupStudentIdsMap: Map<number, number[]>,
+  ): SubjectEvaluation {
+    const threshold = this.getSessionThreshold(session)
+    const maxStudentsPerOffering = this.getSessionMaxStudentsPerOffering(session)
+    const offerings: OfferingSnapshot[] = []
+    const failingGroupIds: number[] = []
+    const groupCounts = Object.fromEntries(
+      [...groupStudentIdsMap.entries()].map(([groupId, studentIds]) => [String(groupId), studentIds.length]),
+    )
+
+    let subgroupCursor = 0
+
+    for (const [groupId, studentIds] of [...groupStudentIdsMap.entries()].sort(([a], [b]) => a - b)) {
+      const cohorts = this.splitIntoBalancedCohorts(studentIds, threshold, maxStudentsPerOffering)
+
+      if (!cohorts) {
+        failingGroupIds.push(groupId)
+        continue
+      }
+
+      const shouldNumberSubgroups = cohorts.length > 1
+
+      for (const cohort of cohorts) {
+        subgroupCursor += 1
+        offerings.push(
+          this.buildOfferingSnapshot(
+            subjectId,
+            semesterKey,
+            shouldNumberSubgroups ? subgroupCursor : null,
+            'BY_GROUP',
+            {
+              blocks: [{ groupId, studentIds: cohort }],
+              totalStudents: cohort.length,
+            },
+          ),
+        )
+      }
+    }
+
+    return {
+      offerings,
+      failingGroupIds,
+      groupCounts,
+      mixedEligibleGroupIds: [],
+    }
+  }
+
+  private packSmallMixedBlocks(blocks: GroupBlock[], threshold: number, maxStudentsPerOffering: number) {
+    const sortedBlocks = [...blocks].sort((a, b) => b.studentIds.length - a.studentIds.length)
+    const remainingSizes = sortedBlocks.map((block) => block.studentIds.length)
+    const cohorts: OfferingCandidate[] = []
+
+    for (let index = 0; index < sortedBlocks.length; index += 1) {
+      const block = sortedBlocks[index]
+      const currentSize = block.studentIds.length
+      const futureSize = remainingSizes.slice(index + 1).reduce((sum, value) => sum + value, 0)
+
+      const incompleteCohorts = cohorts
+        .filter((cohort) => cohort.totalStudents < threshold && cohort.totalStudents + currentSize <= maxStudentsPerOffering)
+        .sort((a, b) => b.totalStudents - a.totalStudents)
+
+      if (incompleteCohorts.length) {
+        const cohort = incompleteCohorts[0]
+        cohort.blocks.push(block)
+        cohort.totalStudents += currentSize
+        continue
+      }
+
+      const fittingValidCohorts = cohorts
+        .filter((cohort) => cohort.totalStudents >= threshold && cohort.totalStudents + currentSize <= maxStudentsPerOffering)
+        .sort((a, b) => b.totalStudents - a.totalStudents)
+
+      if (fittingValidCohorts.length && currentSize + futureSize < threshold) {
+        const cohort = fittingValidCohorts[0]
+        cohort.blocks.push(block)
+        cohort.totalStudents += currentSize
+        continue
+      }
+
+      cohorts.push({
+        blocks: [block],
+        totalStudents: currentSize,
+      })
+    }
+
+    return cohorts
+  }
+
+  private mergeStandaloneCohorts(
+    cohorts: OfferingCandidate[],
+    maxStudentsPerOffering: number,
+  ): { merged: OfferingCandidate[]; untouched: OfferingCandidate[] } {
+    const candidates = cohorts
+      .filter((cohort) => cohort.blocks.length === 1)
+      .sort((a, b) => a.totalStudents - b.totalStudents)
+    const untouched = cohorts.filter((cohort) => cohort.blocks.length !== 1)
+    const merged: OfferingCandidate[] = []
+
+    let left = 0
+    let right = candidates.length - 1
+
+    while (left <= right) {
+      if (left === right) {
+        merged.push(candidates[left])
+        break
+      }
+
+      const smallest = candidates[left]
+      const biggest = candidates[right]
+
+      if (smallest.totalStudents + biggest.totalStudents <= maxStudentsPerOffering) {
+        merged.push({
+          blocks: [...biggest.blocks, ...smallest.blocks],
+          totalStudents: biggest.totalStudents + smallest.totalStudents,
+        })
+        left += 1
+        right -= 1
+        continue
+      }
+
+      merged.push(biggest)
+      right -= 1
+    }
+
+    return { merged, untouched }
+  }
+
+  private buildOfferingsForMixedMode(
+    session: ElectiveSessionEntity,
+    semesterKey: string,
+    subjectId: number,
+    groupStudentIdsMap: Map<number, number[]>,
+  ): SubjectEvaluation {
+    const threshold = this.getSessionThreshold(session)
+    const maxStudentsPerOffering = this.getSessionMaxStudentsPerOffering(session)
+    const minSharedGroupSize = this.getSessionMinSharedGroupSize(session)
+    const groupCounts = Object.fromEntries(
+      [...groupStudentIdsMap.entries()].map(([groupId, studentIds]) => [String(groupId), studentIds.length]),
+    )
+    const mixedEligibleGroupIds = [...groupStudentIdsMap.entries()]
+      .filter(([, studentIds]) => studentIds.length >= minSharedGroupSize)
+      .map(([groupId]) => groupId)
+    const failingGroupIds: number[] = []
+    const finalCohorts: OfferingCandidate[] = []
+    const standaloneCandidates: OfferingCandidate[] = []
+    const smallBlocks: GroupBlock[] = []
+
+    for (const [groupId, studentIds] of [...groupStudentIdsMap.entries()].sort(([a], [b]) => a - b)) {
+      const size = studentIds.length
+      if (!size) continue
+
+      if (size > maxStudentsPerOffering || size < minSharedGroupSize) {
+        const standalone = this.splitIntoBalancedCohorts(studentIds, threshold, maxStudentsPerOffering)
+
+        if (!standalone) {
+          failingGroupIds.push(groupId)
+          continue
+        }
+
+        standalone.forEach((cohortStudentIds) => {
+          standaloneCandidates.push({
+            blocks: [{ groupId, studentIds: cohortStudentIds }],
+            totalStudents: cohortStudentIds.length,
+          })
+        })
+        continue
+      }
+
+      if (size >= threshold) {
+        standaloneCandidates.push({
+          blocks: [{ groupId, studentIds: [...studentIds] }],
+          totalStudents: size,
+        })
+        continue
+      }
+
+      smallBlocks.push({ groupId, studentIds: [...studentIds] })
+    }
+
+    const packedSmallCohorts = this.packSmallMixedBlocks(smallBlocks, threshold, maxStudentsPerOffering)
+    const pendingSmallCohorts: OfferingCandidate[] = []
+
+    for (const cohort of packedSmallCohorts) {
+      if (cohort.totalStudents >= threshold) {
+        finalCohorts.push(cohort)
+      } else {
+        pendingSmallCohorts.push(cohort)
+      }
+    }
+
+    for (const pendingCohort of pendingSmallCohorts) {
+      const attachableCohort = standaloneCandidates
+        .filter((candidate) => candidate.totalStudents + pendingCohort.totalStudents <= maxStudentsPerOffering)
+        .sort((a, b) => b.totalStudents - a.totalStudents)[0]
+
+      if (!attachableCohort) {
+        failingGroupIds.push(...pendingCohort.blocks.map((block) => block.groupId))
+        continue
+      }
+
+      attachableCohort.blocks.push(...pendingCohort.blocks)
+      attachableCohort.totalStudents += pendingCohort.totalStudents
+    }
+
+    const { merged, untouched } = this.mergeStandaloneCohorts(standaloneCandidates, maxStudentsPerOffering)
+    finalCohorts.push(...untouched, ...merged)
+
+    const offerings: OfferingSnapshot[] = finalCohorts
+      .sort((a, b) => {
+        if (a.totalStudents !== b.totalStudents) return b.totalStudents - a.totalStudents
+        return (a.blocks[0]?.groupId ?? 0) - (b.blocks[0]?.groupId ?? 0)
+      })
+      .map((cohort, index, allCohorts) => {
+        const subgroupNumber = allCohorts.length > 1 ? index + 1 : null
+        const mode = cohort.blocks.length > 1 ? 'MIXED' : 'BY_GROUP'
+
+        return this.buildOfferingSnapshot(subjectId, semesterKey, subgroupNumber, mode, cohort)
+      })
+
+    return {
+      offerings,
+      failingGroupIds: Array.from(new Set(failingGroupIds)).sort((a, b) => a - b),
+      groupCounts,
+      mixedEligibleGroupIds,
+    }
+  }
+
+  private buildSubjectEvaluation(
+    session: ElectiveSessionEntity,
+    semesterKey: string,
+    subjectId: number,
+    groupStudentIdsMap: Map<number, number[]>,
+  ): SubjectEvaluation {
+    if (session.distributionMode === 'MIXED') {
+      return this.buildOfferingsForMixedMode(session, semesterKey, subjectId, groupStudentIdsMap)
+    }
+
+    return this.buildOfferingsForByGroupMode(session, semesterKey, subjectId, groupStudentIdsMap)
+  }
+
+  private buildSemesterSnapshot(
+    session: ElectiveSessionEntity,
+    semesterKey: string,
+    allowedSubjectIds: number[],
+    assignments: SessionAssignments,
+    studentContexts: Map<number, StudentContext>,
+  ): SemesterSnapshot {
+    const subjectGroupsMap = new Map<number, Map<number, number[]>>()
+
+    for (const [studentIdKey, entry] of Object.entries(assignments)) {
+      const studentId = Number(studentIdKey)
+      const semesterEntry = entry?.semesters?.[semesterKey]
+      const context = studentContexts.get(studentId)
+
+      if (!context || !semesterEntry?.planSubjectIds?.length) continue
+
+      for (const subjectId of semesterEntry.planSubjectIds.filter((id) => allowedSubjectIds.includes(id))) {
+        if (!subjectGroupsMap.has(subjectId)) subjectGroupsMap.set(subjectId, new Map())
+        const groupStudentIds = subjectGroupsMap.get(subjectId)!
+        if (!groupStudentIds.has(context.groupId)) groupStudentIds.set(context.groupId, [])
+        groupStudentIds.get(context.groupId)!.push(studentId)
+      }
+    }
+
+    const counts: Record<string, number> = {}
+    const failing: number[] = []
+    const offerings: OfferingSnapshot[] = []
+    const subjectStats: SemesterSnapshot['subjectStats'] = {}
+
+    for (const subjectId of allowedSubjectIds) {
+      const groupStudentIdsMap = subjectGroupsMap.get(subjectId) ?? new Map<number, number[]>()
+      const evaluation = this.buildSubjectEvaluation(session, semesterKey, subjectId, groupStudentIdsMap)
+      const totalAssigned = [...groupStudentIdsMap.values()].reduce((sum, studentIds) => sum + studentIds.length, 0)
+
+      counts[String(subjectId)] = totalAssigned
+      if (evaluation.failingGroupIds.length) failing.push(subjectId)
+
+      subjectStats[String(subjectId)] = {
+        totalAssigned,
+        groupCounts: evaluation.groupCounts,
+        failingGroupIds: evaluation.failingGroupIds,
+        mixedEligibleGroupIds: evaluation.mixedEligibleGroupIds,
+        offeringKeys: evaluation.offerings.map((offering) => offering.key),
+      }
+
+      offerings.push(...evaluation.offerings)
+    }
+
+    return {
+      threshold: this.getSessionThreshold(session),
+      counts,
+      failing: Array.from(new Set(failing)).sort((a, b) => a - b),
+      offerings,
+      subjectStats,
+      distributionMode: session.distributionMode,
+      maxStudentsPerOffering: this.getSessionMaxStudentsPerOffering(session),
+      minSharedGroupSize: this.getSessionMinSharedGroupSize(session),
+    }
+  }
+
+  private buildResultsSnapshot(
+    session: ElectiveSessionEntity,
+    assignments: SessionAssignments,
+    noSubmission: number[],
+    studentContexts: Map<number, StudentContext>,
+    allowedBySemester: Map<string, number[]>,
+  ) {
+    const semesters: Record<string, SemesterSnapshot> = {}
+    const unassigned = new Set<number>()
+
+    for (const [semesterKey, allowedSubjectIds] of allowedBySemester.entries()) {
+      semesters[semesterKey] = this.buildSemesterSnapshot(session, semesterKey, allowedSubjectIds, assignments, studentContexts)
+
+      const expectedSubjectsCount = this.getNForSemester(session, semesterKey)
+      if (expectedSubjectsCount <= 0) continue
+
+      for (const studentId of session.studentIds ?? []) {
+        const assignedCount = assignments[String(studentId)]?.semesters?.[semesterKey]?.planSubjectIds?.length ?? 0
+        if (assignedCount < expectedSubjectsCount) {
+          unassigned.add(studentId)
+        }
+      }
+    }
+
+    return {
+      semesters,
+      noSubmission,
+      unassigned: Array.from(unassigned).sort((a, b) => a - b),
+    }
+  }
+
+  private async validatePrioritiesBySemester(
+    session: ElectiveSessionEntity,
+    prioritiesBySemester: Record<string, number[]>,
+  ) {
     const planSubjects = await this.planSubjectsRepo.find({
       where: { id: In(session.planSubjectIds) },
       select: { id: true, semesterNumber: true, isElective: true },
@@ -77,12 +679,8 @@ export class ElectivesService {
       }
 
       for (const id of ids) {
-        if (!allowedIds.includes(id)) throw new BadRequestException(`У семестрі ${semester} є дисципліни поза allow-list`)
-      }
-
-      for (const allowedId of allowedIds) {
-        if (!uniq.has(allowedId)) {
-          throw new BadRequestException(`У семестрі ${semester} потрібно проставити повний порядок пріоритетів`)
+        if (!allowedIds.includes(id)) {
+          throw new BadRequestException(`У семестрі ${semester} є дисципліни поза allow-list`)
         }
       }
     }
@@ -94,14 +692,23 @@ export class ElectivesService {
     }
   }
 
-  private async upsertStudentChoice(sessionId: number, studentId: number, prioritiesBySemester: Record<string, number[]>) {
+  private async upsertStudentChoice(
+    sessionId: number,
+    studentId: number,
+    prioritiesBySemester: Record<string, number[]>,
+  ) {
     const existing = await this.choicesRepo.findOne({
       where: { session: { id: sessionId }, student: { id: studentId } },
       relations: { session: true, student: true },
     })
 
     const payload = existing
-      ? { ...existing, prioritiesBySemester, submittedAt: new Date(), status: 'SUBMITTED' as const }
+      ? {
+          ...existing,
+          prioritiesBySemester,
+          submittedAt: new Date(),
+          status: 'SUBMITTED' as const,
+        }
       : this.choicesRepo.create({
           session: { id: sessionId } as any,
           student: { id: studentId } as any,
@@ -114,23 +721,25 @@ export class ElectivesService {
   }
 
   private async buildSessionDetails(session: ElectiveSessionEntity) {
-    const students = await this.studentsRepo.find({
-      where: { id: In(session.studentIds ?? []) },
-      relations: { group: { category: true } as any },
-      select: {
-        id: true,
-        name: true,
-        status: true,
-        group: {
-          id: true,
-          name: true,
-          courseNumber: true,
-          yearOfAdmission: true,
-          formOfEducation: true,
-          category: { id: true, name: true },
-        },
-      } as any,
-    })
+    const students = session.studentIds?.length
+      ? await this.studentsRepo.find({
+          where: { id: In(session.studentIds ?? []) },
+          relations: { group: { category: true } as any },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            group: {
+              id: true,
+              name: true,
+              courseNumber: true,
+              yearOfAdmission: true,
+              formOfEducation: true,
+              category: { id: true, name: true },
+            },
+          } as any,
+        })
+      : []
 
     const submittedChoices = session.studentIds?.length
       ? await this.choicesRepo.find({
@@ -142,39 +751,67 @@ export class ElectivesService {
           relations: { student: true },
           select: {
             submittedAt: true,
-            status: true,
             student: { id: true },
           } as any,
         })
       : []
 
+    const groups =
+      session.groupIds?.length
+        ? await this.groupsRepo.find({
+            where: { id: In(session.groupIds) },
+            relations: { category: true },
+            select: {
+              id: true,
+              name: true,
+              courseNumber: true,
+              yearOfAdmission: true,
+              formOfEducation: true,
+              category: { id: true, name: true },
+            } as any,
+          })
+        : []
+
+    const selectedStudentCountByGroupId = new Map<number, number>()
     const submissionByStudentId = new Map<number, { submittedAt?: Date | null }>()
+
+    for (const student of students) {
+      if (!student.group?.id) continue
+      selectedStudentCountByGroupId.set(student.group.id, (selectedStudentCountByGroupId.get(student.group.id) ?? 0) + 1)
+    }
+
     for (const choice of submittedChoices) {
       if (choice.student?.id) {
         submissionByStudentId.set(choice.student.id, { submittedAt: choice.submittedAt })
       }
     }
 
-    const groupsMap = new Map<number, any>()
+    const fallbackGroupsMap = new Map<number, any>()
     for (const student of students) {
-      if (!student.group?.id) continue
+      if (!student.group?.id || fallbackGroupsMap.has(student.group.id)) continue
 
-      const existingGroup = groupsMap.get(student.group.id)
-      if (existingGroup) {
-        existingGroup.studentCount += 1
-        continue
-      }
-
-      groupsMap.set(student.group.id, {
+      fallbackGroupsMap.set(student.group.id, {
         id: student.group.id,
         name: student.group.name,
         categoryName: student.group.category?.name ?? null,
         courseNumber: student.group.courseNumber ?? null,
         yearOfAdmission: student.group.yearOfAdmission ?? null,
         formOfEducation: student.group.formOfEducation ?? null,
-        studentCount: 1,
+        studentCount: selectedStudentCountByGroupId.get(student.group.id) ?? 0,
       })
     }
+
+    const groupDetails = (groups.length ? groups : [...fallbackGroupsMap.values()])
+      .map((group) => ({
+        id: group.id,
+        name: group.name,
+        categoryName: group.category?.name ?? group.categoryName ?? null,
+        courseNumber: group.courseNumber ?? null,
+        yearOfAdmission: group.yearOfAdmission ?? null,
+        formOfEducation: group.formOfEducation ?? null,
+        studentCount: selectedStudentCountByGroupId.get(group.id) ?? group.studentCount ?? 0,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'uk'))
 
     const studentDetails = students
       .map((student) => {
@@ -200,7 +837,7 @@ export class ElectivesService {
 
     return {
       ...session,
-      groups: Array.from(groupsMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'uk')),
+      groups: groupDetails,
       students: studentDetails,
       submissionStats: {
         total: studentDetails.length,
@@ -213,32 +850,112 @@ export class ElectivesService {
   async createSession(dto: CreateElectiveSessionDto, createdByUserId: number) {
     const closesAt = new Date(dto.closesAt)
     if (Number.isNaN(closesAt.getTime())) throw new BadRequestException('Невірний closesAt')
-    if (!dto.studentIds?.length) throw new BadRequestException('Потрібно обрати хоча б одного студента')
-    if (!dto.planSubjectIds?.length) throw new BadRequestException('Потрібно обрати хоча б одну вибіркову дисципліну')
 
-    const studentIds = Array.from(new Set((dto.studentIds ?? []).map(Number).filter(Boolean)))
-    const planSubjectIds = Array.from(new Set((dto.planSubjectIds ?? []).map(Number).filter(Boolean)))
+    const groupIds = this.normalizeIdList(dto.groupIds)
+    const studentIds = this.normalizeIdList(dto.studentIds)
+    const planSubjectIds = this.normalizeIdList(dto.planSubjectIds)
 
-    // Validate students exist
-    const studentsCount = await this.studentsRepo.count({ where: { id: In(studentIds) } })
-    if (studentsCount !== studentIds.length) {
+    if (!groupIds.length) throw new BadRequestException('Потрібно обрати хоча б одну групу')
+    if (!studentIds.length) throw new BadRequestException('Потрібно обрати хоча б одного студента')
+    if (!planSubjectIds.length) throw new BadRequestException('Потрібно обрати хоча б одну вибіркову дисципліну')
+
+    const minStudentsThreshold = Number(dto.minStudentsThreshold ?? MIN_SESSION_THRESHOLD)
+    if (minStudentsThreshold < MIN_SESSION_THRESHOLD) {
+      throw new BadRequestException(`Мінімальна кількість студентів не може бути меншою за ${MIN_SESSION_THRESHOLD}`)
+    }
+
+    const maxStudentsPerOffering = Number(dto.maxStudentsPerOffering ?? DEFAULT_MAX_STUDENTS_PER_OFFERING)
+    if (maxStudentsPerOffering < minStudentsThreshold) {
+      throw new BadRequestException('Максимальна кількість студентів у потоці не може бути меншою за мінімальний поріг')
+    }
+
+    const minSharedGroupSize = Number(dto.minSharedGroupSize ?? DEFAULT_MIN_SHARED_GROUP_SIZE)
+    if (minSharedGroupSize < 1 || minSharedGroupSize > maxStudentsPerOffering) {
+      throw new BadRequestException('Поріг для змішаних груп має бути додатнім і не перевищувати максимальний розмір потоку')
+    }
+
+    const distributionMode = dto.distributionMode ?? 'BY_GROUP'
+
+    const groups = await this.groupsRepo.find({
+      where: { id: In(groupIds) },
+      relations: { educationPlan: true },
+      select: {
+        id: true,
+        educationPlan: { id: true },
+      } as any,
+    })
+
+    if (groups.length !== groupIds.length) {
+      throw new BadRequestException('Список груп містить неіснуючі id')
+    }
+
+    const planIds = Array.from(new Set(groups.map((group) => group.educationPlan?.id).filter(Boolean)))
+    if (planIds.length !== 1) {
+      throw new BadRequestException('Усі групи сесії мають належати до одного навчального плану')
+    }
+
+    const planId = Number(planIds[0])
+
+    const planSubjects = await this.planSubjectsRepo.find({
+      where: { id: In(planSubjectIds), isElective: true } as any,
+      relations: { plan: true },
+      select: {
+        id: true,
+        plan: { id: true },
+      } as any,
+    })
+
+    if (planSubjects.length !== planSubjectIds.length) {
+      throw new BadRequestException('Список вибіркових дисциплін містить невалідні id')
+    }
+
+    if (planSubjects.some((subject) => subject.plan?.id !== planId)) {
+      throw new BadRequestException('Усі вибіркові дисципліни сесії мають належати до вибраного навчального плану')
+    }
+
+    const students = await this.studentsRepo.find({
+      where: { id: In(studentIds) },
+      relations: { group: { educationPlan: true } as any },
+      select: {
+        id: true,
+        group: {
+          id: true,
+          educationPlan: { id: true },
+        },
+      } as any,
+    })
+
+    if (students.length !== studentIds.length) {
       throw new BadRequestException('Список студентів містить неіснуючі id')
     }
 
-    const planSubjectsCount = await this.planSubjectsRepo.count({ where: { id: In(planSubjectIds), isElective: true } as any })
-    if (planSubjectsCount !== planSubjectIds.length) {
-      throw new BadRequestException('Список вибіркових дисциплін містить невалідні id')
+    const selectedGroupIdsSet = new Set(groupIds)
+    for (const student of students) {
+      const studentGroupId = student.group?.id
+      const studentPlanId = student.group?.educationPlan?.id
+
+      if (!studentGroupId || !selectedGroupIdsSet.has(studentGroupId)) {
+        throw new BadRequestException('У списку студентів є студенти поза вибраними групами')
+      }
+
+      if (studentPlanId !== planId) {
+        throw new BadRequestException('У списку студентів є студенти з іншого навчального плану')
+      }
     }
 
     const session = this.sessionsRepo.create({
       name: dto.name,
       createdByUserId,
       closesAt,
-      minStudentsThreshold: dto.minStudentsThreshold ?? 10,
+      minStudentsThreshold,
       maxElectivesPerSemester: dto.maxElectivesPerSemester ?? {},
       scopeNote: dto.scopeNote ?? null,
+      groupIds,
       studentIds,
       planSubjectIds,
+      distributionMode,
+      maxStudentsPerOffering,
+      minSharedGroupSize,
       status: 'DRAFT',
     })
 
@@ -247,7 +964,6 @@ export class ElectivesService {
 
   async getSession(id: number) {
     const session = await this.getSessionEntity(id)
-    if (!session) throw new NotFoundException('Сесію не знайдено')
     return this.buildSessionDetails(session)
   }
 
@@ -260,8 +976,7 @@ export class ElectivesService {
       order: { createdAt: 'DESC' as any },
     })
 
-    const relevantSessions = sessions.filter((session) => session.studentIds.includes(studentId))
-
+    const relevantSessions = sessions.filter((session) => (session.studentIds ?? []).includes(studentId))
     if (!relevantSessions.length) return []
 
     const submittedChoices = await this.choicesRepo.find({
@@ -305,7 +1020,9 @@ export class ElectivesService {
 
   async getOptions(sessionId: number, studentId: number) {
     const session = await this.getSessionEntity(sessionId)
-    if (!session.studentIds.includes(studentId)) throw new BadRequestException('Вибір недоступний для цього студента')
+    if (!(session.studentIds ?? []).includes(studentId)) {
+      throw new BadRequestException('Вибір недоступний для цього студента')
+    }
 
     const currentChoice = await this.choicesRepo.findOne({
       where: {
@@ -326,10 +1043,7 @@ export class ElectivesService {
       throw new BadRequestException('Сесія недоступна для перегляду')
     }
 
-    const subjects = await this.planSubjectsRepo.find({
-      where: { id: In(session.planSubjectIds) },
-      relations: { cmk: true, plan: true },
-    })
+    const subjects = await this.getSelectedPlanSubjects(session)
 
     return {
       session,
@@ -347,8 +1061,9 @@ export class ElectivesService {
 
   async openSession(id: number) {
     const session = await this.getSessionEntity(id)
-    if (!['DRAFT', 'CLOSED'].includes(session.status))
+    if (!['DRAFT', 'CLOSED'].includes(session.status)) {
       throw new BadRequestException('Можна відкрити тільки DRAFT або CLOSED сесію')
+    }
 
     if (session.status === 'CLOSED') {
       session.assignments = null
@@ -369,7 +1084,10 @@ export class ElectivesService {
   async patchChoice(sessionId: number, studentId: number, prioritiesBySemester: Record<string, number[]>) {
     const session = await this.getSessionEntity(sessionId)
     if (session.status !== 'OPEN') throw new BadRequestException('Сесія не відкрита')
-    if (!session.studentIds.includes(studentId)) throw new BadRequestException('Вибір недоступний для цього студента')
+    if (!(session.studentIds ?? []).includes(studentId)) {
+      throw new BadRequestException('Вибір недоступний для цього студента')
+    }
+
     await this.validatePrioritiesBySemester(session, prioritiesBySemester)
 
     const student = await this.studentsRepo.findOne({ where: { id: studentId }, select: { id: true } })
@@ -381,7 +1099,9 @@ export class ElectivesService {
   async patchChoiceByAdmin(sessionId: number, studentId: number, prioritiesBySemester: Record<string, number[]>) {
     const session = await this.getSessionEntity(sessionId)
     if (session.status === 'FINALIZED') throw new BadRequestException('Сесія вже фіналізована')
-    if (!session.studentIds.includes(studentId)) throw new BadRequestException('Вибір недоступний для цього студента')
+    if (!(session.studentIds ?? []).includes(studentId)) {
+      throw new BadRequestException('Вибір недоступний для цього студента')
+    }
 
     await this.validatePrioritiesBySemester(session, prioritiesBySemester)
 
@@ -393,8 +1113,12 @@ export class ElectivesService {
 
   async clearStudentChoice(sessionId: number, studentId: number) {
     const session = await this.getSessionEntity(sessionId)
-    if (session.status === 'FINALIZED') throw new BadRequestException('Не можна очистити вибір у FINALIZED сесії')
-    if (!session.studentIds.includes(studentId)) throw new BadRequestException('Студент не належить до цієї сесії')
+    if (session.status === 'FINALIZED') {
+      throw new BadRequestException('Не можна очистити вибір у FINALIZED сесії')
+    }
+    if (!(session.studentIds ?? []).includes(studentId)) {
+      throw new BadRequestException('Студент не належить до цієї сесії')
+    }
 
     const existingChoice = await this.choicesRepo.findOne({
       where: { session: { id: sessionId }, student: { id: studentId } },
@@ -405,11 +1129,9 @@ export class ElectivesService {
       await this.choicesRepo.remove(existingChoice)
     }
 
-    if (session.assignments && typeof session.assignments === 'object') {
-      const assignments = { ...(session.assignments as any) }
-      delete assignments[String(studentId)]
-      session.assignments = Object.keys(assignments).length ? assignments : null
-    }
+    const assignments = this.cloneAssignments(session.assignments)
+    delete assignments[String(studentId)]
+    session.assignments = Object.keys(assignments).length ? assignments : null
 
     if (session.status === 'CLOSED') {
       session.resultsSnapshot = null
@@ -427,16 +1149,18 @@ export class ElectivesService {
 
   async resetOverrides(sessionId: number, studentId?: number) {
     const session = await this.getSessionEntity(sessionId)
-    if (!session.assignments) return session
-    const assignments = { ...(session.assignments as any) }
+    const assignments = this.cloneAssignments(session.assignments)
+
+    if (!Object.keys(assignments).length) return session
+
     if (studentId) {
       delete assignments[String(studentId)]
+      session.assignments = Object.keys(assignments).length ? assignments : null
     } else {
-      // remove all manual entries by clearing entire assignments; admin can re-distribute
       session.assignments = null
-      return this.sessionsRepo.save(session)
     }
-    session.assignments = assignments
+
+    session.resultsSnapshot = null
     return this.sessionsRepo.save(session)
   }
 
@@ -444,17 +1168,25 @@ export class ElectivesService {
     const session = await this.getSessionEntity(sessionId)
     if (session.status === 'FINALIZED') throw new BadRequestException('Сесія вже фіналізована')
 
-    const assignments = (session.assignments && typeof session.assignments === 'object' ? session.assignments : {}) as any
+    const assignments = this.cloneAssignments(session.assignments)
     const prev = assignments[String(studentId)] ?? {}
     const prevSemesters = prev.semesters && typeof prev.semesters === 'object' ? prev.semesters : {}
+    const nextSemesters: Record<string, { planSubjectIds: number[]; source: SessionAssignmentSource }> = { ...prevSemesters }
 
-    const newSemesters: any = { ...prevSemesters }
-    for (const [sem, ids] of Object.entries(semesters ?? {})) {
-      newSemesters[String(sem)] = { planSubjectIds: ids ?? [], source: 'MANUAL' }
+    for (const [semester, ids] of Object.entries(semesters ?? {})) {
+      nextSemesters[String(semester)] = {
+        planSubjectIds: this.normalizeIdList(ids),
+        source: 'MANUAL',
+      }
     }
 
-    assignments[String(studentId)] = { ...prev, semesters: newSemesters }
+    assignments[String(studentId)] = {
+      ...prev,
+      semesters: nextSemesters,
+    }
+
     session.assignments = assignments
+    session.resultsSnapshot = null
     return this.sessionsRepo.save(session)
   }
 
@@ -468,7 +1200,11 @@ export class ElectivesService {
         submittedAt: true,
         status: true,
         prioritiesBySemester: true,
-        student: { id: true, name: true, group: { id: true, name: true } },
+        student: {
+          id: true,
+          name: true,
+          group: { id: true, name: true },
+        },
       } as any,
     })
     const subjects = await this.planSubjectsRepo.find({
@@ -492,307 +1228,341 @@ export class ElectivesService {
     }
   }
 
-  private computeAllowedSubjectsBySemester(planSubjects: PlanSubjectEntity[]) {
-    const map = new Map<string, number[]>()
-    for (const ps of planSubjects) {
-      const sem = ps.semesterNumber
-      if (!sem) continue
-      const key = String(sem)
-      if (!map.has(key)) map.set(key, [])
-      map.get(key)!.push(ps.id)
-    }
-    return map
-  }
-
-  private getNForSemester(session: ElectiveSessionEntity, semesterKey: string): number {
-    const n = session.maxElectivesPerSemester?.[semesterKey]
-    return typeof n === 'number' && n >= 0 ? n : 0
-  }
-
-  async distributeChosen(sessionId: number) {
-    const session = await this.getSessionEntity(sessionId)
-    if (session.status !== 'CLOSED') throw new BadRequestException('Розподіл доступний лише для CLOSED сесії')
-
+  private async computeAssignmentsForSubmittedStudents(session: ElectiveSessionEntity) {
     const manualStudentIds = this.getManualStudentIdsFromAssignments(session.assignments)
-
+    const assignments = this.cloneAssignments(session.assignments)
     const planSubjects = await this.planSubjectsRepo.find({
       where: { id: In(session.planSubjectIds) },
       select: { id: true, semesterNumber: true, isElective: true },
     })
     const allowedBySemester = this.computeAllowedSubjectsBySemester(planSubjects)
-
+    const studentContexts = await this.getStudentContexts(session.studentIds ?? [])
     const choices = await this.choicesRepo.find({
-      where: { session: { id: sessionId }, status: 'SUBMITTED' as any },
+      where: { session: { id: session.id }, status: 'SUBMITTED' as any },
       relations: { student: true, session: true },
-      select: { id: true, prioritiesBySemester: true, student: { id: true } } as any,
+      select: {
+        prioritiesBySemester: true,
+        student: { id: true },
+      } as any,
     })
 
-    const submittedStudentIds = new Set(choices.map((c) => c.student.id))
-    const noSubmission = session.studentIds.filter((id) => !submittedStudentIds.has(id))
+    const submittedStudentIds = new Set(choices.map((choice) => choice.student.id))
+    const noSubmission = (session.studentIds ?? []).filter((studentId) => !submittedStudentIds.has(studentId))
 
-    const assignments: any = session.assignments && typeof session.assignments === 'object' ? session.assignments : {}
-    const resultsSnapshot: any = { semesters: {}, noSubmission, unassigned: [] as number[] }
-
-    for (const [semKey, allowedSubjectIds] of allowedBySemester.entries()) {
-      const n = this.getNForSemester(session, semKey)
+    for (const [semesterKey, allowedSubjectIds] of allowedBySemester.entries()) {
+      const n = this.getNForSemester(session, semesterKey)
       if (n <= 0) continue
 
-      // initial allocations for non-manual students only
+      const submittedStudentIdsWithoutManual = [...submittedStudentIds].filter((studentId) => !manualStudentIds.has(studentId))
       const prefsByStudent = new Map<number, number[]>()
+
       for (const choice of choices) {
-        const sid = choice.student.id
-        if (manualStudentIds.has(sid)) continue
-        const prefs = (choice.prioritiesBySemester?.[semKey] ?? []).filter((id) => allowedSubjectIds.includes(id))
-        prefsByStudent.set(sid, prefs)
+        const studentId = choice.student.id
+        if (manualStudentIds.has(studentId)) continue
+
+        const prefs = (choice.prioritiesBySemester?.[semesterKey] ?? []).filter((id) => allowedSubjectIds.includes(id))
+        prefsByStudent.set(studentId, prefs)
       }
 
-      const allocated = new Map<number, number[]>() // studentId -> planSubjectIds (size<=n)
-      const cursor = new Map<number, number>() // next pref idx
-      for (const [sid, prefs] of prefsByStudent.entries()) {
-        allocated.set(sid, prefs.slice(0, n))
-        cursor.set(sid, n)
+      const allocated = new Map<number, number[]>()
+      const cursor = new Map<number, number>()
+
+      for (const [studentId, preferences] of prefsByStudent.entries()) {
+        allocated.set(studentId, preferences.slice(0, n))
+        cursor.set(studentId, Math.min(preferences.length, n))
       }
 
-      const threshold = session.minStudentsThreshold ?? 10
       let changed = true
       let guard = 0
-      while (changed && guard++ < 50) {
+
+      while (changed && guard < 50) {
         changed = false
-        const counts = new Map<number, number>()
-        for (const ids of allocated.values()) {
-          for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1)
-        }
+        guard += 1
 
-        const failing = new Set<number>()
-        for (const [id, cnt] of counts.entries()) {
-          if (cnt < threshold) failing.add(id)
-        }
+        const subjectGroupMap = new Map<number, Map<number, number[]>>()
 
-        if (!failing.size) {
-          resultsSnapshot.semesters[semKey] = {
-            threshold,
-            counts: Object.fromEntries(counts),
-            failing: [],
+        for (const [studentId, subjectIds] of allocated.entries()) {
+          const context = studentContexts.get(studentId)
+          if (!context) continue
+
+          for (const subjectId of subjectIds) {
+            if (!subjectGroupMap.has(subjectId)) subjectGroupMap.set(subjectId, new Map())
+            const groupStudentIds = subjectGroupMap.get(subjectId)!
+            if (!groupStudentIds.has(context.groupId)) groupStudentIds.set(context.groupId, [])
+            groupStudentIds.get(context.groupId)!.push(studentId)
           }
-          break
         }
 
-        // remove failing and try to fill
-        for (const [sid, ids] of allocated.entries()) {
-          const before = ids.length
-          const kept = ids.filter((id) => !failing.has(id))
-          if (kept.length !== before) changed = true
+        const failingGroupsBySubjectId = new Map<number, Set<number>>()
 
-          const prefs = prefsByStudent.get(sid) ?? []
-          let idx = cursor.get(sid) ?? 0
-          const used = new Set(kept)
-          while (kept.length < n && idx < prefs.length) {
-            const cand = prefs[idx++]
-            if (!failing.has(cand) && !used.has(cand)) {
-              kept.push(cand)
-              used.add(cand)
-              changed = true
-            }
-          }
-          cursor.set(sid, idx)
-          allocated.set(sid, kept)
+        for (const subjectId of allowedSubjectIds) {
+          const evaluation = this.buildSubjectEvaluation(session, semesterKey, subjectId, subjectGroupMap.get(subjectId) ?? new Map())
+          failingGroupsBySubjectId.set(subjectId, new Set(evaluation.failingGroupIds))
         }
 
-        if (!changed) {
-          // can't improve further; store snapshot with failing
-          const counts2 = new Map<number, number>()
-          for (const ids of allocated.values()) for (const id of ids) counts2.set(id, (counts2.get(id) ?? 0) + 1)
-          resultsSnapshot.semesters[semKey] = {
-            threshold,
-            counts: Object.fromEntries(counts2),
-            failing: Array.from(failing),
+        for (const [studentId, currentSubjectIds] of allocated.entries()) {
+          const context = studentContexts.get(studentId)
+          const preferences = prefsByStudent.get(studentId) ?? []
+          if (!context) continue
+
+          const filteredSubjectIds = currentSubjectIds.filter(
+            (subjectId) => !failingGroupsBySubjectId.get(subjectId)?.has(context.groupId),
+          )
+
+          if (filteredSubjectIds.length !== currentSubjectIds.length) {
+            changed = true
           }
-          break
+
+          let nextCursor = cursor.get(studentId) ?? 0
+          const usedSubjectIds = new Set(filteredSubjectIds)
+
+          while (filteredSubjectIds.length < n && nextCursor < preferences.length) {
+            const candidateSubjectId = preferences[nextCursor]
+            nextCursor += 1
+
+            if (usedSubjectIds.has(candidateSubjectId)) continue
+            if (failingGroupsBySubjectId.get(candidateSubjectId)?.has(context.groupId)) continue
+
+            filteredSubjectIds.push(candidateSubjectId)
+            usedSubjectIds.add(candidateSubjectId)
+            changed = true
+          }
+
+          cursor.set(studentId, nextCursor)
+          allocated.set(studentId, filteredSubjectIds)
         }
       }
 
-      // persist allocations as AUTO
-      for (const [sid, ids] of allocated.entries()) {
-        if (!assignments[String(sid)]) assignments[String(sid)] = { semesters: {} }
-        const prev = assignments[String(sid)].semesters?.[semKey]
-        if (prev?.source === 'MANUAL') continue
-        assignments[String(sid)].semesters[semKey] = { planSubjectIds: ids, source: 'AUTO' }
-        if (ids.length < n) resultsSnapshot.unassigned.push(sid)
+      for (const studentId of submittedStudentIdsWithoutManual) {
+        this.setStudentSemesterAssignment(assignments, studentId, semesterKey, allocated.get(studentId) ?? [], 'AUTO')
       }
     }
 
+    return { assignments, studentContexts, allowedBySemester, noSubmission }
+  }
+
+  async distributeChosen(sessionId: number) {
+    const session = await this.getSessionEntity(sessionId)
+    if (session.status !== 'CLOSED') {
+      throw new BadRequestException('Розподіл доступний лише для CLOSED сесії')
+    }
+
+    const { assignments, studentContexts, allowedBySemester, noSubmission } =
+      await this.computeAssignmentsForSubmittedStudents(session)
+
     session.assignments = assignments
-    session.resultsSnapshot = resultsSnapshot
+    session.resultsSnapshot = this.buildResultsSnapshot(session, assignments, noSubmission, studentContexts, allowedBySemester)
     return this.sessionsRepo.save(session)
   }
 
   async distributeNonChoosers(sessionId: number) {
     const session = await this.getSessionEntity(sessionId)
-    if (session.status !== 'CLOSED') throw new BadRequestException('Розподіл доступний лише для CLOSED сесії')
+    if (session.status !== 'CLOSED') {
+      throw new BadRequestException('Розподіл доступний лише для CLOSED сесії')
+    }
 
-    const manualStudentIds = this.getManualStudentIdsFromAssignments(session.assignments)
-    const assignments: any = session.assignments && typeof session.assignments === 'object' ? session.assignments : {}
-    const resultsSnapshot: any = session.resultsSnapshot && typeof session.resultsSnapshot === 'object' ? session.resultsSnapshot : { semesters: {} }
+    const { assignments, studentContexts, allowedBySemester, noSubmission } =
+      await this.computeAssignmentsForSubmittedStudents(session)
+    const manualStudentIds = this.getManualStudentIdsFromAssignments(assignments)
+    const threshold = this.getSessionThreshold(session)
+    const minSharedGroupSize = this.getSessionMinSharedGroupSize(session)
 
-    const choices = await this.choicesRepo.find({
-      where: { session: { id: sessionId }, status: 'SUBMITTED' as any },
-      relations: { student: true },
-      select: { student: { id: true } } as any,
-    })
-    const submittedStudentIds = new Set(choices.map((c) => c.student.id))
-    const noSubmission = session.studentIds.filter((id) => !submittedStudentIds.has(id))
-
-    const planSubjects = await this.planSubjectsRepo.find({
-      where: { id: In(session.planSubjectIds) },
-      select: { id: true, semesterNumber: true },
-    })
-    const allowedBySemester = this.computeAllowedSubjectsBySemester(planSubjects)
-
-    for (const [semKey, allowedSubjectIds] of allowedBySemester.entries()) {
-      const n = this.getNForSemester(session, semKey)
+    for (const [semesterKey, allowedSubjectIds] of allowedBySemester.entries()) {
+      const n = this.getNForSemester(session, semesterKey)
       if (n <= 0) continue
 
-      // compute current counts from assignments for this semester
-      const counts = new Map<number, number>()
-      for (const [sidStr, entry] of Object.entries(assignments)) {
-        const semEntry = (entry as any)?.semesters?.[semKey]
-        if (!semEntry?.planSubjectIds) continue
-        for (const psid of semEntry.planSubjectIds) {
-          counts.set(psid, (counts.get(psid) ?? 0) + 1)
+      const subjectTotals = new Map<number, number>()
+      const groupSubjectTotals = new Map<string, number>()
+
+      for (const [studentIdKey, entry] of Object.entries(assignments)) {
+        const studentId = Number(studentIdKey)
+        const context = studentContexts.get(studentId)
+        const subjectIds = entry?.semesters?.[semesterKey]?.planSubjectIds ?? []
+
+        if (!context) continue
+
+        for (const subjectId of subjectIds.filter((id) => allowedSubjectIds.includes(id))) {
+          subjectTotals.set(subjectId, (subjectTotals.get(subjectId) ?? 0) + 1)
+          const key = `${context.groupId}:${subjectId}`
+          groupSubjectTotals.set(key, (groupSubjectTotals.get(key) ?? 0) + 1)
         }
       }
 
-      const threshold = session.minStudentsThreshold ?? 10
-      const deficits = allowedSubjectIds
-        .map((id) => ({ id, deficit: threshold - (counts.get(id) ?? 0) }))
-        .filter((x) => x.deficit > 0)
-        .sort((a, b) => a.deficit - b.deficit)
+      for (const studentId of noSubmission) {
+        if (manualStudentIds.has(studentId)) continue
 
-      for (const sid of noSubmission) {
-        if (manualStudentIds.has(sid)) continue
-        if (!assignments[String(sid)]) assignments[String(sid)] = { semesters: {} }
-        const semEntry = assignments[String(sid)].semesters?.[semKey]
-        if (semEntry?.source === 'MANUAL') continue
-        const already: number[] = semEntry?.planSubjectIds ?? []
-        if (already.length >= n) continue
+        const context = studentContexts.get(studentId)
+        if (!context) continue
 
-        const chosen: number[] = [...already]
-        for (const d of deficits) {
-          if (chosen.length >= n) break
-          if (d.deficit <= 0) continue
-          if (!chosen.includes(d.id)) {
-            chosen.push(d.id)
-            d.deficit -= 1
-          }
+        const currentSubjectIds = assignments[String(studentId)]?.semesters?.[semesterKey]?.planSubjectIds ?? []
+        if (currentSubjectIds.length >= n) continue
+
+        const candidates = [...allowedSubjectIds]
+          .filter((subjectId) => !currentSubjectIds.includes(subjectId))
+          .map((subjectId) => {
+            const totalCount = subjectTotals.get(subjectId) ?? 0
+            const groupCount = groupSubjectTotals.get(`${context.groupId}:${subjectId}`) ?? 0
+            const relevantCount = session.distributionMode === 'BY_GROUP' ? groupCount : totalCount
+            const deficit = Math.max(0, threshold - relevantCount)
+            const mixedPenalty =
+              session.distributionMode === 'MIXED' && groupCount + 1 < minSharedGroupSize ? -500 : 0
+            const score =
+              (deficit === 0 ? 10_000 : 1_000 - deficit) +
+              relevantCount * 10 +
+              totalCount +
+              mixedPenalty
+
+            return { subjectId, score }
+          })
+          .sort((a, b) => b.score - a.score || a.subjectId - b.subjectId)
+
+        const selectedSubjectIds = [...currentSubjectIds]
+
+        for (const candidate of candidates) {
+          if (selectedSubjectIds.length >= n) break
+          selectedSubjectIds.push(candidate.subjectId)
+
+          subjectTotals.set(candidate.subjectId, (subjectTotals.get(candidate.subjectId) ?? 0) + 1)
+          const groupKey = `${context.groupId}:${candidate.subjectId}`
+          groupSubjectTotals.set(groupKey, (groupSubjectTotals.get(groupKey) ?? 0) + 1)
         }
-        assignments[String(sid)].semesters[semKey] = { planSubjectIds: chosen, source: 'AUTO' }
+
+        this.setStudentSemesterAssignment(assignments, studentId, semesterKey, selectedSubjectIds, 'AUTO')
       }
     }
 
-    resultsSnapshot.noSubmission = noSubmission
     session.assignments = assignments
-    session.resultsSnapshot = resultsSnapshot
+    session.resultsSnapshot = this.buildResultsSnapshot(session, assignments, noSubmission, studentContexts, allowedBySemester)
     return this.sessionsRepo.save(session)
   }
 
   async finalize(sessionId: number) {
     const session = await this.getSessionEntity(sessionId)
-    if (session.status !== 'CLOSED') throw new BadRequestException('Фіналізація доступна лише для CLOSED сесії')
-    if (!session.assignments) throw new BadRequestException('Немає розподілу для фіналізації')
+    if (session.status !== 'CLOSED') {
+      throw new BadRequestException('Фіналізація доступна лише для CLOSED сесії')
+    }
 
-    // Load students with groups and education plan
-    const students = await this.studentsRepo.find({
-      where: { id: In(session.studentIds) },
-      relations: { group: { educationPlan: true } as any },
-      select: { id: true, group: { id: true, educationPlan: { id: true } } } as any,
+    const assignments = this.cloneAssignments(session.assignments)
+    if (!Object.keys(assignments).length) {
+      throw new BadRequestException('Немає розподілу для фіналізації')
+    }
+
+    const studentContexts = await this.getStudentContexts(session.studentIds ?? [])
+    const submittedChoices = await this.choicesRepo.find({
+      where: { session: { id: sessionId }, status: 'SUBMITTED' as any },
+      relations: { student: true },
+      select: { student: { id: true } } as any,
     })
-    const studentToGroup = new Map<number, { groupId: number; planId: number }>()
-    for (const s of students) {
-      if (!s.group?.id || !s.group?.educationPlan?.id) continue
-      studentToGroup.set(s.id, { groupId: s.group.id, planId: s.group.educationPlan.id })
+    const submittedStudentIds = new Set(submittedChoices.map((choice) => choice.student.id))
+    const noSubmission = (session.studentIds ?? []).filter((studentId) => !submittedStudentIds.has(studentId))
+    const planSubjects = await this.getSelectedPlanSubjects(session)
+    const allowedBySemester = this.computeAllowedSubjectsBySemester(planSubjects)
+    const resultsSnapshot = this.buildResultsSnapshot(session, assignments, noSubmission, studentContexts, allowedBySemester)
+    const planSubjectById = new Map(planSubjects.map((planSubject) => [planSubject.id, planSubject]))
+    const groupPlanIdByGroupId = new Map<number, number>()
+
+    for (const context of studentContexts.values()) {
+      groupPlanIdByGroupId.set(context.groupId, context.planId)
     }
 
-    // Determine per group which planSubjectIds to materialize
-    const groupToSubjectIds = new Map<number, Set<number>>()
-    const assignments: any = session.assignments
-    for (const [sidStr, entry] of Object.entries(assignments)) {
-      const sid = Number(sidStr)
-      const grp = studentToGroup.get(sid)
-      if (!grp) continue
-      const semesters = (entry as any)?.semesters ?? {}
-      for (const semEntry of Object.values(semesters)) {
-        const ids = (semEntry as any)?.planSubjectIds ?? []
-        if (!groupToSubjectIds.has(grp.groupId)) groupToSubjectIds.set(grp.groupId, new Set())
-        ids.forEach((id: number) => groupToSubjectIds.get(grp.groupId)!.add(id))
+    const allOfferings = Object.values(resultsSnapshot.semesters ?? {}).flatMap((semester) => semester.offerings ?? [])
+
+    for (const offering of allOfferings) {
+      const planSubject = planSubjectById.get(offering.planSubjectId)
+      if (!planSubject) continue
+
+      const createdLessonsBySignature = new Map<string, GroupLoadLessonEntity[]>()
+
+      for (const groupId of offering.groupIds) {
+        const planId = groupPlanIdByGroupId.get(groupId)
+        if (!planId) continue
+
+        const lessonTemplates = this.groupLoadLessonsService
+          .convertPlanSubjectsToGroupLoadLessons([planSubject], groupId, planId)
+          .map((lesson) => ({
+            ...lesson,
+            subgroupNumber: offering.subgroupNumber,
+          }))
+
+        for (const template of lessonTemplates as any[]) {
+          const existing = await this.groupLoadLessonsRepo.findOne({
+            where: {
+              group: { id: groupId } as any,
+              planSubjectId: { id: offering.planSubjectId } as any,
+              typeEn: template.typeEn,
+              semester: template.semester,
+              subgroupNumber: template.subgroupNumber ?? null,
+            } as any,
+            relations: { students: true },
+          })
+
+          const savedLesson =
+            existing ??
+            (await this.groupLoadLessonsRepo.save(
+              this.groupLoadLessonsRepo.create(template as any) as unknown as GroupLoadLessonEntity,
+            ))
+          const signature = `${savedLesson.typeEn}:${savedLesson.hours}:${savedLesson.semester}:${savedLesson.subgroupNumber ?? 'main'}`
+
+          if (!createdLessonsBySignature.has(signature)) {
+            createdLessonsBySignature.set(signature, [])
+          }
+
+          createdLessonsBySignature.get(signature)!.push(savedLesson)
+        }
       }
-    }
 
-    // Materialize lessons per group
-    for (const [groupId, subjectIdsSet] of groupToSubjectIds.entries()) {
-      const subjectIds = Array.from(subjectIdsSet)
-      const anyStudent = students.find((s) => s.group?.id === groupId)
-      const planId = anyStudent?.group?.educationPlan?.id
-      if (!planId) continue
+      if (offering.groupIds.length > 1) {
+        const streamName = `Elective ${session.id} • ${offering.planSubjectId} • ${offering.semester} • ${offering.subgroupNumber ?? 1}`
+        const stream = await this.streamsRepo.save(
+          this.streamsRepo.create({
+            name: streamName,
+            groups: offering.groupIds.map((groupId) => ({ id: groupId })) as any,
+          }),
+        )
 
-      const planSubjects = await this.planSubjectsRepo.find({
-        where: { id: In(subjectIds), plan: { id: planId } as any, isElective: true as any },
-        relations: { cmk: true },
-        select: { cmk: { id: true } } as any,
-      })
+        for (const lessons of createdLessonsBySignature.values()) {
+          if (lessons.length < 2) continue
 
-      const newLessons = this.groupLoadLessonsService.convertPlanSubjectsToGroupLoadLessons(planSubjects, groupId, planId)
-      // save if not exists
-      for (const l of newLessons as any) {
-        const exists = await this.groupLoadLessonsRepo.findOne({
+          await this.groupLoadLessonsService.addLessonsToStream(stream.id, {
+            streamId: stream.id,
+            streamName: stream.name,
+            lessonsIds: lessons.map((lesson) => lesson.id),
+          })
+        }
+      }
+
+      for (const groupId of offering.groupIds) {
+        const groupStudentIds = offering.groupStudentIds[String(groupId)] ?? []
+        if (!groupStudentIds.length) continue
+
+        const lessons = await this.groupLoadLessonsRepo.find({
           where: {
             group: { id: groupId } as any,
-            planSubjectId: { id: l.planSubjectId.id } as any,
-            typeEn: l.typeEn,
-            semester: l.semester,
+            planSubjectId: { id: offering.planSubjectId } as any,
+            semester: Number(offering.semester),
+            subgroupNumber: offering.subgroupNumber ?? null,
           } as any,
-          select: { id: true } as any,
+          relations: { students: true },
         })
-        if (!exists) {
-          const created = this.groupLoadLessonsRepo.create(l)
-          await this.groupLoadLessonsRepo.save(created)
+
+        for (const lesson of lessons) {
+          const existingStudentIds = new Set((lesson.students ?? []).map((student) => student.id))
+          const missingStudentIds = groupStudentIds.filter((studentId) => !existingStudentIds.has(studentId))
+
+          if (!missingStudentIds.length) continue
+
+          await this.groupLoadLessonsRepo
+            .createQueryBuilder()
+            .relation(GroupLoadLessonEntity, 'students')
+            .of(lesson.id)
+            .add(missingStudentIds)
         }
       }
     }
 
-    // Fill student_lessons via TypeORM relation API
-    for (const [sidStr, entry] of Object.entries(assignments)) {
-      const sid = Number(sidStr)
-      const grp = studentToGroup.get(sid)
-      if (!grp) continue
-      const semesters = (entry as any)?.semesters ?? {}
-      const subjectIds: number[] = []
-      for (const semEntry of Object.values(semesters)) {
-        const ids = (semEntry as any)?.planSubjectIds ?? []
-        ids.forEach((id: number) => subjectIds.push(id))
-      }
-      if (!subjectIds.length) continue
-
-      const lessons = await this.groupLoadLessonsRepo.find({
-        where: { group: { id: grp.groupId } as any, planSubjectId: { id: In(subjectIds) } as any } as any,
-        relations: { students: true },
-        select: { id: true, students: { id: true } } as any,
-      })
-      if (!lessons.length) continue
-
-      for (const lesson of lessons) {
-        const isAlreadyAssigned = lesson.students?.some((student) => student.id === sid)
-        if (isAlreadyAssigned) continue
-
-        await this.groupLoadLessonsRepo
-          .createQueryBuilder()
-          .relation(GroupLoadLessonEntity, 'students')
-          .of(lesson.id)
-          .add(sid)
-      }
-    }
-
+    session.assignments = assignments
+    session.resultsSnapshot = resultsSnapshot
     session.status = 'FINALIZED'
     return this.sessionsRepo.save(session)
   }
 }
-

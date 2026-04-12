@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsArray, IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator'
+import { IsArray, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator'
+
+import { ElectiveSessionDistributionMode } from '../entities/elective-session.entity'
+
+const ELECTIVE_DISTRIBUTION_MODE = {
+  BY_GROUP: 'BY_GROUP',
+  MIXED: 'MIXED',
+} as const
 
 export class CreateElectiveSessionDto {
   @ApiProperty()
@@ -7,7 +14,7 @@ export class CreateElectiveSessionDto {
   @IsNotEmpty()
   name: string
 
-  @ApiProperty({ required: false, default: 10 })
+  @ApiProperty({ required: false, default: 15 })
   @IsOptional()
   @IsNumber()
   minStudentsThreshold?: number
@@ -27,6 +34,10 @@ export class CreateElectiveSessionDto {
   @IsString()
   scopeNote?: string
 
+  @ApiProperty({ type: [Number], description: 'Snapshot list of selected groups for this session' })
+  @IsArray()
+  groupIds: number[]
+
   @ApiProperty({ type: [Number] })
   @IsArray()
   planSubjectIds: number[]
@@ -34,5 +45,20 @@ export class CreateElectiveSessionDto {
   @ApiProperty({ type: [Number] })
   @IsArray()
   studentIds: number[]
+
+  @ApiProperty({ enum: ['BY_GROUP', 'MIXED'], required: false, default: 'BY_GROUP' })
+  @IsOptional()
+  @IsEnum(ELECTIVE_DISTRIBUTION_MODE)
+  distributionMode?: ElectiveSessionDistributionMode
+
+  @ApiProperty({ required: false, default: 30 })
+  @IsOptional()
+  @IsNumber()
+  maxStudentsPerOffering?: number
+
+  @ApiProperty({ required: false, default: 5 })
+  @IsOptional()
+  @IsNumber()
+  minSharedGroupSize?: number
 }
 
