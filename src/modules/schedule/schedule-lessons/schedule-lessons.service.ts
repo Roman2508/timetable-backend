@@ -15,6 +15,8 @@ import { GoogleCalendarService } from 'src/integrations/google-calendar/google-c
 import { FindAllLessonDatesForTheSemesterDto } from './dto/find-lesson-dates-for-the-semester.dto'
 import { GroupLoadLessonEntity } from 'src/modules/schedule/group-load-lessons/entities/group-load-lesson.entity'
 
+type ScheduleLessonTypeRu = ScheduleLessonsEntity['typeRu']
+
 @Injectable()
 export class ScheduleLessonsService {
   constructor(
@@ -158,6 +160,37 @@ export class ScheduleLessonsService {
     })
   }
 
+  private getScheduleHoursFilter(
+    lesson: Pick<
+      GroupLoadLessonEntity,
+      'name' | 'semester' | 'typeRu' | 'subgroupNumber' | 'specialization' | 'stream'
+    > & { group: { id: number } },
+  ) {
+    return {
+      name: lesson.name,
+      semester: lesson.semester,
+      typeRu: lesson.typeRu as ScheduleLessonTypeRu,
+      subgroupNumber: lesson.subgroupNumber ?? null,
+      specialization: lesson.specialization ?? null,
+      stream: lesson.stream ? { id: lesson.stream.id } : null,
+      group: { id: lesson.group.id },
+    }
+  }
+
+  private async getScheduledHoursForLesson(
+    lesson: Pick<
+      GroupLoadLessonEntity,
+      'name' | 'semester' | 'typeRu' | 'subgroupNumber' | 'specialization' | 'stream'
+    > & { group: { id: number } },
+  ) {
+    const scheduledLessons = await this.repository.find({
+      where: this.getScheduleHoursFilter(lesson),
+      select: { currentLessonHours: true },
+    })
+
+    return scheduledLessons.reduce((total, scheduledLesson) => total + scheduledLesson.currentLessonHours, 0)
+  }
+
   async findAllLessonDatesForTheSemester(dto: FindAllLessonDatesForTheSemesterDto) {
     const typeRu = dto.type as 'ЛК' | 'ПЗ' | 'ЛАБ' | 'СЕМ' | 'ЕКЗ'
 
@@ -295,15 +328,9 @@ export class ScheduleLessonsService {
     if (dto.stream) {
       const stream = await this.streamRepository.findOne({
         where: { id: dto.stream },
-        relations: { groups: true, lessons: { unitedWith: { group: true } } },
+        relations: { groups: true },
         select: {
           groups: { id: true, name: true },
-          lessons: {
-            id: true,
-            name: true,
-            group: { id: true, name: true },
-            unitedWith: { id: true, name: true, group: { id: true, name: true } },
-          },
         },
       })
 
@@ -314,48 +341,121 @@ export class ScheduleLessonsService {
       /*  */
       /*  */
       /*  */
-      const unitedLesson = stream.lessons.find((el) => el.id === dto.id)
+      const unitedLesson = await this.groupLoadRepository.findOne({
+        where: { id: dto.id, stream: { id: dto.stream } },
+        relations: {
+          group: true,
+          stream: true,
+          students: true,
+          unitedWith: {
+            group: true,
+            stream: true,
+            students: true,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          semester: true,
+          typeRu: true,
+          hours: true,
+          specialization: true,
+          subgroupNumber: true,
+          group: { id: true, name: true },
+          stream: { id: true, name: true },
+          students: { id: true },
+          unitedWith: {
+            id: true,
+            name: true,
+            semester: true,
+            typeRu: true,
+            hours: true,
+            specialization: true,
+            subgroupNumber: true,
+            group: { id: true, name: true },
+            stream: { id: true, name: true },
+            students: { id: true },
+          },
+        },
+      })
       // console.log('скоріше за все (при копіюванні) проблема в unitedLesson. el.id === dto.id не співпадають');
       // console.log('stream.lessons', stream.lessons);
       // console.log('dto', dto);
       // console.log('unitedLesson', unitedLesson);
-      if (unitedLesson) {
-        await Promise.all(
+      if (!unitedLesson || !unitedLesson.unitedWith.length) {
+        throw new NotFoundException('РџРѕРІР\'СЏР·Р°РЅС– РґРёСЃС†РёРїР»С–РЅРё РїРѕС‚РѕРєСѓ РЅРµ Р·РЅР°Р№РґРµРЅРѕ')
+      }
+
+      {
+        const createdLessons = await Promise.all(
           unitedLesson.unitedWith.map(async (el) => {
-            const { id, group, teacher, auditory, stream, ...rest } = dto
+            const scheduledHours = await this.getScheduledHoursForLesson(el)
+
+            if (scheduledHours + dto.currentLessonHours > el.hours) {
+              return null
+            }
 
             const payload = {
-              ...rest,
+              date: dto.date,
+              lessonNumber: dto.lessonNumber,
+              currentLessonHours: dto.currentLessonHours,
+              isRemote: dto.isRemote,
               name: el.name,
+              semester: el.semester,
+              typeRu: el.typeRu as ScheduleLessonTypeRu,
+              subgroupNumber: el.subgroupNumber ?? null,
+              specialization: el.specialization ?? null,
+              students: el.students?.length ?? dto.students,
+              hours: el.hours,
               group: { id: el.group.id },
-              teacher: { id: teacher },
-              stream: { id: stream },
+              teacher: { id: dto.teacher },
+              stream: { id: dto.stream },
             }
 
             let auditoryName = ''
             let createdLesson = null
 
-            if (!auditory) {
+            if (!dto.auditory) {
               // Якщо урок буде проводитись дистанційно
               const newLesson = this.repository.create(payload)
 
               auditoryName = 'Дистанційно'
-              createdLesson = await this.repository.save(newLesson)
+              await this.repository.save(newLesson)
+
+              createdLesson = await this.findOneByDateAndGroup(
+                dto.date,
+                dto.lessonNumber,
+                el.semester,
+                el.group.id,
+                el.typeRu as ScheduleLessonTypeRu,
+                el.subgroupNumber,
+                dto.stream,
+              )
             } else {
               // Якщо урок буде проводитись НЕ дистанційно
-              const newLesson = this.repository.create({ ...payload, auditory: { id: auditory } })
+              const newLesson = this.repository.create({ ...payload, auditory: { id: dto.auditory } })
               await this.repository.save(newLesson)
 
               const lesson = await this.findOneByDateAndGroup(
                 dto.date,
                 dto.lessonNumber,
-                dto.semester,
+                el.semester,
                 el.group.id,
-                dto.typeRu,
+                el.typeRu as ScheduleLessonTypeRu,
+                el.subgroupNumber,
+                dto.stream,
               )
+
+              if (!lesson?.auditory) {
+                throw new NotFoundException('РќРµ РІРґР°Р»РѕСЃСЏ Р·РЅР°Р№С‚Рё СЃС‚РІРѕСЂРµРЅРёР№ РµР»РµРјРµРЅС‚ СЂРѕР·РєР»Р°РґСѓ')
+              }
 
               auditoryName = lesson.auditory.name
               createdLesson = lesson
+            }
+
+            if (!createdLesson) {
+              throw new NotFoundException('РќРµ РІРґР°Р»РѕСЃСЏ Р·РЅР°Р№С‚Рё СЃС‚РІРѕСЂРµРЅРёР№ РµР»РµРјРµРЅС‚ СЂРѕР·РєР»Р°РґСѓ')
             }
 
             // const googleCalendarEventDto = {
@@ -382,13 +482,13 @@ export class ScheduleLessonsService {
             // await this.googleCalendarService.createCalendarEvent(teacherEventDto);
 
             await this.createGoogleEvents(
-              dto.name,
+              el.name,
               dto.lessonNumber,
               dto.date,
               el.group.name,
-              dto.subgroupNumber,
+              el.subgroupNumber,
               auditoryName,
-              createdLesson.teacher.id,
+              dto.teacher,
               el.group.id,
             )
 
@@ -470,15 +570,17 @@ export class ScheduleLessonsService {
           }),
         )
 
-        const newLesson = await this.findOneByDateAndGroup(
-          dto.date,
-          dto.lessonNumber,
-          dto.semester,
-          dto.group,
-          dto.typeRu,
+        const createdStreamLessons = createdLessons.filter(
+          (lesson): lesson is NonNullable<typeof lesson> => Boolean(lesson),
         )
 
-        return newLesson
+        if (!createdStreamLessons.length) {
+          throw new BadRequestException('Р”Р»СЏ РґРёСЃС†РёРїР»С–РЅ РїРѕС‚РѕРєСѓ РЅРµ Р·Р°Р»РёС€РёР»РѕСЃСЏ РґРѕСЃС‚Р°С‚РЅСЊРѕ РіРѕРґРёРЅ РґР»СЏ С†СЊРѕРіРѕ СѓСЂРѕРєСѓ')
+        }
+
+        const selectedLesson = createdStreamLessons.find((lesson) => lesson.group.id === dto.group)
+
+        return selectedLesson ?? null
       }
 
       /* ?????????????????????????? */
@@ -906,14 +1008,14 @@ export class ScheduleLessonsService {
         },
       })
 
-      Promise.all(
+      await Promise.all(
         streamLessonsInCurrentDate.map(async (el) => {
           await this.updateGoogleEvents(
             lesson.name,
             lesson.lessonNumber,
             lesson.date,
             el.group.name, // || lesson.group.name,
-            lesson.subgroupNumber,
+            el.subgroupNumber,
             dto.auditoryName ? dto.auditoryName : 'Дистанційно', // || lesson.auditory ? lesson.auditory.name : 'Дистанційно',
             el.teacher.id,
             el.group.id,
@@ -1142,10 +1244,13 @@ export class ScheduleLessonsService {
         relations: {
           group: true,
           teacher: true,
+          auditory: true,
         },
         select: {
           group: { id: true, name: true, calendarId: true },
           teacher: { id: true, calendarId: true },
+          auditory: { id: true, name: true },
+          subgroupNumber: true,
         },
       })
 
@@ -1159,14 +1264,14 @@ export class ScheduleLessonsService {
 
       // Потрібно перевіряти чи були видалені елементи, якщо ні - повернути помилку !!!!!
 
-      Promise.all(
+      await Promise.all(
         streamLessonsInCurrentDate.map(async (el) => {
           await this.deleteGoogleEvents(
             lesson.name,
             lesson.lessonNumber,
             lesson.date,
             el.group.name,
-            lesson.subgroupNumber,
+            el.subgroupNumber,
             lesson.auditory ? lesson.auditory.name : 'Дистанційно',
             el.teacher.id,
             el.group.id,

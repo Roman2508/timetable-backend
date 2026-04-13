@@ -1022,14 +1022,16 @@ export class GroupLoadLessonsService {
         }),
       )
 
+      if (lessons.some((lesson) => !lesson)) {
+        throw new NotFoundException('Р”РµСЏРєС– Р· РѕР±СЂР°РЅРёС… РґРёСЃС†РёРїР»С–РЅ РЅРµ Р·РЅР°Р№РґРµРЅРѕ')
+      }
+
       // Перевірка чи можна об'єднати дисципліни, які передано
       // тобто чи однакові в дисциплін поля: semesterNumber (semester), typeEn, hours, subgroupNumber
       const isAllLessonsSame = lessons.every(
         (value) =>
-          value.semester === lessons[0].semester &&
-          value.typeEn === lessons[0].typeEn &&
-          value.subgroupNumber === lessons[0].subgroupNumber &&
-          value.hours === lessons[0].hours,
+          value.name === lessons[0].name &&
+          value.typeEn === lessons[0].typeEn,
       )
 
       // Якщо хоча б 1 поле в 1 дисципліні не однакове
@@ -1051,6 +1053,7 @@ export class GroupLoadLessonsService {
       )
     } catch (err) {
       console.log(err?.message)
+      throw err
     }
   }
 
