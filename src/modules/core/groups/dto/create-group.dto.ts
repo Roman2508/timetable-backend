@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateGroupDto {
   @ApiProperty()
@@ -36,4 +36,9 @@ export class CreateGroupDto {
   @IsNotEmpty({ message: 'Це поле обов`язкове' })
   @IsNumber()
   educationPlan: number;
+
+  @ApiPropertyOptional({ nullable: true, description: 'ID викладача-куратора групи' })
+  @IsOptional()
+  @IsNumber()
+  curator?: number | null;
 }

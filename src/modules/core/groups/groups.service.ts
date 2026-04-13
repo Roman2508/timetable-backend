@@ -11,6 +11,21 @@ import { CreateGroupSpecializationDto } from './dto/create-group-specialization.
 import { UpdateGroupSpecializationDto } from './dto/update-group-specialization.dto'
 import { GroupLoadLessonsService } from '../../schedule/group-load-lessons/group-load-lessons.service'
 
+/** Поля тіла запиту, які не можна зливати в сутність (зв'язки OneToMany / ManyToMany або id). */
+const GROUP_DTO_RELATION_KEYS = new Set([
+  'id',
+  'students',
+  'groupLoad',
+  'stream',
+  'category',
+  'educationPlan',
+  'curator',
+])
+
+function pickGroupScalarFieldsFromBody(dto: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(dto).filter(([key]) => !GROUP_DTO_RELATION_KEYS.has(key)))
+}
+
 @Injectable()
 export class GroupsService {
   constructor(
@@ -32,6 +47,7 @@ export class GroupsService {
         stream: true,
         educationPlan: true,
         students: true,
+        curator: { category: true },
         groupLoad: {
           group: true,
           planSubjectId: true,
@@ -44,6 +60,13 @@ export class GroupsService {
       select: {
         category: { id: true, name: true },
         educationPlan: { id: true, name: true },
+        curator: {
+          id: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+          category: { id: true, name: true, shortName: true },
+        },
         students: { id: true, name: true, status: true },
         groupLoad: {
           id: true,
@@ -80,18 +103,24 @@ export class GroupsService {
   }
 
   async create(dto: CreateGroupDto) {
-    const { category, educationPlan, ...rest } = dto
+    const { category, educationPlan, curator, ...incoming } = dto as CreateGroupDto & Record<string, unknown>
+    const rest = pickGroupScalarFieldsFromBody(incoming as Record<string, unknown>)
 
     // const calendarId = await this.googleCalendarService.createCalendar({
     //   owner: dto.name,
     // });
 
+    const calendarIdFromBody =
+      typeof (rest as { calendarId?: string | null }).calendarId === 'string'
+        ? (rest as { calendarId: string }).calendarId
+        : ''
+
     const newGroup = this.groupsRepository.create({
       ...rest,
       educationPlan: { id: educationPlan },
       category: { id: category },
-      calendarId: 'https://calendar.google.com',
-      // calendarId,
+      curator: curator != null && curator !== 0 ? { id: curator } : null,
+      calendarId: calendarIdFromBody,
     })
 
     const group = await this.groupsRepository.save(newGroup)
@@ -110,7 +139,7 @@ export class GroupsService {
       groupLoadLessons,
     })
 
-    return group
+    return this.findOne(group.id)
   }
 
   async update(id: number, dto: UpdateGroupDto) {
@@ -145,23 +174,20 @@ export class GroupsService {
       })
     }
 
-    const { category, educationPlan, ...rest } = dto
+    const { category, educationPlan, curator, ...incoming } = dto as UpdateGroupDto & Record<string, unknown>
+    const rest = pickGroupScalarFieldsFromBody(incoming as Record<string, unknown>)
 
-    const updatedGroup = {
+    await this.groupsRepository.save({
       ...group,
       ...rest,
       category: { id: category },
       educationPlan: { id: educationPlan },
-    }
-
-    console.log(updatedGroup)
-
-    return this.groupsRepository.save({
-      ...group,
-      ...rest,
-      category: { id: category },
-      educationPlan: { id: educationPlan },
+      ...('curator' in dto
+        ? { curator: curator != null && curator !== 0 ? { id: curator } : null }
+        : {}),
     })
+
+    return this.findOne(id)
   }
 
   async incrementAllGroupsCourse() {
@@ -220,6 +246,22 @@ export class GroupsService {
     await this.groupsRepository.save({ ...group, isHide: !group.isHide })
 
     return { id, isHide: !group.isHide }
+  }
+
+  /** Створює новий календар Google і зберігає його id у групі (можна викликати повторно). */
+  async regenerateGoogleCalendar(id: number) {
+    const group = await this.groupsRepository.findOne({ where: { id } })
+    if (!group) throw new NotFoundException('Групу не знайдено')
+
+    try {
+      const calendarId = await this.googleCalendarService.createCalendar({ owner: group.name })
+      await this.groupsRepository.update(id, { calendarId })
+      return this.findOne(id)
+    } catch (err) {
+      if (err instanceof NotFoundException || err instanceof BadRequestException) throw err
+      const message = err instanceof Error ? err.message : String(err)
+      throw new BadRequestException(`Не вдалося створити календар Google: ${message}`)
+    }
   }
 
   // Specialization

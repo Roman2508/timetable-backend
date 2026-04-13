@@ -1,5 +1,6 @@
 import { InitialSchema1775212875398 } from './1775212875398-InitialSchema'
 import { ElectivesSessionAndPlanSubjectElective1789000000000 } from './1789000000000-ElectivesSessionAndPlanSubjectElective'
+import { GroupCurator1790200000000 } from './1790200000000-GroupCurator'
 /* 
 Чи потрібний backend/src/migrations/index.ts?
 Для запуску міграцій через CLI (npm run migration:run) — не потрібний. CLI бере міграції напряму з database.config.ts через migrations: ['src/migrations/[0-9]*.ts'].
@@ -14,4 +15,5 @@ import { ElectivesSessionAndPlanSubjectElective1789000000000 } from './178900000
 export const migrations = [
   InitialSchema1775212875398,
   ElectivesSessionAndPlanSubjectElective1789000000000,
+  GroupCurator1790200000000,
 ]

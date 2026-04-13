@@ -59,6 +59,11 @@ export class GroupsController {
     return this.groupsService.decrementAllGroupsCourse()
   }
 
+  @Post(':id/google-calendar/regenerate')
+  regenerateGoogleCalendar(@Param('id') id: string) {
+    return this.groupsService.regenerateGoogleCalendar(+id)
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateGroupDto) {
     return this.groupsService.update(+id, dto)

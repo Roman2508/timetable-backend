@@ -14,6 +14,7 @@ import { StreamEntity } from 'src/modules/core/streams/entities/stream.entity'
 import { StudentEntity } from 'src/modules/core/students/entities/student.entity'
 import { GroupCategoryEntity } from 'src/modules/core/group-categories/entities/group-category.entity'
 import { GroupLoadLessonEntity } from 'src/modules/schedule/group-load-lessons/entities/group-load-lesson.entity'
+import { TeacherEntity } from 'src/modules/core/teachers/entities/teacher.entity'
 
 export enum GroupStatus {
   ACTIVE = 'Активний',
@@ -64,6 +65,10 @@ export class GroupEntity {
   @ManyToOne(() => PlanEntity, (plan) => plan.groups)
   @JoinColumn({ name: 'educationPlan' })
   educationPlan: PlanEntity
+
+  @ManyToOne(() => TeacherEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'curatorId' })
+  curator: TeacherEntity | null
 
   @Column('text', { array: true, default: [] })
   specializationList: string[]

@@ -9,6 +9,7 @@ import { GroupLoadLessonEntity } from './entities/group-load-lesson.entity'
 import { GroupLoadLessonsController } from './group-load-lessons.controller'
 import { PlanSubjectEntity } from 'src/modules/plans/plan-subjects/entities/plan-subject.entity'
 import { TeacherCategoryEntity } from 'src/modules/core/teacher-categories/entities/teacher-category.entity'
+import { InstructionalMaterialEnity } from 'src/modules/reports/instructional-materials/entities/instructional-material.entity'
 
 @Module({
   controllers: [GroupLoadLessonsController],
@@ -20,6 +21,7 @@ import { TeacherCategoryEntity } from 'src/modules/core/teacher-categories/entit
       PlanSubjectEntity,
       TeacherEntity,
       GroupEntity,
+      InstructionalMaterialEnity,
     ]),
     GradesModule,
   ],

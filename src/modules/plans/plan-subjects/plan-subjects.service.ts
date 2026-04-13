@@ -69,7 +69,7 @@ export class PlanSubjectsService {
     })
 
     const withSemester = await this.repository.find({
-      where: { plan: id as any, semesterNumber: In(semesterNumbersArray) },
+      where: { plan: { id }, semesterNumber: In(semesterNumbersArray) },
       relations: { cmk: true, plan: true },
     })
 

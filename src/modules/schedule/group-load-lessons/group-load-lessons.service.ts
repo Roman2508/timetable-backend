@@ -13,6 +13,7 @@ import { GroupLoadLessonEntity } from './entities/group-load-lesson.entity'
 import { CreateGroupLoadLessonDto } from './dto/create-group-load-lesson.dto'
 import { AddLessonsToStreamDto } from '../../core/streams/dto/add-lessons-to-stream.dto'
 import { DeleteStudentFromLessonDto } from './dto/delete-student-from-lesson.dto'
+import { InstructionalMaterialEnity } from 'src/modules/reports/instructional-materials/entities/instructional-material.entity'
 import { PlanSubjectEntity } from 'src/modules/plans/plan-subjects/entities/plan-subject.entity'
 import { UpdateGroupLoadLessonNameDto } from './dto/update-group-load-lesson-name.dto'
 import { UpdateGroupLoadLessonHoursDto } from './dto/update-group-load-lesson-hours.dto'
@@ -36,8 +37,18 @@ export class GroupLoadLessonsService {
     @InjectRepository(TeacherEntity)
     private teacherRepository: Repository<TeacherEntity>,
 
+    @InjectRepository(InstructionalMaterialEnity)
+    private instructionalMaterialRepository: Repository<InstructionalMaterialEnity>,
+
     private readonly gradesService: GradesService,
   ) {}
+
+  /** instructional-material.lesson FK — must clear before deleting group-load-lessons rows */
+  private async deleteInstructionalMaterialsForLessonIds(lessonIds: number[]): Promise<void> {
+    const ids = [...new Set(lessonIds.filter((id) => Number.isFinite(id) && id > 0))]
+    if (!ids.length) return
+    await this.instructionalMaterialRepository.delete({ lesson: { id: In(ids) } })
+  }
 
   // !important
   // check students changes in:
@@ -536,8 +547,8 @@ export class GroupLoadLessonsService {
     }
 
     // шукаю видалені дисципліни
+    const lessonIdsToRemove: number[] = []
     for (let i = 0; i < oldLessonsHours.length; i++) {
-      // Шукаю в новому масиві дисциплін дисципліни з старого масиву
       const findedLesson = newLessonsHours.find((el) => {
         if (!oldLessonsHours[i]) return
         return (
@@ -547,11 +558,14 @@ export class GroupLoadLessonsService {
         )
       })
 
-      // Якщо в новому масиві дисципліна не знайдена - отже вона була видалена
       if (!findedLesson) {
-        await this.groupLoadLessonsRepository.delete(oldLessonsHours[i].id)
-        // removedSubjects.push(oldLessonsHours[i]); !!!!!!!
+        lessonIdsToRemove.push(oldLessonsHours[i].id)
       }
+    }
+
+    if (lessonIdsToRemove.length) {
+      await this.deleteInstructionalMaterialsForLessonIds(lessonIdsToRemove)
+      await this.groupLoadLessonsRepository.delete({ id: In(lessonIdsToRemove) })
     }
 
     return
@@ -561,6 +575,13 @@ export class GroupLoadLessonsService {
   // Треба споатку видалити всі group-load-lessons старого плану (за це відповідає this.removeByGroupId())
   // Потім створити всі нові group-load-lessons для нового плану (за це відповідає this.createAll())
   async removeByGroupId(groupId: number) {
+    const lessonIds = (
+      await this.groupLoadLessonsRepository.find({
+        where: { group: { id: groupId } },
+        select: { id: true },
+      })
+    ).map((l) => l.id)
+    await this.deleteInstructionalMaterialsForLessonIds(lessonIds)
     await this.groupLoadLessonsRepository.delete({
       group: { id: groupId },
     })
@@ -569,6 +590,13 @@ export class GroupLoadLessonsService {
 
   // Коли видаляється дисципліна навчального плану - потрібно видаляти також і group-load-lessons
   async removeByPlanId(planSubjectId: number) {
+    const lessonIds = (
+      await this.groupLoadLessonsRepository.find({
+        where: { planSubjectId: { id: planSubjectId } },
+        select: { id: true },
+      })
+    ).map((l) => l.id)
+    await this.deleteInstructionalMaterialsForLessonIds(lessonIds)
     await this.groupLoadLessonsRepository.delete({
       planSubjectId: { id: planSubjectId },
     })
@@ -585,29 +613,57 @@ export class GroupLoadLessonsService {
     const ids = (planSubjectIds ?? []).filter((n) => Number.isFinite(n) && n > 0)
     if (!ids.length) return true
 
-    const lessons: Array<{ id: number }> = await this.groupLoadLessonsRepository.find({
-      where: { planSubjectId: { id: ids as any } as any } as any,
-      select: { id: true } as any,
+    const targets = await this.groupLoadLessonsRepository.find({
+      where: { planSubjectId: { id: In(ids) } },
+      relations: { students: true, unitedWith: true },
     })
 
-    const lessonIds = lessons.map((l) => l.id).filter((n) => Number.isFinite(n) && n > 0)
-    if (lessonIds.length) {
-      // Clear M2M join tables referencing group-load-lessons (defensive; depending on FK config they may not cascade)
-      await this.groupLoadLessonsRepository.query(`DELETE FROM student_lessons WHERE lesson_id = ANY($1)`, [lessonIds])
-      await this.groupLoadLessonsRepository.query(
-        `DELETE FROM lessons_united WHERE lesson_id = ANY($1) OR united_lesson_id = ANY($1)`,
-        [lessonIds],
+    const targetIds = targets.map((t) => t.id).filter((n) => Number.isFinite(n) && n > 0)
+    if (targetIds.length) {
+      const targetIdSet = new Set(targetIds)
+
+      const peerLessons = await this.groupLoadLessonsRepository
+        .createQueryBuilder('lesson')
+        .innerJoin('lesson.unitedWith', 'uw')
+        .where('uw.id IN (:...targetIds)', { targetIds })
+        .leftJoinAndSelect('lesson.unitedWith', 'uw2')
+        .getMany()
+
+      await Promise.all(
+        peerLessons.map(async (lesson) => {
+          const unitedToRemove = lesson.unitedWith.filter((u) => targetIdSet.has(u.id)).map((u) => u.id)
+          if (!unitedToRemove.length) return
+          await this.groupLoadLessonsRepository
+            .createQueryBuilder()
+            .relation(GroupLoadLessonEntity, 'unitedWith')
+            .of(lesson.id)
+            .remove(unitedToRemove)
+        }),
+      )
+
+      await Promise.all(
+        targets.map((lesson) =>
+          this.groupLoadLessonsRepository.save({
+            id: lesson.id,
+            students: [],
+            unitedWith: [],
+          }),
+        ),
       )
     }
 
+    if (targetIds.length) {
+      await this.deleteInstructionalMaterialsForLessonIds(targetIds)
+    }
+
     await this.groupLoadLessonsRepository.delete({
-      planSubjectId: { id: ids as any } as any,
+      planSubjectId: { id: In(ids) },
     })
 
     return true
   }
 
-  // Студенти, які ходять на дисципліну (для students/accounts )
+  // Студенти, які ходять на дисципліну (для students/accounts)
   // Повертається дисципліна включно з студентами
   async getLessonStudents(
     semester: number,
@@ -859,6 +915,7 @@ export class GroupLoadLessonsService {
             subgroupNumber: null,
           })
         } else {
+          await this.deleteInstructionalMaterialsForLessonIds([el.id])
           await this.groupLoadLessonsRepository.delete({ id: el.id })
         }
       })
@@ -894,6 +951,7 @@ export class GroupLoadLessonsService {
         const isNeedToRemove = subgroupsNumbers.some((num) => num === el.subgroupNumber)
 
         if (isNeedToRemove) {
+          await this.deleteInstructionalMaterialsForLessonIds([el.id])
           await this.groupLoadLessonsRepository.delete({ id: el.id })
         } else {
           // В іншому випадку повертаю цю дисципліну
