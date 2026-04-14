@@ -1,6 +1,6 @@
 import { Between, Repository } from 'typeorm'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common'
 
 import { customDayjs } from 'src/utils/customDayjs'
 import { StreamEntity } from 'src/modules/core/streams/entities/stream.entity'
@@ -16,9 +16,12 @@ import { FindAllLessonDatesForTheSemesterDto } from './dto/find-lesson-dates-for
 import { GroupLoadLessonEntity } from 'src/modules/schedule/group-load-lessons/entities/group-load-lesson.entity'
 
 type ScheduleLessonTypeRu = ScheduleLessonsEntity['typeRu']
+type DeleteScheduleLessonResult = { id: number; warnings: string[] }
 
 @Injectable()
 export class ScheduleLessonsService {
+  private readonly logger = new Logger(ScheduleLessonsService.name)
+
   constructor(
     private readonly googleCalendarService: GoogleCalendarService,
 
@@ -106,10 +109,28 @@ export class ScheduleLessonsService {
     groupId: number,
     groupCalendarId: string,
     teacherCalendarId: string,
-  ) {
+  ): Promise<string[]> {
     const dto = { lessonName, lessonNumber, date, groupName, subgroupNumber, auditoryName }
-    this.googleCalendarService.deleteCalendarEvent(groupCalendarId, { ...dto, itemId: groupId, type: 'group' })
-    this.googleCalendarService.deleteCalendarEvent(teacherCalendarId, { ...dto, itemId: teacherId, type: 'teacher' })
+
+    const results = await Promise.allSettled([
+      this.googleCalendarService.deleteCalendarEvent(groupCalendarId, { ...dto, itemId: groupId, type: 'group' }),
+      this.googleCalendarService.deleteCalendarEvent(teacherCalendarId, { ...dto, itemId: teacherId, type: 'teacher' }),
+    ])
+
+    return results.flatMap((result, index) => {
+      if (result.status === 'fulfilled') {
+        return []
+      }
+
+      const calendarOwner = index === 0 ? 'групи' : 'викладача'
+      const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason)
+
+      this.logger.warn(
+        `Google Calendar sync warning while deleting lesson "${lessonName}" for group "${groupName}" (${calendarOwner}): ${errorMessage}`,
+      )
+
+      return [`Подію Google Calendar для ${calendarOwner} не вдалося видалити`]
+    })
   }
 
   async findOneByDateAndGroup(
@@ -978,6 +999,7 @@ export class ScheduleLessonsService {
 
     // Якщо група об'єднана в потік і кількість груп в потоці більше 1
     if (lesson.stream && lesson.stream.groups.length > 1) {
+      const warnings = new Set<string>()
       const currentsLessonDate = {
         date: lesson.date,
         lessonNumber: lesson.lessonNumber,
@@ -1207,7 +1229,7 @@ export class ScheduleLessonsService {
     return [...busyTeachers, ...busyReplacementTeachers]
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<DeleteScheduleLessonResult> {
     const lesson = await this.repository.findOne({
       where: { id },
       relations: {
@@ -1228,6 +1250,7 @@ export class ScheduleLessonsService {
 
     // Якщо група об'єднана в потік і кількість груп в потоці більше 1
     if (lesson.stream && lesson.stream.groups.length > 1) {
+      const warnings = new Set<string>()
       const currentsLessonDate = {
         date: lesson.date,
         lessonNumber: lesson.lessonNumber,
@@ -1266,19 +1289,6 @@ export class ScheduleLessonsService {
 
       await Promise.all(
         streamLessonsInCurrentDate.map(async (el) => {
-          await this.deleteGoogleEvents(
-            lesson.name,
-            lesson.lessonNumber,
-            lesson.date,
-            el.group.name,
-            el.subgroupNumber,
-            lesson.auditory ? lesson.auditory.name : 'Дистанційно',
-            el.teacher.id,
-            el.group.id,
-            el.group.calendarId,
-            el.teacher.calendarId,
-          )
-
           // this.googleCalendarService.deleteCalendarEvent(el.group.calendarId, {
           //   ...deleteGoogleCalendarEventDto,
           //   groupName: el.group.name,
@@ -1298,10 +1308,24 @@ export class ScheduleLessonsService {
           if (res.affected === 0) {
             throw new NotFoundException('Не знайдено')
           }
+          const googleWarnings = await this.deleteGoogleEvents(
+            lesson.name,
+            lesson.lessonNumber,
+            lesson.date,
+            el.group.name,
+            el.subgroupNumber,
+            lesson.auditory ? lesson.auditory.name : 'Дистанційно',
+            el.teacher.id,
+            el.group.id,
+            el.group.calendarId,
+            el.teacher.calendarId,
+          )
+
+          googleWarnings.forEach((warning) => warnings.add(warning))
         }),
       )
 
-      return id
+      return { id, warnings: [...warnings] }
     }
 
     // Якщо дисипліна не об'єднана в потік
@@ -1328,7 +1352,13 @@ export class ScheduleLessonsService {
     //   type: 'teacher',
     // });
 
-    await this.deleteGoogleEvents(
+    const res = await this.repository.delete({ id })
+
+    if (res.affected === 0) {
+      throw new NotFoundException('Не знайдено')
+    }
+
+    const warnings = await this.deleteGoogleEvents(
       lesson.name,
       lesson.lessonNumber,
       lesson.date,
@@ -1341,12 +1371,6 @@ export class ScheduleLessonsService {
       lesson.teacher.calendarId,
     )
 
-    const res = await this.repository.delete({ id })
-
-    if (res.affected === 0) {
-      throw new NotFoundException('Не знайдено')
-    }
-
-    return id
+    return { id, warnings }
   }
 }

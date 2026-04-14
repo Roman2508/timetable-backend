@@ -53,7 +53,7 @@ export class PlanSubjectsService {
     return this.repository.findOne({ where: { id: newSubject.id }, relations: { cmk: true } })
   }
 
-  async findAll(id: number, semestersString?: string) {
+  async findAll(id: number, semestersString?: string): Promise<PlanSubjectEntity[]> {
     let semesterNumbersArray
 
     if (!semestersString) {

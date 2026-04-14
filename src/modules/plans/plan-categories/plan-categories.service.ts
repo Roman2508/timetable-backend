@@ -35,7 +35,8 @@ export class PlanCategoriesService {
       planCategories.map(async (category) => {
         const plans = category.plans.map(async (plan) => {
           const subjects = await this.planSubjectsService.findAll(plan.id, '1,2,3,4,5,6,7,8')
-          return { ...plan, subjectsCount: subjects.length }
+          const subjectsCount = new Set(subjects.map((el) => el.name)).size
+          return { ...plan, subjectsCount }
         })
         return { ...category, plans: await Promise.all(plans) }
       }),
