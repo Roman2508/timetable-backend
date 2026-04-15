@@ -20,6 +20,7 @@ import { ApiConsumes } from '@nestjs/swagger'
 // import { JwtAuthGuard } from 'src/auth/guards/auth.guard';
 import { PlanSubjectsService } from './plan-subjects.service'
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto'
+import { ClonePlanSubjectDto } from './dto/clone-plan-subject.dto'
 import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto'
 import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto'
 import { Roles } from 'src/auth/decorators/roles.decorator'
@@ -49,6 +50,12 @@ export class PlanSubjectsController {
   @Post()
   create(@Body() dto: CreatePlanSubjectDto) {
     return this.planSubjectsService.create(dto)
+  }
+
+  @ApiBody({ type: ClonePlanSubjectDto })
+  @Post('clone')
+  clone(@Body() dto: ClonePlanSubjectDto) {
+    return this.planSubjectsService.cloneSubject(dto)
   }
 
   @ApiBody({ type: UpdatePlanSubjectNameDto })

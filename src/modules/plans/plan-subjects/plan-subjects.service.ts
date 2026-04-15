@@ -5,6 +5,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PlanSubjectEntity } from './entities/plan-subject.entity'
 import { PlanSubjectAttachmentEntity } from './entities/plan-subject-attachment.entity'
 import { CreatePlanSubjectDto } from './dto/create-plan-subject.dto'
+import { ClonePlanSubjectDto } from './dto/clone-plan-subject.dto'
 import { UpdatePlanSubjectNameDto } from './dto/update-plan-subject-name.dto'
 import { UpdatePlanSubjectHoursDto } from './dto/update-plan-subject-hours.dto'
 import { GroupLoadLessonsService } from 'src/modules/schedule/group-load-lessons/group-load-lessons.service'
@@ -53,6 +54,61 @@ export class PlanSubjectsService {
     return this.repository.findOne({ where: { id: newSubject.id }, relations: { cmk: true } })
   }
 
+  // Повна копія дисципліни в межах одного плану (включно з годинами по всім семестрам)
+  async cloneSubject(dto: ClonePlanSubjectDto) {
+    const targetCmk = await this.teachersCategoriesService.findById(dto.cmk)
+    if (!targetCmk) {
+      throw new BadRequestException('Циклову комісію не знайдено')
+    }
+
+    const sourceRows = await this.repository.find({
+      where: { plan: { id: dto.planId }, name: dto.sourceName },
+      relations: { cmk: true, plan: true },
+    })
+
+    if (!sourceRows.length) {
+      throw new NotFoundException('Дисципліну не знайдено')
+    }
+
+    const existingWithNewName = await this.repository.findOne({
+      where: { plan: { id: dto.planId }, name: dto.newName },
+      select: { id: true } as any,
+    })
+    if (existingWithNewName) {
+      throw new BadRequestException('Назви дисциплін повинні бути унікальними')
+    }
+
+    const clones = sourceRows.map((row) =>
+      this.repository.create({
+        plan: { id: dto.planId } as any,
+        cmk: { id: dto.cmk } as any,
+        name: dto.newName,
+        isElective: Boolean(row.isElective),
+        electiveDescription: row.electiveDescription ?? null,
+        electiveDriveFolderId: null, // do not share Drive folder with source
+        totalHours: row.totalHours ?? 0,
+        semesterNumber: row.semesterNumber ?? null,
+        lectures: row.lectures ?? 0,
+        practical: row.practical ?? 0,
+        laboratory: row.laboratory ?? 0,
+        seminars: row.seminars ?? 0,
+        exams: row.exams ?? 0,
+        examsConsulation: row.examsConsulation ?? 0,
+        metodologicalGuidance: row.metodologicalGuidance ?? 0,
+        independentWork: row.independentWork ?? 0,
+      }),
+    )
+
+    const saved = await this.repository.save(clones)
+    const ids = saved.map((r) => r.id)
+
+    return this.repository.find({
+      where: { id: In(ids) },
+      relations: { cmk: true, plan: true },
+      order: { semesterNumber: 'ASC' as any, id: 'ASC' as any },
+    })
+  }
+
   async findAll(id: number, semestersString?: string): Promise<PlanSubjectEntity[]> {
     let semesterNumbersArray
 
@@ -86,6 +142,16 @@ export class PlanSubjectsService {
   }
 
   async updateName(dto: UpdatePlanSubjectNameDto) {
+    if (dto.newName !== dto.oldName) {
+      const collision = await this.repository.findOne({
+        where: { plan: { id: dto.planId }, name: dto.newName },
+        select: { id: true } as any,
+      })
+      if (collision) {
+        throw new BadRequestException('Назви дисциплін повинні бути унікальними')
+      }
+    }
+
     // find all subjects by plan id
     const subject = await this.repository.find({
       where: { plan: { id: dto.planId }, name: dto.oldName },
